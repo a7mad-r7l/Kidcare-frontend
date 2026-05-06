@@ -8,16 +8,25 @@ class LoginRepo {
 
   Future<UserModel> loginUser(String phone, String password) async {
     var response = await loginApi.login(phone, password);
-
     var responseBody = json.decode(response);
 
-    String token = responseBody['Token'];
-    Map<String, dynamic> userData = responseBody['user'];
+    if (responseBody['status'] == 'success') {
+      if (responseBody['user'] == null) {
+        throw Exception(
+          "Login successful, but 'user' data is missing from server!",
+        );
+      }
 
-    UserModel user = UserModel.fromJson(userData, token);
+      String token = responseBody['Token'];
+      Map<String, dynamic> userData = responseBody['user'];
 
-    await SecureStorage.storeToken(token);
+      UserModel user = UserModel.fromJson(userData, token);
 
-    return user;
+      await SecureStorage.storeToken(token);
+
+      return user;
+    } else {
+      throw Exception(responseBody['message'] ?? 'Invalid login details');
+    }
   }
 }

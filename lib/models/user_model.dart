@@ -13,14 +13,14 @@ class UserModel {
     required this.token,
   });
 
-  factory UserModel.fromJson(Map<String, dynamic> json,String token) {
+  factory UserModel.fromJson(Map<String, dynamic> json, String token) {
     return UserModel(
-      id: json['user']['id'],
-      firstName: json['user']['first_name'],
-      lastName: json['user']['last_name'],
-      phoneNumber: json['user']['phone_number'],
-
-      token: json['Token'],
+      id: json['id'],
+      firstName: json['first_name'],
+      lastName: json['last_name'],
+      // ضفنا toString() لأن السيرفر يرسل الرقم كـ int وليس String
+      phoneNumber: json['phone_number'].toString(),
+      token: token,
     );
   }
 }

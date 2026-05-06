@@ -1,3 +1,3 @@
-const String baseUrl = 'http://10.65.2.35:8000/api';
+const String baseUrl = 'http://192.168.1.5:8000/api';
 
 String token = '';

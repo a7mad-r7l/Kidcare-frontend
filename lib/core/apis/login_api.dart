@@ -1,5 +1,5 @@
 import 'package:http/http.dart' as http;
-import 'dart:convert';
+
 import '../constants.dart';
 
 class LoginApi {
@@ -7,11 +7,9 @@ class LoginApi {
     try {
       var response = await http.post(
         Uri.parse("$baseUrl/login"),
-        headers: {
-          "Accept": "application/json",
-          "Content-Type": "application/json",
-        },
-        body: jsonEncode({"phone_number": phoneNumber, "password": password}),
+        headers: {"Accept": "application/json"},
+
+        body: {"phone_number": phoneNumber, "password": password},
       );
 
       if (response.statusCode == 200) {

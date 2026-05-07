@@ -1,69 +1,45 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../core/repos/login_repo.dart';
+import 'base_controller.dart';
 
-class LoginController extends GetxController {
+class LoginController extends BaseController {
+  final LoginRepo loginRepo;
+
+  // تمرير الـ Repo عبر الـ Constructor
+  LoginController({required this.loginRepo});
+
   final phoneController = TextEditingController();
   final passwordController = TextEditingController();
 
-  // استدعاء طبقة الـ Repo التي بنيناها
-  final LoginRepo loginRepo = LoginRepo();
-
-  bool isLoading = false;
-  bool isPasswordHidden = true;
+  final isPasswordHidden = true.obs;
 
   void togglePasswordVisibility() {
-    isPasswordHidden = !isPasswordHidden;
-    update(); // تحديث الواجهة
+    isPasswordHidden.value = !isPasswordHidden.value;
   }
 
   Future<void> login() async {
-    // 1. التحقق من الحقول
     if (phoneController.text.isEmpty || passwordController.text.isEmpty) {
-      Get.snackbar(
-        'Warning',
-        'Please fill in all fields',
-        backgroundColor: Colors.red,
-        colorText: Colors.white,
-      );
+      Get.snackbar("Warning", "Please fill in all fields",
+          backgroundColor: Colors.orange, colorText: Colors.white);
       return;
     }
 
-    // 2. تشغيل دائرة التحميل
-    isLoading = true;
-    update();
-
+    showLoading();
     try {
-      // 3. إرسال الطلب للسيرفر الحقيقي عبر الـ Repo
       final user = await loginRepo.loginUser(
         phoneController.text.trim(),
         passwordController.text.trim(),
       );
 
-      // 4. إذا نجح (وتم حفظ التوكن في Repo)، نظهر رسالة نجاح
-      Get.snackbar(
-        'Success',
-        'Welcome Back, ${user.firstName}!',
-        backgroundColor: Colors.green,
-        colorText: Colors.white,
-      );
+      Get.snackbar("Success", "Welcome Back, ${user.firstName}!",
+          backgroundColor: Colors.green, colorText: Colors.white);
 
-      // 5. الانتقال للشاشة الرئيسية
       // Get.offAllNamed('/home');
-
     } catch (e) {
-      // 6. في حال خطأ بكلمة المرور أو السيرفر
-      Get.snackbar(
-        'Error',
-        'Invalid credentials, please try again',
-        backgroundColor: Colors.red,
-        colorText: Colors.white,
-      );
-      print("Login Error: $e"); // لطباعة الخطأ في الكونسول للمطور
+      handleError(e);
     } finally {
-      // 7. إيقاف دائرة التحميل في كل الأحوال (نجاح أو فشل)
-      isLoading = false;
-      update();
+      hideLoading();
     }
   }
 

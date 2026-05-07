@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../controllers/login_controller.dart';
+import '../core/repos/login_repo.dart';
 import '../widgets/custom_text_field.dart';
 
 class LoginView extends StatelessWidget {
@@ -8,90 +9,71 @@ class LoginView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final controller = Get.put(LoginController(loginRepo: LoginRepo()));
     final size = MediaQuery.of(context).size;
 
-    return Directionality(
-      textDirection: TextDirection.ltr,
-      child: Scaffold(
-        backgroundColor: Colors.white,
-        body: SafeArea(
-          child: Center(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 24.0),
+    return Scaffold(
+      backgroundColor: Colors.white,
+      body: SafeArea(
+        child: Center(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(horizontal: 24.0),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Image.asset(
+                  'assets/images/logo.jpg',
+                  height: size.height * 0.25,
+                ),
+                const SizedBox(height: 20),
+                const Text(
+                  'Welcome Back',
+                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 40),
 
+                CustomTextField(
+                  controller: controller.phoneController,
+                  hintText: 'Phone Number',
+                  keyboardType: TextInputType.phone,
+                ),
+                const SizedBox(height: 16),
 
-              child: GetBuilder<LoginController>(
-                init: LoginController(),
-                builder: (controller) {
-                  return Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Image.asset(
-                        'assets/images/logo.jpg',
-                        height: size.height * 0.25,
-                        fit: BoxFit.contain,
+                Obx(
+                  () => CustomTextField(
+                    controller: controller.passwordController,
+                    hintText: 'Password',
+                    isPassword: controller.isPasswordHidden.value,
+                    suffixIcon: IconButton(
+                      icon: Icon(
+                        controller.isPasswordHidden.value
+                            ? Icons.visibility_off
+                            : Icons.visibility,
                       ),
-                      SizedBox(height: size.height * 0.02),
+                      onPressed: controller.togglePasswordVisibility,
+                    ),
+                  ),
+                ),
 
-                      const Text('Welcome Back', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.black87)),
-                      const SizedBox(height: 8),
-                      const Text('Sign in to continue', style: TextStyle(fontSize: 14, color: Colors.grey)),
-                      SizedBox(height: size.height * 0.04),
+                const SizedBox(height: 30),
 
-                      CustomTextField(
-                        controller: controller.phoneController,
-                        hintText: 'Phone Number',
-                        keyboardType: TextInputType.phone,
-                      ),
-                      const SizedBox(height: 16),
-
-                      CustomTextField(
-                        controller: controller.passwordController,
-                        hintText: 'Password',
-                        isPassword: controller.isPasswordHidden,
-                        suffixIcon: IconButton(
-                          icon: Icon(
-                            controller.isPasswordHidden ? Icons.visibility_off : Icons.visibility,
-                            color: Colors.grey,
-                          ),
-                          onPressed: controller.togglePasswordVisibility,
+                Obx(
+                  () => controller.isLoading
+                      ? const CircularProgressIndicator()
+                      : PrimaryButton(
+                          text: 'Login',
+                          onPressed: controller.login,
                         ),
-                      ),
-                      const SizedBox(height: 8),
+                ),
 
-                      Align(
-                        alignment: Alignment.centerRight,
-                        child: TextButton(
-                          onPressed: () {
-                            // Get.toNamed('/forget_password');
-                          },
-                          child: const Text('Forgot Password?', style: TextStyle(color: Colors.blue, fontSize: 13)),
-                        ),
-                      ),
-                      SizedBox(height: size.height * 0.03),
-
-                      controller.isLoading
-                          ? const CircularProgressIndicator(color: Colors.blue)
-                          : PrimaryButton(
-                        text: 'Login',
-                        onPressed: controller.login,
-                      ),
-
-                      SizedBox(height: size.height * 0.03),
-
-                      const Text('Or', style: TextStyle(color: Colors.grey, fontSize: 14)),
-                      SizedBox(height: size.height * 0.03),
-
-                      OutlinedPrimaryButton(
-                        text: 'Create New Account',
-                        onPressed: () {
-                          // Get.toNamed('/register');
-                        },
-                      ),
-                    ],
-                  );
-                },
-              ),
+                const SizedBox(height: 20),
+                OutlinedPrimaryButton(
+                  text: 'Create New Account',
+                  onPressed: () {
+                    // Get.toNamed('/register');
+                  },
+                ),
+              ],
             ),
           ),
         ),

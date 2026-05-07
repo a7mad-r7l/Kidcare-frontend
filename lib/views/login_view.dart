@@ -69,9 +69,7 @@ class LoginView extends StatelessWidget {
                 const SizedBox(height: 20),
                 OutlinedPrimaryButton(
                   text: 'Create New Account',
-                  onPressed: () {
-                    // Get.toNamed('/register');
-                  },
+                  onPressed: () => Get.toNamed('/register'),
                 ),
               ],
             ),

@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:kidcare/views/main_advanced.dart';
 import 'package:kidcare/views/login_view.dart';
+import 'package:kidcare/views/sign_up_view.dart';
+import 'package:kidcare/controllers/sign_up_controller.dart';
+import 'package:kidcare/core/repos/sign_up_repo.dart';
 
 void main() {
   runApp(const MyApp());
@@ -19,10 +23,19 @@ class MyApp extends StatelessWidget {
         scaffoldBackgroundColor: Colors.white,
         fontFamily: 'Roboto',
       ),
-      initialRoute: '/login',
+      initialRoute: '/',
       getPages: [
+        GetPage(name: '/', page: () => const PediatricClinicScreen()),
         GetPage(name: '/login', page: () => const LoginView()),
-
+        GetPage(
+          name: '/register',
+          page: () => const SignUpView(),
+          binding: BindingsBuilder(() {
+            Get.lazyPut<SignUpController>(
+              () => SignUpController(signUpRepo: SignUpRepo()),
+            );
+          }),
+        ),
       ],
     );
   }

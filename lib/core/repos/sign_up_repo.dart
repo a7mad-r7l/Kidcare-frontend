@@ -1,9 +1,11 @@
 import '../apis/sign_up_api.dart';
+import '../helper/secure_storage_service.dart';
+import '../../models/sign_up_response_model.dart';
 
 class SignUpRepo {
   final SignUpApi _api = SignUpApi();
 
-  Future<void> registerUser({
+  Future<SignUpResponseModel> registerUser({
     required String firstName,
     required String lastName,
     required String email,
@@ -11,7 +13,7 @@ class SignUpRepo {
     required String address,
     required String password,
   }) async {
-    await _api.register(
+    final json = await _api.register(
       firstName: firstName,
       lastName: lastName,
       email: email,
@@ -19,5 +21,11 @@ class SignUpRepo {
       address: address,
       password: password,
     );
+
+    final result = SignUpResponseModel.fromJson(json);
+
+    await SecureStorage.storeToken(result.accessToken);
+
+    return result;
   }
 }

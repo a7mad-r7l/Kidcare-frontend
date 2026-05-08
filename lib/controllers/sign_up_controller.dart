@@ -42,7 +42,7 @@ class SignUpController extends BaseController {
 
     isLoading.value = true;
     try {
-      await signUpRepo.registerUser(
+      final result = await signUpRepo.registerUser(
         firstName: firstNameController.text.trim(),
         lastName: lastNameController.text.trim(),
         email: emailController.text.trim(),
@@ -53,12 +53,16 @@ class SignUpController extends BaseController {
 
       Get.snackbar(
         'Success',
-        'Account created successfully!',
+        result.message,
         backgroundColor: Colors.green,
         colorText: Colors.white,
       );
-      Get.offAllNamed('/login');
-    } catch (e) {
+
+      Get.toNamed('/verify-otp', arguments: result.phoneNumber);
+    } catch (e, stackTrace) {
+      debugPrint('── SignUp Error ────────────────────────');
+      debugPrint('Error: $e');
+      debugPrint('Stack: $stackTrace');
       handleError(e);
     } finally {
       isLoading.value = false;

@@ -99,7 +99,7 @@ class SignUpView extends StatelessWidget {
                   isPassword: controller.isPasswordHidden.value,
                   label: 'Password',
                   labelIcon: Icons.lock_outline,
-                  prefixIconWidget: IconButton(
+              suffixIcon: IconButton(
                     icon: Icon(
                       controller.isPasswordHidden.value
                           ? Icons.visibility_off_outlined
@@ -112,7 +112,7 @@ class SignUpView extends StatelessWidget {
                 )),
             const SizedBox(height: 6),
             Align(
-              alignment: Alignment.centerLeft,
+              alignment: Alignment.centerRight,
               child: Text(
                 'At least 8 characters with uppercase, lowercase and a number',
                 style: TextStyle(fontSize: 11, color: Colors.grey.shade500),
@@ -126,7 +126,7 @@ class SignUpView extends StatelessWidget {
                   isPassword: controller.isConfirmPasswordHidden.value,
                   label: 'Confirm Password',
                   labelIcon: Icons.lock_outline,
-                  prefixIconWidget: IconButton(
+              suffixIcon: IconButton(
                     icon: Icon(
                       controller.isConfirmPasswordHidden.value
                           ? Icons.visibility_off_outlined

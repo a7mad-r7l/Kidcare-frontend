@@ -8,6 +8,7 @@ class ActivationApi {
   Future<String> sendOtp(String phoneNumber) async {
     final response = await client.post(
       Uri.parse("$baseUrl/sendOtp"),
+      headers: {"Accept": "application/json"},
       body: {"phone_number": phoneNumber},
     );
     return response.body;
@@ -17,6 +18,7 @@ class ActivationApi {
   Future<String> verifyOtp(String phoneNumber, String otp) async {
     final response = await client.post(
       Uri.parse("$baseUrl/verifyOtp"),
+      headers: {"Accept": "application/json"},
       body: {
         "phone_number": phoneNumber,
         "otp": otp
@@ -29,6 +31,7 @@ class ActivationApi {
   Future<String> setPassword(String phoneNumber, String password) async {
     final response = await client.post(
       Uri.parse("$baseUrl/SetPassword"),
+      headers: {"Accept": "application/json"},
       body: {
         "phone_number": phoneNumber,
         "password": password,

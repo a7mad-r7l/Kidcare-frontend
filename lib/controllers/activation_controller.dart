@@ -19,7 +19,19 @@ class ActivationController extends BaseController {
 
   // 1. طلب OTP والانتقال للواجهة الثانية
   Future<void> startActivation() async {
-    if (phoneController.text.isEmpty) return;
+    String phone = phoneController.text.trim();
+    if (phone.isEmpty || phone.length != 12) {
+      Get.snackbar(
+        "Notice",
+        phone.isEmpty ? "Please enter phone number" : "Phone number must be 12 numbers (e.g., 9639XXXXXXXX)",
+        backgroundColor: Colors.grey.shade700,
+        colorText: Colors.white,
+        snackPosition: SnackPosition.TOP,
+        margin: const EdgeInsets.all(15),
+        duration: const Duration(seconds: 2),
+      );
+      return;
+    }
     showLoading();
     try {
       await repo.requestOtp(phoneController.text.trim());
@@ -31,15 +43,27 @@ class ActivationController extends BaseController {
     }
   }
 
-  // 2. التحقق من الرمز الفعلي عبر السيرفر والانتقال للواجهة الثالثة
+  // 2. التحقق من الرمز  عبر السيرفر والانتقال للواجهة الثالثة
   Future<void> verifyOtp() async {
-    if (otpController.text.isEmpty) {
-      Get.snackbar("Warning", "Please enter the OTP");
+    String otp = otpController.text.trim();
+    if (otp.isEmpty || otp.length != 4) {
+      Get.snackbar(
+        "Check Code",
+        otp.isEmpty ? "Please enter OTP" : "Please enter the 4-digit code correctly",
+        backgroundColor: Colors.grey.shade700,
+        colorText: Colors.white,
+        snackPosition: SnackPosition.TOP,
+        margin: const EdgeInsets.all(15),
+        duration: const Duration(seconds: 2),
+      );
       return;
     }
     showLoading();
     try {
-      await repo.verifyOtp(phoneController.text.trim(), otpController.text.trim());
+      await repo.verifyOtp(
+        phoneController.text.trim(),
+        otpController.text.trim(),
+      );
       Get.toNamed('/set-password');
     } catch (e) {
       handleError(e);
@@ -50,8 +74,42 @@ class ActivationController extends BaseController {
 
   // 3. إرسال كلمة المرور للتفعيل والدخول
   Future<void> completeActivation() async {
-    if (passwordController.text != confirmPasswordController.text) {
-      Get.snackbar("Error", "Passwords do not match");
+    String password = passwordController.text;
+    String confirmPassword = confirmPasswordController.text;
+
+    // 1. التحقق من الحقول الفارغة
+    if (password.isEmpty || confirmPassword.isEmpty) {
+      Get.snackbar(
+        "Required Fields",
+        "Please fill in all fields",
+        backgroundColor: Colors.grey.shade700,
+        colorText: Colors.white,
+        snackPosition: SnackPosition.TOP,
+        margin: const EdgeInsets.all(15),
+      );
+      return;
+    }
+
+    // 2. التحقق من تطابق كلمتي المرور
+    if (password != confirmPassword) {
+      Get.snackbar(
+        "Error",
+        "Passwords do not match",
+        backgroundColor: Colors.redAccent,
+        colorText: Colors.white,
+      );
+      return;
+    }
+
+    // 3. التحقق من طول كلمة المرور
+    if (password.length < 8) {
+      Get.snackbar(
+        "Weak Password",
+        "Password must be at least 8 characters long",
+        backgroundColor: Colors.orange,
+        colorText: Colors.white,
+        icon: const Icon(Icons.lock_outline, color: Colors.white),
+      );
       return;
     }
     showLoading();
@@ -61,7 +119,12 @@ class ActivationController extends BaseController {
         passwordController.text,
       );
 
-      Get.snackbar("Success", "Account activated successfully", backgroundColor: Colors.green, colorText: Colors.white);
+      Get.snackbar(
+        "Success",
+        "Account activated successfully",
+        backgroundColor: Colors.green,
+        colorText: Colors.white,
+      );
 
       // التوجه للصفحة الرئيسية بعد التفعيل
       // Get.offAllNamed('/home');

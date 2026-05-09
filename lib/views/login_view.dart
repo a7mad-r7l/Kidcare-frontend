@@ -55,7 +55,31 @@ class LoginView extends StatelessWidget {
                   ),
                 ),
 
-                const SizedBox(height: 30),
+
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: TextButton(
+                    onPressed: () {
+                      // Get.toNamed('/forget-password');
+                    },
+                    style: TextButton.styleFrom(
+                      padding: const EdgeInsets.only(top: 8, bottom: 8),
+                      minimumSize: Size.zero,
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    ),
+                    child: const Text(
+                      'Forgot Password?',
+                      style: TextStyle(
+                        color: Colors.blue,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ),
+
+
+                const SizedBox(height: 20),
 
                 Obx(
                       () => controller.isLoading
@@ -83,9 +107,8 @@ class LoginView extends StatelessWidget {
                   onPressed: () => Get.toNamed('/register'),
                 ),
 
-                const SizedBox(height: 12), // مسافة صغيرة متناسقة
+                const SizedBox(height: 12),
 
-                // الزر الجديد لتفعيل الحساب (مُضاف هنا للحفاظ على جمالية الـ UI)
                 TextButton(
                   onPressed: () => Get.toNamed('/activation-phone'),
                   style: TextButton.styleFrom(

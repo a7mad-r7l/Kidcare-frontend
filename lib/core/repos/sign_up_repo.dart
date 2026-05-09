@@ -1,3 +1,4 @@
+import 'dart:convert';
 import '../apis/sign_up_api.dart';
 import '../helper/secure_storage_service.dart';
 import '../../models/sign_up_response_model.dart';
@@ -13,7 +14,7 @@ class SignUpRepo {
     required String address,
     required String password,
   }) async {
-    final json = await _api.register(
+    var response = await _api.register(
       firstName: firstName,
       lastName: lastName,
       email: email,
@@ -22,9 +23,13 @@ class SignUpRepo {
       password: password,
     );
 
-    final result = SignUpResponseModel.fromJson(json);
+    var responseBody = json.decode(response);
 
-    await SecureStorage.storeToken(result.accessToken);
+    final result = SignUpResponseModel.fromJson(responseBody);
+
+    if (result.accessToken.isNotEmpty) {
+      await SecureStorage.storeToken(result.accessToken);
+    }
 
     return result;
   }

@@ -17,7 +17,7 @@ class ActivationController extends BaseController {
     isPasswordHidden.value = !isPasswordHidden.value;
   }
 
-  // 1. طلب OTP والانتقال لواجهة الرمز
+  // 1. طلب OTP والانتقال للواجهة الثانية
   Future<void> startActivation() async {
     if (phoneController.text.isEmpty) return;
     showLoading();
@@ -31,17 +31,24 @@ class ActivationController extends BaseController {
     }
   }
 
-  // 2. الانتقال لواجهة تعيين كلمة المرور (بدون API Call)
-  void verifyOtp() {
+  // 2. التحقق من الرمز الفعلي عبر السيرفر والانتقال للواجهة الثالثة
+  Future<void> verifyOtp() async {
     if (otpController.text.isEmpty) {
       Get.snackbar("Warning", "Please enter the OTP");
       return;
     }
-    // ننتقل مباشرة للواجهة الأخيرة لأن التحقق سيتم مع إرسال كلمة المرور
-    Get.toNamed('/set-password');
+    showLoading();
+    try {
+      await repo.verifyOtp(phoneController.text.trim(), otpController.text.trim());
+      Get.toNamed('/set-password');
+    } catch (e) {
+      handleError(e);
+    } finally {
+      hideLoading();
+    }
   }
 
-  // 3. إرسال كل البيانات (رقم، OTP، كلمة المرور) للتفعيل والدخول
+  // 3. إرسال كلمة المرور للتفعيل والدخول
   Future<void> completeActivation() async {
     if (passwordController.text != confirmPasswordController.text) {
       Get.snackbar("Error", "Passwords do not match");
@@ -51,7 +58,6 @@ class ActivationController extends BaseController {
     try {
       await repo.activateAndLogin(
         phoneController.text.trim(),
-        otpController.text.trim(),
         passwordController.text,
       );
 

@@ -40,7 +40,7 @@ class LoginView extends StatelessWidget {
                 const SizedBox(height: 16),
 
                 Obx(
-                  () => CustomTextField(
+                      () => CustomTextField(
                     controller: controller.passwordController,
                     hintText: 'Password',
                     isPassword: controller.isPasswordHidden.value,
@@ -58,18 +58,54 @@ class LoginView extends StatelessWidget {
                 const SizedBox(height: 30),
 
                 Obx(
-                  () => controller.isLoading
+                      () => controller.isLoading
                       ? const CircularProgressIndicator()
                       : PrimaryButton(
-                          text: 'Login',
-                          onPressed: controller.login,
-                        ),
+                    text: 'Login',
+                    onPressed: controller.login,
+                  ),
+                ),
+                const SizedBox(height: 30),
+                Row(
+                  children: [
+                    const Expanded(child: Divider(thickness: 1, color: Colors.grey)),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 10),
+                      child: Text('Or', style: TextStyle(color: Colors.grey.shade600, fontSize: 14)),
+                    ),
+                    const Expanded(child: Divider(thickness: 1, color: Colors.grey)),
+                  ],
                 ),
 
                 const SizedBox(height: 20),
                 OutlinedPrimaryButton(
                   text: 'Create New Account',
                   onPressed: () => Get.toNamed('/register'),
+                ),
+
+                const SizedBox(height: 12), // مسافة صغيرة متناسقة
+
+                // الزر الجديد لتفعيل الحساب (مُضاف هنا للحفاظ على جمالية الـ UI)
+                TextButton(
+                  onPressed: () => Get.toNamed('/activation-phone'),
+                  style: TextButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                  ),
+                  child: RichText(
+                    text: const TextSpan(
+                      text: "Have a clinic file? ",
+                      style: TextStyle(color: Colors.grey, fontSize: 14),
+                      children: [
+                        TextSpan(
+                          text: "Activate account",
+                          style: TextStyle(
+                            color: Colors.blue,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
               ],
             ),

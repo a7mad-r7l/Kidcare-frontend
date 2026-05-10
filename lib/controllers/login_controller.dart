@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../core/repos/login_repo.dart';
-import 'base_controller.dart';
+import '../controllers/base_controller.dart';
 
 class LoginController extends BaseController {
   final LoginRepo loginRepo;
@@ -56,7 +56,7 @@ class LoginController extends BaseController {
         colorText: Colors.white,
       );
 
-      // Get.offAllNamed('/home');
+      Get.offAllNamed('/home');
     } catch (e) {
       handleError(e);
     } finally {

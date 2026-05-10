@@ -2,6 +2,8 @@ import 'package:http/http.dart' as http;
 import '../constants.dart';
 
 class SignUpApi {
+  final http.Client client = http.Client();
+
   Future<String> register({
     required String firstName,
     required String lastName,
@@ -10,8 +12,7 @@ class SignUpApi {
     required String address,
     required String password,
   }) async {
-
-    var response = await http.post(
+    final response = await client.post(
       Uri.parse('$baseUrl/register'),
       headers: {
         'Accept': 'application/json',
@@ -27,10 +28,7 @@ class SignUpApi {
       },
     );
 
-    if (response.statusCode == 200 || response.statusCode == 201) {
-      return response.body;
-    } else {
-      throw Exception('Error ${response.statusCode}: ${response.body}');
-    }
+    // ✅ API مسؤولة فقط عن إرجاع الرد كـ String
+    return response.body;
   }
 }

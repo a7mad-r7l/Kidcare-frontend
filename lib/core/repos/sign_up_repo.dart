@@ -23,9 +23,14 @@ class SignUpRepo {
       password: password,
     );
 
-    var responseBody = json.decode(response);
+    var body = json.decode(response);
 
-    final result = SignUpResponseModel.fromJson(responseBody);
+    // ✅ إذا رجع errors أو لم يرجع phone_number = فشل
+    if (body['errors'] != null || body['phone_number'] == null) {
+      throw Exception(body['message'] ?? 'Registration failed');
+    }
+
+    final result = SignUpResponseModel.fromJson(body);
 
     if (result.accessToken.isNotEmpty) {
       await SecureStorage.storeToken(result.accessToken);

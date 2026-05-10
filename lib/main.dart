@@ -5,6 +5,7 @@ import 'package:get/get.dart';
 import 'package:kidcare/views/main_advanced.dart';
 import 'package:kidcare/views/login_view.dart';
 import 'package:kidcare/views/sign_up_view.dart';
+import 'package:kidcare/views/homeView.dart'; // ✅ إضافة
 
 // Sign Up
 import 'package:kidcare/controllers/sign_up_controller.dart';
@@ -44,6 +45,9 @@ class MyApp extends StatelessWidget {
 
         GetPage(name: '/login', page: () => const LoginView()),
 
+        // ✅ إضافة route الـ home
+        GetPage(name: '/home', page: () => const HomeView()),
+
         GetPage(
           name: '/register',
           page: () => const SignUpView(),
@@ -65,15 +69,9 @@ class MyApp extends StatelessWidget {
           }),
         ),
 
-        GetPage(
-          name: '/activation-otp',
-          page: () => const OtpVerificationView(),
-        ),
+        GetPage(name: '/activation-otp', page: () => const OtpVerificationView()),
 
-        GetPage(
-          name: '/set-password',
-          page: () => const SetNewPasswordView(),
-        ),
+        GetPage(name: '/set-password', page: () => const SetNewPasswordView()),
 
         // Verify OTP
         GetPage(
@@ -81,9 +79,7 @@ class MyApp extends StatelessWidget {
           page: () => const VerifyOtpView(),
           binding: BindingsBuilder(() {
             Get.lazyPut<VerifyOtpController>(
-                  () => VerifyOtpController(
-                verifyOtpRepo: VerifyOtpRepo(),
-              ),
+                  () => VerifyOtpController(verifyOtpRepo: VerifyOtpRepo()),
             );
           }),
         ),

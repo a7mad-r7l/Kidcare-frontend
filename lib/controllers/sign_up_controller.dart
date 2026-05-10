@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import '../core/base/base_controller.dart';
+import '../controllers/base_controller.dart';
 import '../core/repos/sign_up_repo.dart';
 
 class SignUpController extends BaseController {
@@ -24,6 +24,7 @@ class SignUpController extends BaseController {
       isConfirmPasswordHidden.value = !isConfirmPasswordHidden.value;
 
   Future<void> signUp() async {
+    // Client-Side Validation
     if (firstNameController.text.isEmpty ||
         lastNameController.text.isEmpty ||
         emailController.text.isEmpty ||
@@ -31,16 +32,28 @@ class SignUpController extends BaseController {
         addressController.text.isEmpty ||
         passwordController.text.isEmpty ||
         confirmPasswordController.text.isEmpty) {
-      handleError('Please fill in all fields');
+      Get.snackbar(
+        'Notice',
+        'Please fill in all fields',
+        backgroundColor: Colors.grey.shade700,
+        colorText: Colors.white,
+        snackPosition: SnackPosition.TOP,
+      );
       return;
     }
 
     if (passwordController.text != confirmPasswordController.text) {
-      handleError('Passwords do not match');
+      Get.snackbar(
+        'Notice',
+        'Passwords do not match',
+        backgroundColor: Colors.grey.shade700,
+        colorText: Colors.white,
+        snackPosition: SnackPosition.TOP,
+      );
       return;
     }
 
-    isLoading.value = true;
+    showLoading(); // ✅ من الـ BaseController
     try {
       final result = await signUpRepo.registerUser(
         firstName: firstNameController.text.trim(),
@@ -59,13 +72,10 @@ class SignUpController extends BaseController {
       );
 
       Get.toNamed('/verify-otp', arguments: result.phoneNumber);
-    } catch (e, stackTrace) {
-      debugPrint('── SignUp Error ────────────────────────');
-      debugPrint('Error: $e');
-      debugPrint('Stack: $stackTrace');
-      handleError(e);
+    } catch (e) {
+      handleError(e); // ✅ من الـ BaseController
     } finally {
-      isLoading.value = false;
+      hideLoading(); // ✅ من الـ BaseController
     }
   }
 

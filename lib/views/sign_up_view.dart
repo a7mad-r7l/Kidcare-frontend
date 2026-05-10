@@ -139,7 +139,7 @@ class SignUpView extends StatelessWidget {
                 )),
             const SizedBox(height: 20),
 
-            Obx(() => controller.isLoading.value
+            Obx(() => controller.isLoading
                 ? const Center(
                     child: CircularProgressIndicator(color: Colors.blue))
                 : PrimaryButton(

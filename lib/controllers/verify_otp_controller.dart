@@ -100,7 +100,7 @@ class VerifyOtpController extends BaseController {
       Get.snackbar('Success', 'Phone verified successfully!',
           backgroundColor: Colors.green, colorText: Colors.white);
 
-      Get.offAllNamed('/login');
+      Get.offAllNamed('/home');
     } catch (e) {
       handleError(e); // من الـ BaseController
     } finally {

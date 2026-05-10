@@ -2,14 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../controllers/verify_otp_controller.dart';
 import '../widgets/custom_text_field.dart';
+import '../controllers/base_controller.dart';
 
-class VerifyOtpView extends StatelessWidget {
+class VerifyOtpView extends GetView<VerifyOtpController> {
   const VerifyOtpView({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final controller = Get.find<VerifyOtpController>();
-
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
@@ -102,7 +101,7 @@ class VerifyOtpView extends StatelessWidget {
 
             // Validity timer
             Obx(
-              () => RichText(
+                  () => RichText(
                 text: TextSpan(
                   style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
                   children: [
@@ -154,26 +153,26 @@ class VerifyOtpView extends StatelessWidget {
                         ),
                         const SizedBox(height: 10),
                         Obx(
-                          () => controller.canResend.value
+                              () => controller.canResend.value
                               ? GestureDetector(
-                                  onTap: controller.resendOtp,
-                                  child: Text(
-                                    'Resend Code',
-                                    style: TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.bold,
-                                      color: Colors.blue.shade600,
-                                    ),
-                                  ),
-                                )
+                            onTap: controller.resendOtp,
+                            child: Text(
+                              'Resend Code',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.blue.shade600,
+                              ),
+                            ),
+                          )
                               : Text(
-                                  controller.resendFormatted,
-                                  style: TextStyle(
-                                    fontSize: 20,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.blue.shade600,
-                                  ),
-                                ),
+                            controller.resendFormatted,
+                            style: TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.blue.shade600,
+                            ),
+                          ),
                         ),
                       ],
                     ),
@@ -198,14 +197,14 @@ class VerifyOtpView extends StatelessWidget {
 
             // Verify button
             Obx(
-              () => controller.isLoading.value
+                  () => controller.isLoading
                   ? const Center(
-                      child: CircularProgressIndicator(color: Colors.blue),
-                    )
+                child: CircularProgressIndicator(color: Colors.blue),
+              )
                   : PrimaryButton(
-                      text: 'Verify',
-                      onPressed: controller.verifyOtp,
-                    ),
+                text: 'Verify',
+                onPressed: controller.verifyOtp,
+              ),
             ),
             const SizedBox(height: 14),
 

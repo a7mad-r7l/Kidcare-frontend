@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import '../core/base/base_controller.dart';
+import '../controllers/base_controller.dart';
 import '../core/repos/verify_otp_repo.dart';
 
 class VerifyOtpController extends BaseController {
@@ -21,9 +21,7 @@ class VerifyOtpController extends BaseController {
   final f3 = FocusNode();
   final f4 = FocusNode();
 
-  // 5-minute validity countdown
   final RxInt validitySeconds = 300.obs;
-  // 60-second resend cooldown
   final RxInt resendSeconds = 60.obs;
   final RxBool canResend = false.obs;
 
@@ -85,58 +83,46 @@ class VerifyOtpController extends BaseController {
     }
   }
 
-  String get _fullOtp =>
-      otp1.text + otp2.text + otp3.text + otp4.text;
+  String get _fullOtp => otp1.text + otp2.text + otp3.text + otp4.text;
 
   Future<void> verifyOtp() async {
+    // Client-Side Validation
     if (_fullOtp.length < 4) {
-      handleError('Please enter the 4-digit code');
+      Get.snackbar('Notice', 'Please enter the 4-digit code',
+          snackPosition: SnackPosition.TOP);
       return;
     }
 
-    isLoading.value = true;
+    showLoading(); // من الـ BaseController
     try {
-      final result = await verifyOtpRepo.verify(
-        phone: phoneNumber,
-        otp: _fullOtp,
-      );
+      await verifyOtpRepo.verify(phone: phoneNumber, otp: _fullOtp);
 
-      Get.snackbar(
-        'Success',
-        result['message'] ?? 'Phone verified successfully!',
-        backgroundColor: Colors.green,
-        colorText: Colors.white,
-      );
+      Get.snackbar('Success', 'Phone verified successfully!',
+          backgroundColor: Colors.green, colorText: Colors.white);
 
       Get.offAllNamed('/login');
-    } catch (e, s) {
-      debugPrint('VerifyOtp Error: $e\n$s');
-      handleError(e);
+    } catch (e) {
+      handleError(e); // من الـ BaseController
     } finally {
-      isLoading.value = false;
+      hideLoading();
     }
   }
 
   Future<void> resendOtp() async {
     if (!canResend.value) return;
 
-    isLoading.value = true;
+    showLoading();
     try {
-      final result = await verifyOtpRepo.resend(phone: phoneNumber);
+      await verifyOtpRepo.resend(phone: phoneNumber);
 
-      Get.snackbar(
-        'Success',
-        result['message'] ?? 'Code resent successfully!',
-        backgroundColor: Colors.green,
-        colorText: Colors.white,
-      );
+      Get.snackbar('Success', 'Code resent successfully!',
+          backgroundColor: Colors.green, colorText: Colors.white);
 
       _startResendTimer();
-    } catch (e, s) {
-      debugPrint('ResendOtp Error: $e\n$s');
+    } catch (e) {
       handleError(e);
     } finally {
-      isLoading.value = false;
+      hideLoading();
     }
   }
 

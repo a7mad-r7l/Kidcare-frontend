@@ -31,23 +31,32 @@ class SetNewPasswordView extends GetView<ActivationController> {
                 subtitle: 'Create a strong password to protect your account',
               ),
 
-              Obx(() => CustomTextField(
-                controller: controller.passwordController,
-                hintText: 'New Password',
-                isPassword: controller.isPasswordHidden.value,
-                suffixIcon: IconButton(
-                  icon: Icon(controller.isPasswordHidden.value ? Icons.visibility_off : Icons.visibility, color: Colors.grey),
-                  onPressed: controller.togglePasswordVisibility, // يجب إضافتها للكونترولر
+              Obx(
+                () => CustomTextField(
+                  controller: controller.passwordController,
+                  hintText: 'New Password',
+                  isPassword: controller.isPasswordHidden.value,
+                  suffixIcon: IconButton(
+                    icon: Icon(
+                      controller.isPasswordHidden.value
+                          ? Icons.visibility_off
+                          : Icons.visibility,
+                      color: Colors.grey,
+                    ),
+                    onPressed: controller.togglePasswordVisibility,
+                  ),
                 ),
-              )),
+              ),
 
               const SizedBox(height: 16),
 
-              Obx(() => CustomTextField(
-                controller: controller.confirmPasswordController,
-                hintText: 'Confirm Password',
-                isPassword: controller.isPasswordHidden.value, // ربطناها بنفس المتغير لتبسيط الكود
-              )),
+              Obx(
+                () => CustomTextField(
+                  controller: controller.confirmPasswordController,
+                  hintText: 'Confirm Password',
+                  isPassword: controller.isPasswordHidden.value,
+                ),
+              ),
 
               const SizedBox(height: 24),
 
@@ -60,28 +69,25 @@ class SetNewPasswordView extends GetView<ActivationController> {
                 child: const Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Row(
-                      children: [
-                        Text('Password must contain:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-                        Spacer(),
-                        Icon(Icons.check_circle, color: Colors.green, size: 18),
-                      ],
+                    Text(
+                      'Password must contain:',
+                      style: TextStyle(color: Colors.grey, fontSize: 14),
                     ),
                     SizedBox(height: 12),
                     PasswordRequirementRow(text: 'At least 8 characters'),
-                    PasswordRequirementRow(text: 'Uppercase & lowercase letters'),
-                    PasswordRequirementRow(text: 'At least 1 number'),
                   ],
                 ),
               ),
 
               const SizedBox(height: 40),
-              Obx(() => controller.isLoading
-                  ? const CircularProgressIndicator()
-                  : PrimaryButton(
-                text: 'Set Password and Login',
-                onPressed: controller.completeActivation,
-              )),
+              Obx(
+                () => controller.isLoading
+                    ? const CircularProgressIndicator()
+                    : PrimaryButton(
+                        text: 'Set Password and Login',
+                        onPressed: controller.completeActivation,
+                      ),
+              ),
             ],
           ),
         ),

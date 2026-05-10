@@ -19,9 +19,26 @@ class LoginController extends BaseController {
   }
 
   Future<void> login() async {
+    String phone = phoneController.text.trim();
     if (phoneController.text.isEmpty || passwordController.text.isEmpty) {
-      Get.snackbar("Warning", "Please fill in all fields",
-          backgroundColor: Colors.orange, colorText: Colors.white);
+      Get.snackbar(
+        "Required Fields",
+        "Please fill in all fields",
+        backgroundColor: Colors.grey.shade700,
+        colorText: Colors.white,
+        snackPosition: SnackPosition.TOP,
+      );
+      return;
+    }
+    // 2. التحقق من طول رقم الهاتف
+    if (phone.length != 12) {
+      Get.snackbar(
+        "Invalid Phone Number",
+        "Phone number must be exactly 12 numbers (e.g., 9639XXXXXXXX)",
+        backgroundColor: Colors.grey.shade700,
+        colorText: Colors.white,
+        snackPosition: SnackPosition.TOP,
+      );
       return;
     }
 
@@ -32,8 +49,12 @@ class LoginController extends BaseController {
         passwordController.text.trim(),
       );
 
-      Get.snackbar("Success", "Welcome Back, ${user.firstName}!",
-          backgroundColor: Colors.green, colorText: Colors.white);
+      Get.snackbar(
+        "Success",
+        "Welcome Back, ${user.firstName}!",
+        backgroundColor: Colors.green,
+        colorText: Colors.white,
+      );
 
       // Get.offAllNamed('/home');
     } catch (e) {

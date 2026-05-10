@@ -8,18 +8,32 @@ class ActivationApi {
   Future<String> sendOtp(String phoneNumber) async {
     final response = await client.post(
       Uri.parse("$baseUrl/sendOtp"),
+      headers: {"Accept": "application/json"},
       body: {"phone_number": phoneNumber},
     );
     return response.body;
   }
 
-  // 2. تعيين كلمة المرور مع التحقق من الـ OTP
-  Future<String> verifyOtpAndSetPassword(String phoneNumber, String otp, String password) async {
+  // 2. التحقق من الرمز
+  Future<String> verifyOtp(String phoneNumber, String otp) async {
     final response = await client.post(
-      Uri.parse("$baseUrl/verifyOtpAndSetPassword"), // تعديل الـ Endpoint
+      Uri.parse("$baseUrl/verifyOtp"),
+      headers: {"Accept": "application/json"},
       body: {
         "phone_number": phoneNumber,
-        "otp": otp,
+        "otp": otp
+      },
+    );
+    return response.body;
+  }
+
+  // 3. تعيين كلمة المرور
+  Future<String> setPassword(String phoneNumber, String password) async {
+    final response = await client.post(
+      Uri.parse("$baseUrl/SetPassword"),
+      headers: {"Accept": "application/json"},
+      body: {
+        "phone_number": phoneNumber,
         "password": password,
         "password_confirmation": password
       },

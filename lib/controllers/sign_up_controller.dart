@@ -24,42 +24,78 @@ class SignUpController extends BaseController {
       isConfirmPasswordHidden.value = !isConfirmPasswordHidden.value;
 
   Future<void> signUp() async {
-    // Client-Side Validation
+    String phone = phoneController.text.trim();
+
+    // 1. التحقق من الحقول الفارغة
     if (firstNameController.text.isEmpty ||
         lastNameController.text.isEmpty ||
         emailController.text.isEmpty ||
-        phoneController.text.isEmpty ||
+        phone.isEmpty ||
         addressController.text.isEmpty ||
         passwordController.text.isEmpty ||
         confirmPasswordController.text.isEmpty) {
       Get.snackbar(
-        'Notice',
+        'Required Fields',
         'Please fill in all fields',
         backgroundColor: Colors.grey.shade700,
         colorText: Colors.white,
         snackPosition: SnackPosition.TOP,
+        margin: const EdgeInsets.all(15),
+        duration: const Duration(seconds: 2),
       );
       return;
     }
 
-    if (passwordController.text != confirmPasswordController.text) {
+    // 2. التحقق من طول رقم الهاتف
+    if (phone.length != 12) {
       Get.snackbar(
-        'Notice',
-        'Passwords do not match',
+        'Invalid Phone Number',
+        'Phone number must be exactly 12 numbers (e.g., 9639XXXXXXXX)',
         backgroundColor: Colors.grey.shade700,
         colorText: Colors.white,
         snackPosition: SnackPosition.TOP,
+        margin: const EdgeInsets.all(15),
+        duration: const Duration(seconds: 2),
       );
       return;
     }
 
-    showLoading(); // ✅ من الـ BaseController
+    // 3. التحقق من تطابق كلمتي المرور
+    if (passwordController.text != confirmPasswordController.text) {
+      Get.snackbar(
+        'Error',
+        'Passwords do not match',
+        backgroundColor: Colors.redAccent,
+        colorText: Colors.white,
+        snackPosition: SnackPosition.TOP,
+        margin: const EdgeInsets.all(15),
+        duration: const Duration(seconds: 2),
+      );
+      return;
+    }
+
+    // 4. التحقق من طول كلمة المرور
+    if (passwordController.text.length < 8) {
+      Get.snackbar(
+        'Weak Password',
+        'Password must be at least 8 characters long',
+        backgroundColor: Colors.orange,
+        colorText: Colors.white,
+        snackPosition: SnackPosition.TOP,
+        margin: const EdgeInsets.all(15),
+        icon: const Icon(Icons.lock_outline, color: Colors.white),
+        duration: const Duration(seconds: 2),
+      );
+      return;
+    }
+
+    showLoading();
     try {
       final result = await signUpRepo.registerUser(
         firstName: firstNameController.text.trim(),
         lastName: lastNameController.text.trim(),
         email: emailController.text.trim(),
-        phone: phoneController.text.trim(),
+        phone: phone,
         address: addressController.text.trim(),
         password: passwordController.text.trim(),
       );
@@ -69,13 +105,15 @@ class SignUpController extends BaseController {
         result.message,
         backgroundColor: Colors.green,
         colorText: Colors.white,
+        snackPosition: SnackPosition.TOP,
+        margin: const EdgeInsets.all(15),
       );
 
       Get.toNamed('/verify-otp', arguments: result.phoneNumber);
     } catch (e) {
-      handleError(e); // ✅ من الـ BaseController
+      handleError(e);
     } finally {
-      hideLoading(); // ✅ من الـ BaseController
+      hideLoading();
     }
   }
 

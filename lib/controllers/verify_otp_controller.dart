@@ -87,22 +87,48 @@ class VerifyOtpController extends BaseController {
 
   Future<void> verifyOtp() async {
     // Client-Side Validation
-    if (_fullOtp.length < 4) {
-      Get.snackbar('Notice', 'Please enter the 4-digit code',
-          snackPosition: SnackPosition.TOP);
+    if (_fullOtp.isEmpty) {
+      Get.snackbar(
+        'Required',
+        'Please enter the verification code',
+        backgroundColor: Colors.grey.shade700,
+        colorText: Colors.white,
+        snackPosition: SnackPosition.TOP,
+        margin: const EdgeInsets.all(15),
+        duration: const Duration(seconds: 2),
+      );
       return;
     }
 
-    showLoading(); // من الـ BaseController
+    if (_fullOtp.length < 4) {
+      Get.snackbar(
+        'Invalid Code',
+        'Please enter the complete 4-digit code',
+        backgroundColor: Colors.grey.shade700,
+        colorText: Colors.white,
+        snackPosition: SnackPosition.TOP,
+        margin: const EdgeInsets.all(15),
+        duration: const Duration(seconds: 2),
+      );
+      return;
+    }
+
+    showLoading();
     try {
       await verifyOtpRepo.verify(phone: phoneNumber, otp: _fullOtp);
 
-      Get.snackbar('Success', 'Phone verified successfully!',
-          backgroundColor: Colors.green, colorText: Colors.white);
+      Get.snackbar(
+        'Success',
+        'Phone verified successfully!',
+        backgroundColor: Colors.green,
+        colorText: Colors.white,
+        snackPosition: SnackPosition.TOP,
+        margin: const EdgeInsets.all(15),
+      );
 
       Get.offAllNamed('/home');
     } catch (e) {
-      handleError(e); // من الـ BaseController
+      handleError(e);
     } finally {
       hideLoading();
     }
@@ -115,8 +141,14 @@ class VerifyOtpController extends BaseController {
     try {
       await verifyOtpRepo.resend(phone: phoneNumber);
 
-      Get.snackbar('Success', 'Code resent successfully!',
-          backgroundColor: Colors.green, colorText: Colors.white);
+      Get.snackbar(
+        'Success',
+        'Code resent successfully!',
+        backgroundColor: Colors.green,
+        colorText: Colors.white,
+        snackPosition: SnackPosition.TOP,
+        margin: const EdgeInsets.all(15),
+      );
 
       _startResendTimer();
     } catch (e) {

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:kidcare/views/forgot_password_view.dart';
 
 // الواجهات الأساسية
 import 'package:kidcare/views/main_advanced.dart';
@@ -21,6 +22,8 @@ import 'package:kidcare/controllers/activation_controller.dart';
 import 'package:kidcare/views/verify_otp_view.dart';
 import 'package:kidcare/controllers/verify_otp_controller.dart';
 import 'package:kidcare/core/repos/verify_otp_repo.dart';
+
+import 'controllers/forgot_password_controller.dart';
 
 void main() {
   runApp(const MyApp());
@@ -80,6 +83,16 @@ class MyApp extends StatelessWidget {
           binding: BindingsBuilder(() {
             Get.lazyPut<VerifyOtpController>(
                   () => VerifyOtpController(verifyOtpRepo: VerifyOtpRepo()),
+            );
+          }),
+        ),
+        //   Forgot Password
+        GetPage(
+          name: '/forgot-password',
+          page: () => const ForgotPasswordView(),
+          binding: BindingsBuilder(() {
+            Get.lazyPut<ForgotPasswordController>(
+                  () => ForgotPasswordController(),
             );
           }),
         ),

@@ -60,7 +60,7 @@ class LoginView extends StatelessWidget {
                   alignment: Alignment.centerRight,
                   child: TextButton(
                     onPressed: () {
-                      // Get.toNamed('/forget-password');
+                       Get.toNamed('/forgot-password');
                     },
                     style: TextButton.styleFrom(
                       padding: const EdgeInsets.only(top: 8, bottom: 8),

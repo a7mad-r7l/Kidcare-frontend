@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:flutter_stripe/flutter_stripe.dart';
 import 'package:kidcare/views/forgot_password_view.dart';
 
 // الواجهات الأساسية
 import 'package:kidcare/views/main_advanced.dart';
 import 'package:kidcare/views/login_view.dart';
 import 'package:kidcare/views/sign_up_view.dart';
+import 'package:kidcare/views/homeView.dart';
 
 // Sign Up
 import 'package:kidcare/controllers/sign_up_controller.dart';
@@ -22,9 +24,24 @@ import 'package:kidcare/views/verify_otp_view.dart';
 import 'package:kidcare/controllers/verify_otp_controller.dart';
 import 'package:kidcare/core/repos/verify_otp_repo.dart';
 
+
 import 'controllers/forgot_password_controller.dart';
 
-void main() {
+
+//  واجهات الدفع الجديدة
+
+import 'package:kidcare/views/payment/payment_method_view.dart';
+import 'package:kidcare/views/payment/checkout_summary_view.dart';
+import 'package:kidcare/views/payment/payment_success_view.dart';
+
+import 'controllers/forgot_password_controller.dart';
+
+void main() async {
+  //  لتهيئة فلاتر قبل تشغيل أي ميزة Native مثل Stripe
+  WidgetsFlutterBinding.ensureInitialized();
+
+
+  Stripe.publishableKey = 'pk_test_';
   runApp(const MyApp());
 }
 
@@ -41,7 +58,8 @@ class MyApp extends StatelessWidget {
         scaffoldBackgroundColor: Colors.white,
         fontFamily: 'Roboto',
       ),
-      initialRoute: '/',
+      // initialRoute: '/',
+      initialRoute: '/payment-method',
       getPages: [
         GetPage(name: '/', page: () => const PediatricClinicScreen()),
 
@@ -99,6 +117,29 @@ class MyApp extends StatelessWidget {
                   () => ForgotPasswordController(),
             );
           }),
+        ),
+        //   Forgot Password
+        GetPage(
+          name: '/forgot-password',
+          page: () => const ForgotPasswordView(),
+          binding: BindingsBuilder(() {
+            Get.lazyPut<ForgotPasswordController>(
+                  () => ForgotPasswordController(),
+            );
+          }),
+        ),
+        //  Payment Routes
+        GetPage(
+          name: '/payment-method',
+          page: () => const PaymentMethodView(),
+        ),
+        GetPage(
+          name: '/checkout-summary',
+          page: () => const CheckoutSummaryView(),
+        ),
+        GetPage(
+          name: '/payment-success',
+          page: () => const PaymentSuccessView(),
         ),
       ],
     );

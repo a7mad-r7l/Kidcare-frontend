@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:kidcare/views/forgot_password_view.dart';
 
 // الواجهات الأساسية
 import 'package:kidcare/views/main_advanced.dart';
 import 'package:kidcare/views/login_view.dart';
 import 'package:kidcare/views/sign_up_view.dart';
-import 'package:kidcare/views/homeView.dart'; // ✅ إضافة
 
 // Sign Up
 import 'package:kidcare/controllers/sign_up_controller.dart';
@@ -21,6 +21,8 @@ import 'package:kidcare/controllers/activation_controller.dart';
 import 'package:kidcare/views/verify_otp_view.dart';
 import 'package:kidcare/controllers/verify_otp_controller.dart';
 import 'package:kidcare/core/repos/verify_otp_repo.dart';
+
+import 'controllers/forgot_password_controller.dart';
 
 void main() {
   runApp(const MyApp());
@@ -45,9 +47,6 @@ class MyApp extends StatelessWidget {
 
         GetPage(name: '/login', page: () => const LoginView()),
 
-        // ✅ إضافة route الـ home
-        GetPage(name: '/home', page: () => const HomeView()),
-
         GetPage(
           name: '/register',
           page: () => const SignUpView(),
@@ -69,9 +68,15 @@ class MyApp extends StatelessWidget {
           }),
         ),
 
-        GetPage(name: '/activation-otp', page: () => const OtpVerificationView()),
+        GetPage(
+          name: '/activation-otp',
+          page: () => const OtpVerificationView(),
+        ),
 
-        GetPage(name: '/set-password', page: () => const SetNewPasswordView()),
+        GetPage(
+          name: '/set-password',
+          page: () => const SetNewPasswordView(),
+        ),
 
         // Verify OTP
         GetPage(
@@ -79,7 +84,19 @@ class MyApp extends StatelessWidget {
           page: () => const VerifyOtpView(),
           binding: BindingsBuilder(() {
             Get.lazyPut<VerifyOtpController>(
-                  () => VerifyOtpController(verifyOtpRepo: VerifyOtpRepo()),
+                  () => VerifyOtpController(
+                verifyOtpRepo: VerifyOtpRepo(),
+              ),
+            );
+          }),
+        ),
+        //   Forgot Password
+        GetPage(
+          name: '/forgot-password',
+          page: () =>  ForgotPasswordView(),
+          binding: BindingsBuilder(() {
+            Get.lazyPut<ForgotPasswordController>(
+                  () => ForgotPasswordController(),
             );
           }),
         ),

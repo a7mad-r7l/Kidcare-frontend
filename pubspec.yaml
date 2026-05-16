@@ -40,6 +40,7 @@ dependencies:
   pinput: ^6.0.2
   flutter_launcher_icons: ^0.14.4
 
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -73,6 +74,12 @@ flutter:
      - assets/images/shield_blue_logo.png
      - assets/images/boy character green.png
      - assets/images/girl character.png
+     - assets/images/child_welcome.jpg
+     - assets/images/green_checkmark.jpg
+     - assets/images/lock_logo.jpg
+     - assets/images/shield_logo.jpg
+     
+
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images

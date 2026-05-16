@@ -39,6 +39,7 @@ dependencies:
   flutter_secure_storage: ^10.0.0
   pinput: ^6.0.2
   flutter_launcher_icons: ^0.14.4
+  flutter_stripe: ^12.6.0
 
 dev_dependencies:
   flutter_test:
@@ -74,6 +75,13 @@ flutter:
      - assets/images/boy character green.png
      - assets/images/girl character.png
      - assets/images/child_welcome.png
+     - assets/images/apple_pay_logo.png
+     - assets/images/mada_logo.png
+     - assets/images/mastercard_logo.png
+     - assets/images/success_celebration_icon.png
+     - assets/images/visa_logo.png
+     - assets/images/wallet_lock_icon.png
+     - assets/images/stc-pay-logo.png
 
 
   # An image asset can refer to one or more resolution-specific "variants", see

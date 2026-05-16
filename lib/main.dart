@@ -24,6 +24,10 @@ import 'package:kidcare/views/verify_otp_view.dart';
 import 'package:kidcare/controllers/verify_otp_controller.dart';
 import 'package:kidcare/core/repos/verify_otp_repo.dart';
 
+
+import 'controllers/forgot_password_controller.dart';
+
+
 //  واجهات الدفع الجديدة
 
 import 'package:kidcare/views/payment/payment_method_view.dart';
@@ -36,10 +40,8 @@ void main() async {
   //  لتهيئة فلاتر قبل تشغيل أي ميزة Native مثل Stripe
   WidgetsFlutterBinding.ensureInitialized();
 
-  // ✅ ضع مفتاح Stripe الخاص بك هنا (Publishable Key الذي يبدأ بـ pk_test)
 
   Stripe.publishableKey = 'pk_test_';
-
   runApp(const MyApp());
 }
 
@@ -63,9 +65,6 @@ class MyApp extends StatelessWidget {
 
         GetPage(name: '/login', page: () => const LoginView()),
 
-        // ✅ إضافة route الـ home
-        GetPage(name: '/home', page: () => const HomeView()),
-
         GetPage(
           name: '/register',
           page: () => const SignUpView(),
@@ -87,9 +86,15 @@ class MyApp extends StatelessWidget {
           }),
         ),
 
-        GetPage(name: '/activation-otp', page: () => const OtpVerificationView()),
+        GetPage(
+          name: '/activation-otp',
+          page: () => const OtpVerificationView(),
+        ),
 
-        GetPage(name: '/set-password', page: () => const SetNewPasswordView()),
+        GetPage(
+          name: '/set-password',
+          page: () => const SetNewPasswordView(),
+        ),
 
         // Verify OTP
         GetPage(
@@ -97,7 +102,19 @@ class MyApp extends StatelessWidget {
           page: () => const VerifyOtpView(),
           binding: BindingsBuilder(() {
             Get.lazyPut<VerifyOtpController>(
-                  () => VerifyOtpController(verifyOtpRepo: VerifyOtpRepo()),
+                  () => VerifyOtpController(
+                verifyOtpRepo: VerifyOtpRepo(),
+              ),
+            );
+          }),
+        ),
+        //   Forgot Password
+        GetPage(
+          name: '/forgot-password',
+          page: () =>  ForgotPasswordView(),
+          binding: BindingsBuilder(() {
+            Get.lazyPut<ForgotPasswordController>(
+                  () => ForgotPasswordController(),
             );
           }),
         ),

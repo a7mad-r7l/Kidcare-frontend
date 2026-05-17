@@ -5,7 +5,10 @@ import '../constants.dart';
 
 class PaymentApi {
   // 1.   تفاصيل الموعد
-  Future<String> getAppointmentSummary(String appointmentId) async {
+  Future<String> getAppointmentSummary(
+    String token,
+    String appointmentId,
+  ) async {
     try {
       var response = await http.get(
         Uri.parse('$baseUrl/appointments/$appointmentId/summary'),
@@ -29,6 +32,7 @@ class PaymentApi {
 
   // 2.  طلب الدفع
   Future<String> createPaymentIntent(
+    String token,
     String appointmentId,
     String amount,
     String currency,

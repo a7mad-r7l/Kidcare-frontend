@@ -2,6 +2,7 @@ import 'dart:convert';
 import '../../models/appointment_details_model.dart';
 import '../../models/payment_intent_model.dart';
 import '../apis/payment_api.dart';
+import '../helper/secure_storage_service.dart';
 
 class PaymentRepo {
   final PaymentApi api = PaymentApi();
@@ -9,7 +10,8 @@ class PaymentRepo {
   Future<AppointmentDetailsModel> fetchAppointmentSummary(
     String appointmentId,
   ) async {
-    final response = await api.getAppointmentSummary(appointmentId);
+    String token = await SecureStorage.getToken();
+    final response = await api.getAppointmentSummary(token, appointmentId);
     final data = jsonDecode(response);
 
     if (data['status'] == 'success') {
@@ -24,7 +26,9 @@ class PaymentRepo {
     String amount,
     String currency,
   ) async {
+    String token = await SecureStorage.getToken();
     final response = await api.createPaymentIntent(
+      token,
       appointmentId,
       amount,
       currency,

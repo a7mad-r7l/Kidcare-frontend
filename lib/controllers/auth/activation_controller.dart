@@ -1,7 +1,9 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'base_controller.dart';
-import '../core/repos/activation_repo.dart';
+
+import '../../core/repos/auth/activation_repo.dart';
+import '../base_controller.dart';
 
 class ActivationController extends BaseController {
   final ActivationRepo repo = ActivationRepo();
@@ -13,8 +15,31 @@ class ActivationController extends BaseController {
 
   var isPasswordHidden = true.obs;
 
+
+  var secondsRemaining = 45.obs;
+  Timer? _timer;
+
+  @override
+  void onClose() {
+    _timer?.cancel();
+    super.onClose();
+  }
+
   void togglePasswordVisibility() {
     isPasswordHidden.value = !isPasswordHidden.value;
+  }
+
+
+  void startTimer() {
+    secondsRemaining.value = 45;
+    _timer?.cancel();
+    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (secondsRemaining.value > 0) {
+        secondsRemaining.value--;
+      } else {
+        timer.cancel();
+      }
+    });
   }
 
   // 1. طلب OTP والانتقال للواجهة الثانية
@@ -23,7 +48,9 @@ class ActivationController extends BaseController {
     if (phone.isEmpty || phone.length != 12) {
       Get.snackbar(
         "Notice",
-        phone.isEmpty ? "Please enter phone number" : "Phone number must be 12 numbers (e.g., 9639XXXXXXXX)",
+        phone.isEmpty
+            ? "Please enter phone number"
+            : "Phone number must be 12 numbers (e.g., 9639XXXXXXXX)",
         backgroundColor: Colors.grey.shade700,
         colorText: Colors.white,
         snackPosition: SnackPosition.TOP,
@@ -35,6 +62,7 @@ class ActivationController extends BaseController {
     showLoading();
     try {
       await repo.requestOtp(phoneController.text.trim());
+      startTimer();
       Get.toNamed('/activation-otp');
     } catch (e) {
       handleError(e);
@@ -43,13 +71,35 @@ class ActivationController extends BaseController {
     }
   }
 
-  // 2. التحقق من الرمز  عبر السيرفر والانتقال للواجهة الثالثة
+
+  Future<void> resendOtp() async {
+    showLoading();
+    try {
+      await repo.requestOtp(phoneController.text.trim());
+      startTimer();
+      Get.snackbar(
+        "Success",
+        "Verification code resent successfully",
+        backgroundColor: Colors.green,
+        colorText: Colors.white,
+        snackPosition: SnackPosition.TOP,
+      );
+    } catch (e) {
+      handleError(e);
+    } finally {
+      hideLoading();
+    }
+  }
+
+  // 2. التحقق من الرمز عبر السيرفر والانتقال للواجهة الثالثة
   Future<void> verifyOtp() async {
     String otp = otpController.text.trim();
     if (otp.isEmpty || otp.length != 4) {
       Get.snackbar(
         "Check Code",
-        otp.isEmpty ? "Please enter OTP" : "Please enter the 4-digit code correctly",
+        otp.isEmpty
+            ? "Please enter OTP"
+            : "Please enter the 4-digit code correctly",
         backgroundColor: Colors.grey.shade700,
         colorText: Colors.white,
         snackPosition: SnackPosition.TOP,
@@ -64,6 +114,7 @@ class ActivationController extends BaseController {
         phoneController.text.trim(),
         otpController.text.trim(),
       );
+      _timer?.cancel();
       Get.toNamed('/set-password');
     } catch (e) {
       handleError(e);

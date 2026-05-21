@@ -1,7 +1,8 @@
 import 'dart:convert';
-import '../apis/login_api.dart';
-import '../../models/user_model.dart';
-import '../helper/secure_storage_service.dart';
+import '../../../models/user_model.dart';
+import '../../apis/auth/login_api.dart';
+import '../../helper/secure_storage_service.dart';
+
 
 class LoginRepo {
   final LoginApi loginApi = LoginApi();

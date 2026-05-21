@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import '../../controllers/activation_controller.dart';
-import '../../widgets/activation_helpers.dart';
-import '../../widgets/custom_text_field.dart';
+
+import '../../../controllers/auth/activation_controller.dart';
+import '../../../widgets/activation_helpers.dart';
+import '../../../widgets/custom_text_field.dart';
 
 class PhoneActivationView extends GetView<ActivationController> {
   const PhoneActivationView({super.key});
@@ -31,14 +32,10 @@ class PhoneActivationView extends GetView<ActivationController> {
                 subtitle: 'Enter your phone number registered at the clinic',
               ),
 
-              // تم تعديل prefixIcon إلى prefixIconWidget ليتطابق مع الـ Widget الخاص بك
-              // وتم التأكد من عدم وجود const قبل الـ CustomTextField
               CustomTextField(
                 controller: controller.phoneController,
                 hintText: 'phone number',
                 keyboardType: TextInputType.phone,
-
-
               ),
 
               const SizedBox(height: 12),
@@ -51,12 +48,14 @@ class PhoneActivationView extends GetView<ActivationController> {
               ),
 
               const SizedBox(height: 40),
-              Obx(() => controller.isLoading
-                  ? const CircularProgressIndicator()
-                  : PrimaryButton(
-                text: 'Send Verification Code',
-                onPressed: controller.startActivation,
-              )),
+              Obx(
+                () => controller.isLoading
+                    ? const CircularProgressIndicator()
+                    : PrimaryButton(
+                        text: 'Send Verification Code',
+                        onPressed: controller.startActivation,
+                      ),
+              ),
             ],
           ),
         ),

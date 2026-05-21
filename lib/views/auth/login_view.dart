@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import '../controllers/login_controller.dart';
-import '../core/repos/login_repo.dart';
-import '../widgets/custom_text_field.dart';
+import '../../controllers/auth/login_controller.dart';
+
+import '../../core/repos/auth/login_repo.dart';
+
+import '../../widgets/custom_text_field.dart';
 
 class LoginView extends StatelessWidget {
   const LoginView({super.key});
@@ -40,7 +42,7 @@ class LoginView extends StatelessWidget {
                 const SizedBox(height: 16),
 
                 Obx(
-                      () => CustomTextField(
+                  () => CustomTextField(
                     controller: controller.passwordController,
                     hintText: 'Password',
                     isPassword: controller.isPasswordHidden.value,
@@ -55,12 +57,11 @@ class LoginView extends StatelessWidget {
                   ),
                 ),
 
-
                 Align(
                   alignment: Alignment.centerRight,
                   child: TextButton(
                     onPressed: () {
-                       Get.toNamed('/forgot-password');
+                      Get.toNamed('/forgot-password');
                     },
                     style: TextButton.styleFrom(
                       padding: const EdgeInsets.only(top: 8, bottom: 8),
@@ -78,26 +79,35 @@ class LoginView extends StatelessWidget {
                   ),
                 ),
 
-
                 const SizedBox(height: 20),
 
                 Obx(
-                      () => controller.isLoading
+                  () => controller.isLoading
                       ? const CircularProgressIndicator()
                       : PrimaryButton(
-                    text: 'Login',
-                    onPressed: controller.login,
-                  ),
+                          text: 'Login',
+                          onPressed: controller.login,
+                        ),
                 ),
                 const SizedBox(height: 30),
                 Row(
                   children: [
-                    const Expanded(child: Divider(thickness: 1, color: Colors.grey)),
+                    const Expanded(
+                      child: Divider(thickness: 1, color: Colors.grey),
+                    ),
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 10),
-                      child: Text('Or', style: TextStyle(color: Colors.grey.shade600, fontSize: 14)),
+                      child: Text(
+                        'Or',
+                        style: TextStyle(
+                          color: Colors.grey.shade600,
+                          fontSize: 14,
+                        ),
+                      ),
                     ),
-                    const Expanded(child: Divider(thickness: 1, color: Colors.grey)),
+                    const Expanded(
+                      child: Divider(thickness: 1, color: Colors.grey),
+                    ),
                   ],
                 ),
 

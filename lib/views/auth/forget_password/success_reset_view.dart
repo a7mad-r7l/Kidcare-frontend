@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 class SuccessResetView extends StatelessWidget {
+  const SuccessResetView({super.key});
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -12,14 +14,10 @@ class SuccessResetView extends StatelessWidget {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              
-              Image.asset(
-                'assets/images/green_checkmark.jpg', 
-                height: 200,
-              ),
-              
+              Image.asset('assets/images/green_checkmark.jpg', height: 200),
+
               const SizedBox(height: 40),
-              
+
               // العنوان الرئيسي
               const Text(
                 "Password Updated!",
@@ -29,22 +27,18 @@ class SuccessResetView extends StatelessWidget {
                   color: Color(0xFF1D2755),
                 ),
               ),
-              
+
               const SizedBox(height: 15),
-              
+
               // الوصف
               const Text(
                 "Your password has been updated successfully. You can now log in with your new password.",
                 textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 16,
-                  color: Colors.grey,
-                  height: 1.5,
-                ),
+                style: TextStyle(fontSize: 16, color: Colors.grey, height: 1.5),
               ),
-              
+
               const SizedBox(height: 50),
-              
+
               // زر الذهاب لتسجيل الدخول
               SizedBox(
                 width: double.infinity,
@@ -52,7 +46,7 @@ class SuccessResetView extends StatelessWidget {
                 child: ElevatedButton(
                   onPressed: () {
                     // العودة لصفحة تسجيل الدخول ومسح كل الصفحات السابقة من الذاكرة
-                    Get.offAllNamed('/login'); 
+                    Get.offAllNamed('/login');
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF4A86D1),
@@ -70,14 +64,11 @@ class SuccessResetView extends StatelessWidget {
                   ),
                 ),
               ),
-              
+
               const SizedBox(height: 40),
-              
+
               // صورة الطفل (الولد) في الأسفل
-              Image.asset(
-                'assets/images/child_welcome.jpg', 
-                height: 200,
-              ),
+              Image.asset('assets/images/child_welcome.jpg', height: 200),
             ],
           ),
         ),

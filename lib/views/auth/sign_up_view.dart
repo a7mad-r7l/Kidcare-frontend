@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import '../controllers/sign_up_controller.dart';
-import '../widgets/custom_text_field.dart';
+import '../../controllers/auth/sign_up_controller.dart';
+import '../../widgets/custom_text_field.dart';
 
 class SignUpView extends StatelessWidget {
   const SignUpView({super.key});
@@ -17,7 +17,11 @@ class SignUpView extends StatelessWidget {
         backgroundColor: Colors.white,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios, color: Colors.black87, size: 20),
+          icon: const Icon(
+            Icons.arrow_back_ios,
+            color: Colors.black87,
+            size: 20,
+          ),
           onPressed: () => Get.back(),
         ),
         title: Image.asset(
@@ -35,7 +39,11 @@ class SignUpView extends StatelessWidget {
             const SizedBox(height: 12),
             const Text(
               'Create New Account',
-              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.black87),
+              style: TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+                color: Colors.black87,
+              ),
             ),
             const SizedBox(height: 6),
             Text(
@@ -93,23 +101,25 @@ class SignUpView extends StatelessWidget {
             ),
             const SizedBox(height: 14),
 
-            Obx(() => CustomTextField(
-                  controller: controller.passwordController,
-                  hintText: 'Enter your password',
-                  isPassword: controller.isPasswordHidden.value,
-                  label: 'Password',
-                  labelIcon: Icons.lock_outline,
-              suffixIcon: IconButton(
-                    icon: Icon(
-                      controller.isPasswordHidden.value
-                          ? Icons.visibility_off_outlined
-                          : Icons.visibility_outlined,
-                      color: Colors.grey.shade500,
-                      size: 20,
-                    ),
-                    onPressed: controller.togglePassword,
+            Obx(
+              () => CustomTextField(
+                controller: controller.passwordController,
+                hintText: 'Enter your password',
+                isPassword: controller.isPasswordHidden.value,
+                label: 'Password',
+                labelIcon: Icons.lock_outline,
+                suffixIcon: IconButton(
+                  icon: Icon(
+                    controller.isPasswordHidden.value
+                        ? Icons.visibility_off_outlined
+                        : Icons.visibility_outlined,
+                    color: Colors.grey.shade500,
+                    size: 20,
                   ),
-                )),
+                  onPressed: controller.togglePassword,
+                ),
+              ),
+            ),
             const SizedBox(height: 6),
             Align(
               alignment: Alignment.centerRight,
@@ -120,32 +130,37 @@ class SignUpView extends StatelessWidget {
             ),
             const SizedBox(height: 14),
 
-            Obx(() => CustomTextField(
-                  controller: controller.confirmPasswordController,
-                  hintText: 'Enter your password again',
-                  isPassword: controller.isConfirmPasswordHidden.value,
-                  label: 'Confirm Password',
-                  labelIcon: Icons.lock_outline,
-              suffixIcon: IconButton(
-                    icon: Icon(
-                      controller.isConfirmPasswordHidden.value
-                          ? Icons.visibility_off_outlined
-                          : Icons.visibility_outlined,
-                      color: Colors.grey.shade500,
-                      size: 20,
-                    ),
-                    onPressed: controller.toggleConfirmPassword,
+            Obx(
+              () => CustomTextField(
+                controller: controller.confirmPasswordController,
+                hintText: 'Enter your password again',
+                isPassword: controller.isConfirmPasswordHidden.value,
+                label: 'Confirm Password',
+                labelIcon: Icons.lock_outline,
+                suffixIcon: IconButton(
+                  icon: Icon(
+                    controller.isConfirmPasswordHidden.value
+                        ? Icons.visibility_off_outlined
+                        : Icons.visibility_outlined,
+                    color: Colors.grey.shade500,
+                    size: 20,
                   ),
-                )),
+                  onPressed: controller.toggleConfirmPassword,
+                ),
+              ),
+            ),
             const SizedBox(height: 20),
 
-            Obx(() => controller.isLoading
-                ? const Center(
-                    child: CircularProgressIndicator(color: Colors.blue))
-                : PrimaryButton(
-                    text: 'Create Account',
-                    onPressed: controller.signUp,
-                  )),
+            Obx(
+              () => controller.isLoading
+                  ? const Center(
+                      child: CircularProgressIndicator(color: Colors.blue),
+                    )
+                  : PrimaryButton(
+                      text: 'Create Account',
+                      onPressed: controller.signUp,
+                    ),
+            ),
             const SizedBox(height: 20),
 
             Row(
@@ -163,15 +178,11 @@ class SignUpView extends StatelessWidget {
             ),
             const SizedBox(height: 16),
 
-            OutlinedPrimaryButton(
-              text: 'LogIn',
-              onPressed: () => Get.back(),
-            ),
+            OutlinedPrimaryButton(text: 'LogIn', onPressed: () => Get.back()),
             const SizedBox(height: 32),
           ],
         ),
       ),
     );
   }
-
 }

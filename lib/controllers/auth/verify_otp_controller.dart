@@ -1,8 +1,8 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import '../controllers/base_controller.dart';
-import '../core/repos/verify_otp_repo.dart';
+import '../base_controller.dart';
+import '../../core/repos/auth/verify_otp_repo.dart';
 
 class VerifyOtpController extends BaseController {
   final VerifyOtpRepo verifyOtpRepo;

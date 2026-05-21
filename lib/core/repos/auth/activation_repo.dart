@@ -1,6 +1,7 @@
 import 'dart:convert';
-import '../apis/activation_api.dart';
-import '../helper/secure_storage_service.dart';
+import '../../apis/auth/activation_api.dart';
+import '../../helper/secure_storage_service.dart';
+
 
 class ActivationRepo {
   final ActivationApi api = ActivationApi();

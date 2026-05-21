@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import '../core/repos/login_repo.dart';
-import '../controllers/base_controller.dart';
+import '../../core/repos/auth/login_repo.dart';
+import '../base_controller.dart';
 
 class LoginController extends BaseController {
   final LoginRepo loginRepo;

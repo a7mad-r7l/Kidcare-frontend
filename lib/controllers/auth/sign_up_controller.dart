@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import '../controllers/base_controller.dart';
-import '../core/repos/sign_up_repo.dart';
+import '../../core/repos/auth/sign_up_repo.dart';
+import '../base_controller.dart';
 
 class SignUpController extends BaseController {
   final SignUpRepo signUpRepo;
@@ -20,6 +20,7 @@ class SignUpController extends BaseController {
   final RxBool isConfirmPasswordHidden = true.obs;
 
   void togglePassword() => isPasswordHidden.value = !isPasswordHidden.value;
+
   void toggleConfirmPassword() =>
       isConfirmPasswordHidden.value = !isConfirmPasswordHidden.value;
 

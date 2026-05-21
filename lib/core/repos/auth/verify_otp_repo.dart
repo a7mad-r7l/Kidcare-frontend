@@ -1,5 +1,5 @@
 import 'dart:convert';
-import '../apis/verify_otp_api.dart';
+import '../../apis/auth/verify_otp_api.dart';
 
 class VerifyOtpRepo {
   final VerifyOtpApi _api = VerifyOtpApi();

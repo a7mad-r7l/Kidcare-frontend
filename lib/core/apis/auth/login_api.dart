@@ -1,6 +1,6 @@
 import 'package:http/http.dart' as http;
 
-import '../constants.dart';
+import '../../constants.dart';
 
 class LoginApi {
   Future<String> login(String phoneNumber, String password) async {

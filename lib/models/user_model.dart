@@ -18,7 +18,7 @@ class UserModel {
       id: json['id'],
       firstName: json['first_name'],
       lastName: json['last_name'],
-      // ضفنا toString() لأن السيرفر يرسل الرقم كـ int وليس String
+
       phoneNumber: json['phone_number'].toString(),
       token: token,
     );

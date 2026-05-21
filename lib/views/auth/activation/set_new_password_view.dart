@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import '../../controllers/activation_controller.dart';
-import '../../widgets/activation_helpers.dart';
-import '../../widgets/custom_text_field.dart';
+
+import '../../../controllers/auth/activation_controller.dart';
+import '../../../widgets/activation_helpers.dart';
+import '../../../widgets/custom_text_field.dart';
 
 class SetNewPasswordView extends GetView<ActivationController> {
   const SetNewPasswordView({super.key});

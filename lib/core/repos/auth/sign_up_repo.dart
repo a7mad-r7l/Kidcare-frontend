@@ -1,7 +1,7 @@
 import 'dart:convert';
 import '../../apis/auth/sign_up_api.dart';
 import '../../helper/secure_storage_service.dart';
-import '../../../models/sign_up_response_model.dart';
+import '../../../models/auth/sign_up_response_model.dart';
 
 class SignUpRepo {
   final SignUpApi _api = SignUpApi();

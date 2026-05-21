@@ -1,5 +1,5 @@
 import 'dart:convert';
-import '../../../models/user_model.dart';
+import '../../../models/auth/user_model.dart';
 import '../../apis/auth/login_api.dart';
 import '../../helper/secure_storage_service.dart';
 

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../controllers/verify_otp_controller.dart';
 import '../widgets/custom_text_field.dart';
-import '../controllers/base_controller.dart';
+
 
 class VerifyOtpView extends GetView<VerifyOtpController> {
   const VerifyOtpView({super.key});

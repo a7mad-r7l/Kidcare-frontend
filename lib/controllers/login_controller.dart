@@ -11,7 +11,6 @@ class LoginController extends BaseController {
 
   final phoneController = TextEditingController();
   final passwordController = TextEditingController();
-
   final isPasswordHidden = true.obs;
 
   void togglePasswordVisibility() {

@@ -19,6 +19,7 @@ class PaymentRepo {
     } else {
       throw Exception(data['message'] ?? "Failed to parse summary details");
     }
+
   }
 
   Future<PaymentIntentModel> fetchPaymentIntent(

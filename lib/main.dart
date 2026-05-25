@@ -1,38 +1,41 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:flutter_stripe/flutter_stripe.dart';
-import 'package:kidcare/views/forgot_password_view.dart';
 
 // الواجهات الأساسية
 import 'package:kidcare/views/main_advanced.dart';
-import 'package:kidcare/views/login_view.dart';
-import 'package:kidcare/views/sign_up_view.dart';
+import 'package:kidcare/views/auth/login_view.dart';
 
 // Sign Up
-import 'package:kidcare/controllers/sign_up_controller.dart';
-import 'package:kidcare/core/repos/sign_up_repo.dart';
+import 'package:kidcare/views/auth/sign_up_view.dart';
+import 'package:kidcare/core/repos/auth/sign_up_repo.dart';
+import 'controllers/auth/sign_up_controller.dart';
 
-// activation
-import 'package:kidcare/views/activation/phone_activation_view.dart';
-import 'package:kidcare/views/activation/otp_verification_view.dart';
-import 'package:kidcare/views/activation/set_new_password_view.dart';
-import 'package:kidcare/controllers/activation_controller.dart';
+// Activation
+import 'package:kidcare/views/auth/activation/otp_verification_view.dart';
+import 'package:kidcare/views/auth/activation/phone_activation_view.dart';
+import 'package:kidcare/views/auth/activation/set_new_password_view.dart';
+import 'controllers/auth/activation_controller.dart';
 
 // Verify OTP
-import 'package:kidcare/views/verify_otp_view.dart';
-import 'package:kidcare/controllers/verify_otp_controller.dart';
-import 'package:kidcare/core/repos/verify_otp_repo.dart';
+import 'package:kidcare/views/auth/verify_otp_view.dart';
+import 'package:kidcare/core/repos/auth/verify_otp_repo.dart';
+import 'controllers/auth/verify_otp_controller.dart';
 
-import 'controllers/forgot_password_controller.dart';
+// Forgot Password
+import 'package:kidcare/views/auth/forget_password/forgot_password_view.dart';
+import 'package:kidcare/views/auth/forget_password/otp_view.dart';
+import 'package:kidcare/views/auth/forget_password/reset_password_view.dart';
+import 'package:kidcare/views/auth/forget_password/success_reset_view.dart';
+import 'controllers/auth/forgot_password_controller.dart';
 
-//  واجهات الدفع
-
+// Payment Routes
 import 'package:kidcare/views/payment/payment_method_view.dart';
 import 'package:kidcare/views/payment/checkout_summary_view.dart';
 import 'package:kidcare/views/payment/payment_success_view.dart';
 
 void main() async {
-  //  لتهيئة فلاتر قبل تشغيل أي ميزة Native مثل Stripe
+  // لتهيئة فلاتر قبل تشغيل أي ميزة Native مثل Stripe
   WidgetsFlutterBinding.ensureInitialized();
 
   Stripe.publishableKey = 'pk_test_';
@@ -52,13 +55,15 @@ class MyApp extends StatelessWidget {
         scaffoldBackgroundColor: Colors.white,
         fontFamily: 'Roboto',
       ),
-      // initialRoute: '/',
-      initialRoute: '/payment-method',
+
+      initialRoute: '/',
       getPages: [
         GetPage(name: '/', page: () => const PediatricClinicScreen()),
 
+        // login
         GetPage(name: '/login', page: () => const LoginView()),
 
+        // Sign Up
         GetPage(
           name: '/register',
           page: () => const SignUpView(),
@@ -69,7 +74,7 @@ class MyApp extends StatelessWidget {
           }),
         ),
 
-        // activation
+        // Activation
         GetPage(
           name: '/activation-phone',
           page: () => const PhoneActivationView(),
@@ -77,15 +82,13 @@ class MyApp extends StatelessWidget {
             Get.lazyPut<ActivationController>(() => ActivationController());
           }),
         ),
-
         GetPage(
           name: '/activation-otp',
           page: () => const OtpVerificationView(),
         ),
-
         GetPage(name: '/set-password', page: () => const SetNewPasswordView()),
 
-        // Verify OTP
+        //  OTP
         GetPage(
           name: '/verify-otp',
           page: () => const VerifyOtpView(),
@@ -95,17 +98,8 @@ class MyApp extends StatelessWidget {
             );
           }),
         ),
-        //   Forgot Password
-        GetPage(
-          name: '/forgot-password',
-          page: () => ForgotPasswordView(),
-          binding: BindingsBuilder(() {
-            Get.lazyPut<ForgotPasswordController>(
-              () => ForgotPasswordController(),
-            );
-          }),
-        ),
-        //   Forgot Password
+
+        // Forgot Password
         GetPage(
           name: '/forgot-password',
           page: () => const ForgotPasswordView(),
@@ -115,7 +109,11 @@ class MyApp extends StatelessWidget {
             );
           }),
         ),
-        //  Payment Routes
+        GetPage(name: '/forgot-otp', page: () => const OtpView()),
+        GetPage(name: '/reset-password', page: () => const ResetPasswordView()),
+        GetPage(name: '/success-reset', page: () => SuccessResetView()),
+
+        //  Payment
         GetPage(name: '/payment-method', page: () => const PaymentMethodView()),
         GetPage(
           name: '/checkout-summary',

@@ -34,6 +34,20 @@ import 'package:kidcare/views/payment/payment_method_view.dart';
 import 'package:kidcare/views/payment/checkout_summary_view.dart';
 import 'package:kidcare/views/payment/payment_success_view.dart';
 
+// Appointment Booking
+import 'package:kidcare/views/HomeView.dart';
+import 'package:kidcare/views/appointment/choose_doctor_view.dart';
+import 'package:kidcare/views/appointment/choose_child_view.dart';
+import 'package:kidcare/views/appointment/choose_date_time_view.dart';
+import 'package:kidcare/controllers/appointment/department_controller.dart';
+import 'package:kidcare/controllers/appointment/doctor_controller.dart';
+import 'package:kidcare/controllers/appointment/child_controller.dart';
+import 'package:kidcare/controllers/appointment/my_appointments_controller.dart';
+import 'package:kidcare/core/repos/appointment/department_repo.dart';
+import 'package:kidcare/core/repos/appointment/doctor_repo.dart';
+import 'package:kidcare/core/repos/appointment/child_repo.dart';
+import 'package:kidcare/core/repos/appointment/appointment_repo.dart';
+
 void main() async {
   // لتهيئة فلاتر قبل تشغيل أي ميزة Native مثل Stripe
   WidgetsFlutterBinding.ensureInitialized();
@@ -122,6 +136,49 @@ class MyApp extends StatelessWidget {
         GetPage(
           name: '/payment-success',
           page: () => const PaymentSuccessView(),
+        ),
+
+        // Home
+        GetPage(
+          name: '/home',
+          page: () => const HomeView(),
+          binding: BindingsBuilder(() {
+            Get.lazyPut<ChildController>(
+              () => ChildController(repo: ChildRepo()),
+            );
+            Get.lazyPut<MyAppointmentsController>(
+              () => MyAppointmentsController(
+                repo: AppointmentRepo(),
+                doctorRepo: DoctorRepo(),
+                childRepo: ChildRepo(),
+              ),
+            );
+          }),
+        ),
+
+        // Appointment Booking
+        GetPage(
+          name: '/choose-doctor',
+          page: () => const ChooseDoctorView(),
+          binding: BindingsBuilder(() {
+            Get.lazyPut<DepartmentController>(
+              () => DepartmentController(repo: DepartmentRepo()),
+            );
+            Get.lazyPut<DoctorController>(
+              () => DoctorController(repo: DoctorRepo()),
+            );
+          }),
+        ),
+        // ChildController is already alive from /home — no new binding needed.
+        // Re-registering would create a second instance that never sees the
+        // home-scope data and breaks cache coherence.
+        GetPage(
+          name: '/choose-child',
+          page: () => const ChooseChildView(),
+        ),
+        GetPage(
+          name: '/choose-date-time',
+          page: () => const ChooseDateTimeView(),
         ),
       ],
     );

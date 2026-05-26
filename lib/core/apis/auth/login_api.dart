@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:http/http.dart' as http;
 
 import '../../constants.dart';
@@ -6,11 +7,10 @@ class LoginApi {
   Future<String> login(String phoneNumber, String password) async {
     try {
       var response = await http.post(
-        Uri.parse("$baseUrl/login"),
-        headers: {"Accept": "application/json"},
-
-        body: {"phone_number": phoneNumber, "password": password},
-      );
+            Uri.parse("$baseUrl/login"),
+            headers: {"Accept": "application/json"},
+            body: {"phone_number": phoneNumber, "password": password},
+          ).timeout(const Duration(seconds: 15));
 
       if (response.statusCode == 200) {
         return response.body;

@@ -1,31 +1,56 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import '../models/child_model.dart';
-import '../models/appointment_model.dart';
-import '../widgets/custom_text_field.dart';
+import 'package:skeletonizer/skeletonizer.dart';
 
-class HomeView extends StatelessWidget {
+import '../controllers/appointment/appointment_controller.dart';
+import '../controllers/appointment/child_controller.dart';
+import '../controllers/appointment/my_appointments_controller.dart';
+import '../core/repos/appointment/appointment_repo.dart';
+import '../core/repos/appointment/doctor_repo.dart';
+import '../models/appointment/child_model.dart';
+import '../widgets/custom_text_field.dart';
+import '../widgets/main_bottom_nav.dart';
+import '../widgets/upcoming_appointments_section.dart';
+
+final _fakeHomeChildren = List<ChildModel>.generate(
+  2,
+  (i) => ChildModel(
+    id: -i - 1,
+    parentId: -1,
+    firstName: 'Child',
+    lastName: 'Loading',
+    gender: i.isEven ? 'male' : 'female',
+    birthDate: DateTime.now().subtract(const Duration(days: 365 * 5)),
+  ),
+);
+
+class HomeView extends StatefulWidget {
   const HomeView({super.key});
 
-  static const List<ChildModel> _children = [
-    ChildModel(name: 'Adam', age: '3 years', gender: 'male', isSelected: true),
-    ChildModel(name: 'Lina', age: '5 years', gender: 'female', isSelected: false),
-  ];
+  @override
+  State<HomeView> createState() => _HomeViewState();
+}
 
-  static const List<AppointmentModel> _appointments = [
-    AppointmentModel(
-      doctorName: 'Dr. Sara Ahmed',
-      specialty: 'General Pediatrics',
-      date: 'Sunday, May 12 2024 - 10:00 AM',
-      status: 'Confirmed',
-    ),
-  ];
+class _HomeViewState extends State<HomeView> {
+  final ChildController childController = Get.find<ChildController>();
+  final MyAppointmentsController myAppointmentsController =
+      Get.find<MyAppointmentsController>();
+
+  final Rxn<int> _selectedChildId = Rxn<int>();
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      myAppointmentsController.loadUpcoming();
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF4F6FA),
-      bottomNavigationBar: const _BottomNav(),
+      bottomNavigationBar: const MainBottomNav(currentIndex: 2),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
@@ -34,11 +59,16 @@ class HomeView extends StatelessWidget {
             children: [
               const _HeaderSection(),
               const SizedBox(height: 24),
-              _ChildrenSection(children: _children),
+              _ChildrenSection(
+                controller: childController,
+                selectedChildId: _selectedChildId,
+              ),
               const SizedBox(height: 20),
               const _BookButton(),
               const SizedBox(height: 28),
-              _UpcomingAppointmentsSection(appointments: _appointments),
+              UpcomingAppointmentsSection(
+                controller: myAppointmentsController,
+              ),
               const SizedBox(height: 28),
               const _QuickServicesSection(),
               const SizedBox(height: 20),
@@ -71,17 +101,19 @@ class _HeaderSection extends StatelessWidget {
               borderRadius: BorderRadius.circular(12),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.06),
+                  color: Colors.black.withValues(alpha: 0.06),
                   blurRadius: 8,
                   offset: const Offset(0, 2),
                 ),
               ],
             ),
-            child: const Icon(Icons.notifications_outlined,
-                size: 22, color: Colors.black87),
+            child: const Icon(
+              Icons.notifications_outlined,
+              size: 22,
+              color: Colors.black87,
+            ),
           ),
         ),
-
         Row(
           children: [
             Column(
@@ -109,8 +141,11 @@ class _HeaderSection extends StatelessWidget {
               child: CircleAvatar(
                 radius: 26,
                 backgroundColor: Colors.grey.shade200,
-                child: Icon(Icons.person,
-                    color: Colors.grey.shade400, size: 28),
+                child: Icon(
+                  Icons.person,
+                  color: Colors.grey.shade400,
+                  size: 28,
+                ),
               ),
             ),
           ],
@@ -123,42 +158,90 @@ class _HeaderSection extends StatelessWidget {
 // ─── Children ─────────────────────────────────────────────────────────────────
 
 class _ChildrenSection extends StatelessWidget {
-  final List<ChildModel> children;
+  final ChildController controller;
+  final Rxn<int> selectedChildId;
 
-  const _ChildrenSection({required this.children});
+  const _ChildrenSection({
+    required this.controller,
+    required this.selectedChildId,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: children
-          .map((child) => Expanded(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 5),
-          child: _ChildCard(child: child),
+    return Obx(() {
+      final isLoading = controller.isLoading;
+      final children = isLoading
+          ? _fakeHomeChildren
+          : controller.children.take(2).toList();
+
+      if (!isLoading && children.isEmpty) {
+        return Container(
+          height: 100,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: const Text(
+            'No children added yet.',
+            style: TextStyle(color: Colors.grey),
+          ),
+        );
+      }
+
+      // Default selection to the first real child once loaded.
+      if (!isLoading &&
+          selectedChildId.value == null &&
+          children.isNotEmpty) {
+        selectedChildId.value = children.first.id;
+      }
+
+      return Skeletonizer(
+        enabled: isLoading,
+        child: Row(
+          children: children
+              .map(
+                (child) => Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 5),
+                    child: _ChildCard(
+                      child: child,
+                      isSelected: selectedChildId.value == child.id,
+                      onTap: () => selectedChildId.value = child.id,
+                    ),
+                  ),
+                ),
+              )
+              .toList(),
         ),
-      ))
-          .toList(),
-    );
+      );
+    });
   }
 }
 
 class _ChildCard extends StatelessWidget {
   final ChildModel child;
+  final bool isSelected;
+  final VoidCallback onTap;
 
-  const _ChildCard({required this.child});
+  const _ChildCard({
+    required this.child,
+    required this.isSelected,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
     final bool isMale = child.gender == 'male';
-    final Color bgColor =
-    isMale ? const Color(0xFFD6F5D6) : const Color(0xFFFFD6E0);
-    final Color badgeColor =
-    child.isSelected ? Colors.green : const Color(0xFFFF6B8A);
+    final Color bgColor = isMale
+        ? const Color(0xFFD6F5D6)
+        : const Color(0xFFFFD6E0);
+    final Color badgeColor = isSelected
+        ? Colors.green
+        : const Color(0xFFFF6B8A);
 
     return GestureDetector(
-      onTap: () {
-        // TODO: Get.toNamed('/child-profile', arguments: child)
-      },
+      onTap: onTap,
       child: Container(
         height: 180,
         decoration: BoxDecoration(
@@ -167,22 +250,22 @@ class _ChildCard extends StatelessWidget {
         ),
         child: Stack(
           children: [
-            // ─── صورة الطفل ───────────────────────────
             Center(
               child: Padding(
                 padding: const EdgeInsets.only(bottom: 40),
-                child: Image.asset(
-                  isMale
-                      ? 'assets/images/boy character green.png'
-                      : 'assets/images/girl character.png',
-                  width: 100,
-                  height: 100,
-                  fit: BoxFit.contain,
-                ),
+                child: child.image != null
+                    ? ClipOval(
+                        child: Image.network(
+                          child.image!,
+                          width: 100,
+                          height: 100,
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, _, _) => _fallbackImage(isMale),
+                        ),
+                      )
+                    : _fallbackImage(isMale),
               ),
             ),
-
-            // Name & age
             Positioned(
               bottom: 14,
               left: 0,
@@ -190,7 +273,7 @@ class _ChildCard extends StatelessWidget {
               child: Column(
                 children: [
                   Text(
-                    child.name,
+                    child.fullName,
                     style: const TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
@@ -199,7 +282,7 @@ class _ChildCard extends StatelessWidget {
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    child.age,
+                    '${child.ageYears} years',
                     style: TextStyle(
                       fontSize: 12,
                       color: Colors.grey.shade600,
@@ -208,8 +291,6 @@ class _ChildCard extends StatelessWidget {
                 ],
               ),
             ),
-
-            // Badge
             Positioned(
               bottom: 44,
               left: 16,
@@ -220,7 +301,7 @@ class _ChildCard extends StatelessWidget {
                   shape: BoxShape.circle,
                 ),
                 child: Icon(
-                  child.isSelected ? Icons.check : Icons.keyboard_arrow_down,
+                  isSelected ? Icons.check : Icons.keyboard_arrow_down,
                   color: Colors.white,
                   size: 16,
                 ),
@@ -231,6 +312,17 @@ class _ChildCard extends StatelessWidget {
       ),
     );
   }
+
+  Widget _fallbackImage(bool isMale) {
+    return Image.asset(
+      isMale
+          ? 'assets/images/boy character green.png'
+          : 'assets/images/girl character.png',
+      width: 100,
+      height: 100,
+      fit: BoxFit.contain,
+    );
+  }
 }
 
 // ─── Book Button ──────────────────────────────────────────────────────────────
@@ -238,137 +330,25 @@ class _ChildCard extends StatelessWidget {
 class _BookButton extends StatelessWidget {
   const _BookButton();
 
+  void _onPressed() {
+    if (Get.isRegistered<AppointmentController>()) {
+      Get.delete<AppointmentController>(force: true);
+    }
+    Get.put<AppointmentController>(
+      AppointmentController(
+        repo: AppointmentRepo(),
+        doctorRepo: DoctorRepo(),
+      ),
+      permanent: true,
+    );
+    Get.toNamed('/choose-doctor');
+  }
+
   @override
   Widget build(BuildContext context) {
     return PrimaryButton(
       text: 'Book New Appointment',
-      onPressed: () {
-        // TODO: Get.toNamed('/book-appointment')
-      },
-    );
-  }
-}
-
-// ─── Upcoming Appointments ────────────────────────────────────────────────────
-
-class _UpcomingAppointmentsSection extends StatelessWidget {
-  final List<AppointmentModel> appointments;
-
-  const _UpcomingAppointmentsSection({required this.appointments});
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.end,
-      children: [
-        const Text(
-          'Upcoming Appointments',
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-            color: Colors.black87,
-          ),
-        ),
-        const SizedBox(height: 14),
-        ...appointments.map((apt) => _AppointmentCard(appointment: apt)),
-      ],
-    );
-  }
-}
-
-class _AppointmentCard extends StatelessWidget {
-  final AppointmentModel appointment;
-
-  const _AppointmentCard({required this.appointment});
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: () {
-        // TODO: Get.toNamed('/appointment-details', arguments: appointment)
-      },
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.05),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
-            ),
-          ],
-        ),
-        child: Row(
-          children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Text(
-                    appointment.doctorName,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.black87,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    appointment.specialty,
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: Colors.grey.shade500,
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 12, vertical: 5),
-                        decoration: BoxDecoration(
-                          color: Colors.green.shade50,
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: Text(
-                          appointment.status,
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.green.shade600,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        appointment.date,
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.grey.shade600,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(width: 14),
-            Container(
-              width: 60,
-              height: 60,
-              decoration: BoxDecoration(
-                color: Colors.grey.shade200,
-                borderRadius: BorderRadius.circular(14),
-              ),
-              child: Icon(Icons.person,
-                  color: Colors.grey.shade400, size: 30),
-            ),
-          ],
-        ),
-      ),
+      onPressed: _onPressed,
     );
   }
 }
@@ -407,12 +387,15 @@ class _QuickServicesSection extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.end,
       children: [
-        const Text(
-          'Quick Services',
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-            color: Colors.black87,
+        const Align(
+          alignment: Alignment.centerLeft,
+          child: Text(
+            'Quick Services',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: Colors.black87,
+            ),
           ),
         ),
         const SizedBox(height: 14),
@@ -459,71 +442,6 @@ class _ServiceItem extends StatelessWidget {
             style: const TextStyle(fontSize: 12, color: Colors.black87),
           ),
         ],
-      ),
-    );
-  }
-}
-
-// ─── Bottom Navigation ────────────────────────────────────────────────────────
-
-class _BottomNav extends StatelessWidget {
-  const _BottomNav();
-
-  static const List<Map<String, dynamic>> _items = [
-    {'label': 'More', 'icon': Icons.more_horiz, 'route': '/more'},
-    {'label': 'Records', 'icon': Icons.folder_outlined, 'route': '/records'},
-    {'label': 'Appointments', 'icon': Icons.calendar_month_outlined, 'route': '/appointments'},
-    {'label': 'Home', 'icon': Icons.home_rounded, 'route': '/home'},
-  ];
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.06),
-            blurRadius: 10,
-            offset: const Offset(0, -2),
-          ),
-        ],
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
-        children: _items.asMap().entries.map((entry) {
-          final bool isSelected = entry.key == 3;
-          return GestureDetector(
-            onTap: () {
-              // TODO: Get.toNamed(entry.value['route'])
-            },
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(
-                  entry.value['icon'] as IconData,
-                  color: isSelected
-                      ? const Color(0xFF3B9EFF)
-                      : Colors.grey.shade400,
-                  size: 26,
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  entry.value['label'],
-                  style: TextStyle(
-                    fontSize: 11,
-                    color: isSelected
-                        ? const Color(0xFF3B9EFF)
-                        : Colors.grey.shade400,
-                    fontWeight:
-                    isSelected ? FontWeight.bold : FontWeight.normal,
-                  ),
-                ),
-              ],
-            ),
-          );
-        }).toList(),
       ),
     );
   }

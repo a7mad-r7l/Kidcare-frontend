@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../controllers/auth/login_controller.dart';
 
+import '../../controllers/settings_controller.dart';
 import '../../core/repos/auth/login_repo.dart';
 
 import '../../widgets/custom_text_field.dart';
@@ -13,9 +14,37 @@ class LoginView extends StatelessWidget {
   Widget build(BuildContext context) {
     final controller = Get.put(LoginController(loginRepo: LoginRepo()));
     final size = MediaQuery.of(context).size;
+    final settingsController = Get.put(SettingsController());
 
     return Scaffold(
       backgroundColor: Colors.white,
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        actions: [
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12.0),
+            child: Obx(() {
+              final isArabic = settingsController.currentLanguage.value == 'ar';
+              return TextButton.icon(
+                icon: const Icon(Icons.language, size: 20, color: Color(0xFF4A86D1)),
+                label: Text(
+                  isArabic ? 'English' : 'العربية',
+                  style: const TextStyle(
+                    color: Color(0xFF4A86D1),
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                  ),
+                ),
+                onPressed: () {
+
+                  settingsController.changeLanguage(isArabic ? 'en' : 'ar');
+                },
+              );
+            }),
+          ),
+        ],
+      ),
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
@@ -28,15 +57,15 @@ class LoginView extends StatelessWidget {
                   height: size.height * 0.25,
                 ),
                 const SizedBox(height: 20),
-                const Text(
-                  'Welcome Back',
+                 Text(
+                  'Welcome Back'.tr,
                   style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 40),
 
                 CustomTextField(
                   controller: controller.phoneController,
-                  hintText: 'Phone Number',
+                  hintText: 'Phone Number'.tr,
                   keyboardType: TextInputType.phone,
                 ),
                 const SizedBox(height: 16),
@@ -44,7 +73,7 @@ class LoginView extends StatelessWidget {
                 Obx(
                   () => CustomTextField(
                     controller: controller.passwordController,
-                    hintText: 'Password',
+                    hintText: 'Password'.tr,
                     isPassword: controller.isPasswordHidden.value,
                     suffixIcon: IconButton(
                       icon: Icon(
@@ -58,7 +87,7 @@ class LoginView extends StatelessWidget {
                 ),
 
                 Align(
-                  alignment: Alignment.centerRight,
+                  alignment:AlignmentDirectional.centerEnd,
                   child: TextButton(
                     onPressed: () {
                       Get.toNamed('/forgot-password');
@@ -68,8 +97,8 @@ class LoginView extends StatelessWidget {
                       minimumSize: Size.zero,
                       tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                     ),
-                    child: const Text(
-                      'Forgot Password?',
+                    child:  Text(
+                      'Forgot Password?'.tr,
                       style: TextStyle(
                         color: Colors.blue,
                         fontSize: 13,
@@ -85,7 +114,7 @@ class LoginView extends StatelessWidget {
                   () => controller.isLoading
                       ? const CircularProgressIndicator()
                       : PrimaryButton(
-                          text: 'Login',
+                          text: 'Login'.tr,
                           onPressed: controller.login,
                         ),
                 ),
@@ -98,7 +127,7 @@ class LoginView extends StatelessWidget {
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 10),
                       child: Text(
-                        'Or',
+                        'Or'.tr,
                         style: TextStyle(
                           color: Colors.grey.shade600,
                           fontSize: 14,
@@ -113,7 +142,7 @@ class LoginView extends StatelessWidget {
 
                 const SizedBox(height: 20),
                 OutlinedPrimaryButton(
-                  text: 'Create New Account',
+                  text: 'Create New Account'.tr,
                   onPressed: () => Get.toNamed('/register'),
                 ),
 
@@ -125,12 +154,12 @@ class LoginView extends StatelessWidget {
                     padding: const EdgeInsets.symmetric(vertical: 8),
                   ),
                   child: RichText(
-                    text: const TextSpan(
-                      text: "Have a clinic file? ",
+                    text:  TextSpan(
+                      text: "Have a clinic file? ".tr,
                       style: TextStyle(color: Colors.grey, fontSize: 14),
                       children: [
                         TextSpan(
-                          text: "Activate account",
+                          text: "Activate account".tr,
                           style: TextStyle(
                             color: Colors.blue,
                             fontWeight: FontWeight.bold,

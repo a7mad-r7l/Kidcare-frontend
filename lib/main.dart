@@ -2,6 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:flutter_stripe/flutter_stripe.dart';
 
+// 🌟 استيرادات اللغات والتخزين (تمت إضافتها)
+import 'package:kidcare/core/helper/secure_storage_service.dart';
+import 'package:kidcare/core/localization/app_translations.dart';
+import 'package:kidcare/views/home/home_view.dart';
+
 // الواجهات الأساسية
 import 'package:kidcare/views/main_advanced.dart';
 import 'package:kidcare/views/auth/login_view.dart';
@@ -34,8 +39,9 @@ import 'package:kidcare/views/payment/payment_method_view.dart';
 import 'package:kidcare/views/payment/checkout_summary_view.dart';
 import 'package:kidcare/views/payment/payment_success_view.dart';
 
+
 // Appointment Booking
-import 'package:kidcare/views/HomeView.dart';
+
 import 'package:kidcare/views/appointment/choose_doctor_view.dart';
 import 'package:kidcare/views/appointment/choose_child_view.dart';
 import 'package:kidcare/views/appointment/choose_date_time_view.dart';
@@ -48,22 +54,42 @@ import 'package:kidcare/core/repos/appointment/doctor_repo.dart';
 import 'package:kidcare/core/repos/appointment/child_repo.dart';
 import 'package:kidcare/core/repos/appointment/appointment_repo.dart';
 
+
+import 'package:kidcare/views/settings/settings_view.dart';
+
+
+
 void main() async {
   // لتهيئة فلاتر قبل تشغيل أي ميزة Native مثل Stripe
   WidgetsFlutterBinding.ensureInitialized();
-
   Stripe.publishableKey = 'pk_test_';
-  runApp(const MyApp());
+
+
+  String? savedLang = await SecureStorage.getLanguage();
+  Locale initialLocale = savedLang == 'ar'
+      ? const Locale('ar', 'SA')
+      : const Locale('en', 'US');
+
+
+  runApp(MyApp(initialLocale: initialLocale));
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+  final Locale initialLocale;
+
+  const MyApp({super.key, required this.initialLocale});
 
   @override
   Widget build(BuildContext context) {
     return GetMaterialApp(
       title: 'Kidcare',
       debugShowCheckedModeBanner: false,
+
+      //  Localization
+      translations: AppTranslations(),
+      locale: initialLocale,
+      fallbackLocale: const Locale('en', 'US'),
+
       theme: ThemeData(
         primarySwatch: Colors.blue,
         scaffoldBackgroundColor: Colors.white,
@@ -83,7 +109,7 @@ class MyApp extends StatelessWidget {
           page: () => const SignUpView(),
           binding: BindingsBuilder(() {
             Get.lazyPut<SignUpController>(
-              () => SignUpController(signUpRepo: SignUpRepo()),
+                  () => SignUpController(signUpRepo: SignUpRepo()),
             );
           }),
         ),
@@ -108,7 +134,7 @@ class MyApp extends StatelessWidget {
           page: () => const VerifyOtpView(),
           binding: BindingsBuilder(() {
             Get.lazyPut<VerifyOtpController>(
-              () => VerifyOtpController(verifyOtpRepo: VerifyOtpRepo()),
+                  () => VerifyOtpController(verifyOtpRepo: VerifyOtpRepo()),
             );
           }),
         ),
@@ -119,7 +145,7 @@ class MyApp extends StatelessWidget {
           page: () => const ForgotPasswordView(),
           binding: BindingsBuilder(() {
             Get.lazyPut<ForgotPasswordController>(
-              () => ForgotPasswordController(),
+                  () => ForgotPasswordController(),
             );
           }),
         ),
@@ -137,6 +163,7 @@ class MyApp extends StatelessWidget {
           name: '/payment-success',
           page: () => const PaymentSuccessView(),
         ),
+
 
         // Home
         GetPage(
@@ -180,6 +207,10 @@ class MyApp extends StatelessWidget {
           name: '/choose-date-time',
           page: () => const ChooseDateTimeView(),
         ),
+
+        // Settings
+        GetPage(name: '/settings', page: () => const SettingsView()),
+
       ],
     );
   }

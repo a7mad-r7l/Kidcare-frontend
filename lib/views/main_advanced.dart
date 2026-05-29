@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 class PediatricClinicScreen extends StatefulWidget {
-  const PediatricClinicScreen({Key? key}) : super(key: key);
+  final bool hasToken;
+  const PediatricClinicScreen({Key? key,  this.hasToken=false}) : super(key: key);
 
   @override
   State<PediatricClinicScreen> createState() => _PediatricClinicScreenState();
@@ -98,7 +99,10 @@ class _PediatricClinicScreenState extends State<PediatricClinicScreen>
     });
 
     Future.delayed(const Duration(seconds: 4), () {
-      if (mounted) Get.offAllNamed('/login');
+      if (mounted) {
+        widget.hasToken
+            ? Get.offAllNamed('/home')   // ✅ يوجه لـ home إذا يوجد Token
+            : Get.offAllNamed('/login');}
     });
   }
 

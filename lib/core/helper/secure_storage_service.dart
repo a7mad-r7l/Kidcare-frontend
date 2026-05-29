@@ -34,4 +34,14 @@ class SecureStorage {
   static Future<void> removeRefreshToken() async {
     await secureStorage.delete(key: 'refreshToken');
   }
+
+  // حفظ كود اللغة ('en' أو 'ar')
+  static Future<void> storeLanguage(String langCode) async {
+    await secureStorage.write(key: 'language', value: langCode);
+  }
+
+  // استرجاع كود اللغة
+  static Future<String?> getLanguage() async {
+    return await secureStorage.read(key: 'language');
+  }
 }

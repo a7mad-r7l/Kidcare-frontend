@@ -53,7 +53,7 @@ class PaymentController extends GetxController {
     isLoading.value = true;
     try {
       // تمرير البيانات  للسيرفر
-      final intentModel = await repo.fetchPaymentIntent('1', summary.price, summary.currency);
+      final intentModel = await repo.fetchPaymentIntent('1',  summary.currency);
       final clientSecret = intentModel.clientSecret;
 
       // تهيئة نافذة الدفع

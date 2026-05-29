@@ -34,13 +34,11 @@ class PaymentApi {
   Future<String> createPaymentIntent(
     String token,
     String appointmentId,
-    String amount,
     String currency,
   ) async {
     try {
       Map<String, dynamic> body = {
         'appointment_id': appointmentId,
-        'amount': amount,
         'currency': currency.toLowerCase(),
       };
 

@@ -23,14 +23,12 @@ class PaymentRepo {
 
   Future<PaymentIntentModel> fetchPaymentIntent(
     String appointmentId,
-    String amount,
     String currency,
   ) async {
     String token = await SecureStorage.getToken();
     final response = await api.createPaymentIntent(
       token,
       appointmentId,
-      amount,
       currency,
     );
     final data = jsonDecode(response);

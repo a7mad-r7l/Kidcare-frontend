@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
+import '../core/helper/secure_storage_service.dart';
+
 class PediatricClinicScreen extends StatefulWidget {
   final bool hasToken;
   const PediatricClinicScreen({Key? key,  this.hasToken=false}) : super(key: key);
@@ -73,8 +75,8 @@ class _PediatricClinicScreenState extends State<PediatricClinicScreen>
 
     _doctorSlideAnimation =
         Tween<Offset>(begin: const Offset(0, 0.5), end: Offset.zero).animate(
-      CurvedAnimation(parent: _doctorController, curve: Curves.easeOutCubic),
-    );
+          CurvedAnimation(parent: _doctorController, curve: Curves.easeOutCubic),
+        );
 
     _doctorOpacityAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(parent: _doctorController, curve: Curves.easeIn),
@@ -87,10 +89,10 @@ class _PediatricClinicScreenState extends State<PediatricClinicScreen>
 
     _floatingAnimation =
         Tween<Offset>(
-                begin: const Offset(0, -0.015), end: const Offset(0, 0.015))
+            begin: const Offset(0, -0.015), end: const Offset(0, 0.015))
             .animate(
-      CurvedAnimation(parent: _floatingController, curve: Curves.easeInOut),
-    );
+          CurvedAnimation(parent: _floatingController, curve: Curves.easeInOut),
+        );
 
     _logoController.forward().then((_) => _textController.forward());
 
@@ -98,12 +100,26 @@ class _PediatricClinicScreenState extends State<PediatricClinicScreen>
       if (mounted) _doctorController.forward();
     });
 
-    Future.delayed(const Duration(seconds: 4), () {
-      if (mounted) {
-        widget.hasToken
-            ? Get.offAllNamed('/home')   // ✅ يوجه لـ home إذا يوجد Token
-            : Get.offAllNamed('/login');}
-    });
+    // ✅ التعديل هنا: قمنا باستدعاء دالة فحص التوكن بدلاً من الكود القديم
+    _checkLoginStatus();
+  }
+
+  // ✅ الدالة الجديدة التي ستقوم بالفحص بصمت في الخلفية
+  Future<void> _checkLoginStatus() async {
+    // 1. ننتظر 4 ثواني لكي تكتمل الـ Animations الجميلة الخاصة بك
+    await Future.delayed(const Duration(seconds: 4));
+
+    // 2. نقرأ التوكن من الذاكرة المشفرة
+    String? token = await SecureStorage.getToken();
+
+    // 3. نوجه المستخدم بناءً على وجود التوكن
+    if (mounted) {
+      if (token != null && token.isNotEmpty) {
+        Get.offAllNamed('/home'); // يوجه للرئيسية إذا كان مسجلاً للدخول
+      } else {
+        Get.offAllNamed('/login'); // يوجه لتسجيل الدخول إذا لم يكن هناك توكن
+      }
+    }
   }
 
   @override

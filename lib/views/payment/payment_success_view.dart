@@ -16,7 +16,7 @@ class PaymentSuccessView extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               const Spacer(),
-              // تم إضافة صورة النجاح الخاصة بك هنا
+
               Image.asset(
                 'assets/images/success_celebration_icon.png',
                 height: 200,
@@ -38,7 +38,7 @@ class PaymentSuccessView extends StatelessWidget {
 
               const SizedBox(height: 40),
 
-              // كارت ملخص الفاتورة
+              //  ملخص الفاتورة
               Container(
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
@@ -85,9 +85,11 @@ class PaymentSuccessView extends StatelessWidget {
               ),
               const SizedBox(height: 16),
               TextButton(
-                onPressed: () {},
+                onPressed: () {
+                  Get.offAllNamed('/appointments');
+                },
                 child: Text(
-                  'View Appointment Details',
+                  'View My Appointments',
                   style: TextStyle(
                     fontSize: 16,
                     color: Colors.blue.shade700,

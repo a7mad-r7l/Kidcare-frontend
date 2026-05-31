@@ -3,8 +3,6 @@ import 'package:get/get.dart';
 import '../../controllers/home/home_controller.dart';
 import '../../models/home/home_child_model.dart';
 
-
-
 class HomeView extends GetView<HomeController> {
   const HomeView({super.key});
 
@@ -14,7 +12,7 @@ class HomeView extends GetView<HomeController> {
       'icon': Icons.medical_services_outlined,
       'color': Color(0xFFE3F2FD),
       'iconColor': Color(0xFF1E88E5),
-      'route': '/doctors',
+      'route': '/choose-doctor', // عدلت هون
       'specialty': 'General Pediatrics',
     },
     {
@@ -22,7 +20,7 @@ class HomeView extends GetView<HomeController> {
       'icon': Icons.medical_information_outlined,
       'color': Color(0xFFE3F2FD),
       'iconColor': Color(0xFF1E88E5),
-      'route': '/doctors',
+      'route': '/choose-doctor', // عدلت هون
       'specialty': 'Dental Care',
     },
     {
@@ -30,7 +28,7 @@ class HomeView extends GetView<HomeController> {
       'icon': Icons.psychology_outlined,
       'color': Color(0xFFFCE4EC),
       'iconColor': Color(0xFFE91E63),
-      'route': '/doctors',
+      'route': '/choose-doctor', // عدلت هون
       'specialty': 'Psychiatry',
     },
   ];
@@ -39,7 +37,22 @@ class HomeView extends GetView<HomeController> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
+
+      // Floating Action Button
+      floatingActionButton: FloatingActionButton(
+        onPressed: () => Get.toNamed('/add-child'),
+        backgroundColor: const Color(0xFF3B9EFF),
+        elevation: 4,
+        shape: const CircleBorder(),
+        child: const Icon(Icons.add, color: Colors.white, size: 30),
+      ),
+
+
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
+
+
       bottomNavigationBar: const _BottomNav(),
+
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
@@ -49,7 +62,7 @@ class HomeView extends GetView<HomeController> {
               const _HeaderSection(),
               const SizedBox(height: 24),
 
-              // ✅ ربط الـ Slider بالـ Controller
+              // ربط الـ Slider بالـ Controller
               Obx(() {
                 if (controller.isLoading) {
                   return const SizedBox(
@@ -106,43 +119,45 @@ class _HeaderSection extends GetView<HomeController> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        // ✅ صورة البروفايل مع الاسم على اليسار
-        Row(
-          children: [
-            GestureDetector(
-              onTap: () => Get.toNamed('/profile'),
-              child: CircleAvatar(
-                radius: 26,
-                backgroundColor: Colors.grey.shade200,
-                child: Icon(Icons.person,
-                    color: Colors.grey.shade400, size: 28),
-              ),
-            ),
-            const SizedBox(width: 12),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Obx(() => Text(
-                  controller.parentName.value.isEmpty
-                      ? 'Welcome!'
-                      : controller.parentName.value,
-                  style: const TextStyle(
-                    fontSize: 17,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.black87,
-                  ),
-                )),
-                Text(
-                  'Welcome back!',
-                  style: TextStyle(
-                      fontSize: 13, color: Colors.grey.shade500),
+        // صورة البروفايل مع الاسم على اليسار
+        Expanded(
+          child: Row(
+            children: [
+              GestureDetector(
+                onTap: () => Get.toNamed('/profile'), // تم التصحيح ليطابق الـ main
+                child: CircleAvatar(
+                  radius: 26,
+                  backgroundColor: Colors.grey.shade200,
+                  child: Icon(Icons.person,
+                      color: Colors.grey.shade400, size: 28),
                 ),
-              ],
-            ),
-          ],
+              ),
+              const SizedBox(width: 12),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Obx(() => Text(
+                    controller.parentName.value.isEmpty
+                        ? 'Welcome!'
+                        : controller.parentName.value,
+                    style: const TextStyle(
+                      fontSize: 17,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black87,
+                    ),
+                  )),
+                  Text(
+                    'Welcome back!',
+                    style: TextStyle(
+                        fontSize: 13, color: Colors.grey.shade500),
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
 
-        // ✅ أيقونة الإشعارات على اليمين
+        // أيقونة الإشعارات على اليمين
         Stack(
           children: [
             GestureDetector(
@@ -168,6 +183,7 @@ class _HeaderSection extends GetView<HomeController> {
     );
   }
 }
+
 // ─── Children Slider ──────────────────────────────────────────────────────────
 
 class _ChildrenSlider extends StatefulWidget {
@@ -229,7 +245,7 @@ class _ChildCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-        onTap: () => Get.toNamed('/child-profile', arguments: child),
+      onTap: () => Get.toNamed('/child-profile', arguments: child),
 
       child: Container(
         decoration: BoxDecoration(
@@ -238,7 +254,7 @@ class _ChildCard extends StatelessWidget {
         ),
         child: Stack(
           children: [
-            // ✅ صورة الطفل من السيرفر
+            // صورة الطفل من السيرفر
             Center(
               child: Padding(
                 padding: const EdgeInsets.only(bottom: 50),
@@ -257,7 +273,7 @@ class _ChildCard extends StatelessWidget {
               ),
             ),
 
-            // ✅ الاسم والعمر من الـ API
+            // الاسم والعمر من الـ API
             Positioned(
               bottom: 14,
               left: 0,
@@ -290,7 +306,7 @@ class _ChildCard extends StatelessWidget {
   }
 }
 
-//  Book Button
+// ─── Book Button ──────────────────────────────────────────────────────────────
 
 class _BookButton extends StatelessWidget {
   const _BookButton();
@@ -326,7 +342,7 @@ class _BookButton extends StatelessWidget {
   }
 }
 
-//  Departments
+// ─── Departments ──────────────────────────────────────────────────────────────
 
 class _DepartmentsSection extends StatelessWidget {
   final List<Map<String, dynamic>> departments;
@@ -400,7 +416,7 @@ class _DepartmentItem extends StatelessWidget {
   }
 }
 
-//  Clinic Info
+// ─── Clinic Info ──────────────────────────────────────────────────────────────
 
 class _ClinicInfoSection extends StatelessWidget {
   const _ClinicInfoSection();
@@ -478,65 +494,71 @@ class _ClinicInfoSection extends StatelessWidget {
   }
 }
 
-//  Bottom Navigation
+// ─── Bottom Navigation (المعدل بالكامل) ──────────────────────────────────────
 
 class _BottomNav extends StatelessWidget {
   const _BottomNav();
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.06),
-            blurRadius: 10,
-            offset: const Offset(0, -2),
-          ),
-        ],
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
-        children: [
-          _NavItem(
-            icon: Icons.more_horiz,
-            label: 'More',
-            isSelected: false,
-            onTap: () => Get.toNamed('/more'),
-          ),
-          _NavItem(
-            icon: Icons.calendar_month_outlined,
-            label: 'Appointments',
-            isSelected: false,
-            onTap: () => Get.toNamed('/appointments'),
-          ),
-          GestureDetector(
-            onTap: () => Get.toNamed('/add-child'),
-            child: Container(
-              width: 56,
-              height: 56,
-              decoration: const BoxDecoration(
-                color: Color(0xFF3B9EFF),
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(Icons.add, color: Colors.white, size: 28),
+    // ✅ استخدمنا BottomAppBar بدلاً من Container ليدعم "الحفرة" المخصصة للزر العائم
+    return BottomAppBar(
+      color: Colors.white,
+      shape: const CircularNotchedRectangle(), // تصميم الحفرة الدائرية
+      notchMargin: 8.0, // المسافة بين الزر والحفرة
+      elevation: 10,
+      child: SizedBox(
+        height: 65,
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            // الأزرار على اليسار
+            Row(
+              children: [
+                const SizedBox(width: 10),
+                _NavItem(
+                  icon: Icons.home_rounded,
+                  label: 'Home',
+                  isSelected: true,
+                  onTap: () {},
+                ),
+                const SizedBox(width: 25), // مسافة بين زر الهوم والمواعيد
+                _NavItem(
+                  icon: Icons.calendar_month_outlined,
+                  label: 'Appointments',
+                  isSelected: false,
+                  onTap: () => Get.toNamed('/appointments'),
+                ),
+              ],
             ),
-          ),
-          // _NavItem(
-          //   icon: Icons.vaccines_outlined,
-          //   label: 'Vaccinations',
-          //   isSelected: false,
-          //   onTap: () => Get.toNamed('/vaccinations'),
-          // ),
-          _NavItem(
-            icon: Icons.home_rounded,
-            label: 'Home',
-            isSelected: true,
-            onTap: () {},
-          ),
-        ],
+
+            // الأزرار على اليمين (موازنة للتصميم)
+            Row(
+              children: [
+                _NavItem(
+                  icon: Icons.more_horiz,
+                  label: 'More',
+                  isSelected: false,
+                  onTap: () => Get.toNamed('/settings'),
+                ),
+                // عنصر وهمي مخفي لعمل توازن بصري مع الأزرار في اليسار (بما أنهم 3 أزرار فقط)
+                Visibility(
+                  maintainSize: true,
+                  maintainAnimation: true,
+                  maintainState: true,
+                  visible: false,
+                  child: _NavItem(
+                    icon: Icons.more_horiz,
+                    label: '',
+                    isSelected: false,
+                    onTap: () {},
+                  ),
+                ),
+                const SizedBox(width: 10),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -559,8 +581,10 @@ class _NavItem extends StatelessWidget {
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: onTap,
+      behavior: HitTestBehavior.opaque,
       child: Column(
         mainAxisSize: MainAxisSize.min,
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Icon(
             icon,

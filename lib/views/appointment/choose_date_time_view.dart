@@ -214,19 +214,20 @@ class _BookButton extends StatelessWidget {
     if (!success || !context.mounted) return;
 
     final appointment = controller.bookedAppointment.value!;
-    final doctorName = controller.selectedDoctor.value?.fullName;
-    final childName = controller.selectedChild.value?.fullName;
+
     Get.delete<AppointmentController>(force: true);
 
-    await showDialog<void>(
-      context: context,
-      barrierDismissible: false,
-      builder: (_) => _BookingSuccessDialog(
-        appointment: appointment,
-        doctorName: doctorName,
-        childName: childName,
-      ),
-    );
+    Get.offNamed('/checkout-summary', arguments: appointment.id.toString());
+
+    // await showDialog<void>(
+    //   context: context,
+    //   barrierDismissible: false,
+    //   builder: (_) => _BookingSuccessDialog(
+    //     appointment: appointment,
+    //     doctorName: doctorName,
+    //     childName: childName,
+    //   ),
+    // );
   }
 
   @override

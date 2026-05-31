@@ -1410,7 +1410,8 @@ class AddChildController extends BaseController {
 ```dart
 import 'package:get/get.dart';
 import '../../core/repos/home/appointments_repo.dart';
-import '../../models/appointment/appointment_model.dart';
+
+import '../../models/home/appointments_model.dart';
 import '../base_controller.dart';
 
 
@@ -1421,14 +1422,14 @@ class AppointmentsController extends BaseController {
 
   late final int childId;
 
-  final RxList<AppointmentModel> upcoming = <AppointmentModel>[].obs;
-  final RxList<AppointmentModel> past = <AppointmentModel>[].obs;
+  final RxList<AppointmentsModel> upcoming = <AppointmentsModel>[].obs;
+  final RxList<AppointmentsModel> past = <AppointmentsModel>[].obs;
   final RxBool showUpcoming = true.obs;
 
   @override
   void onInit() {
     super.onInit();
-    childId = Get.arguments as int;
+    childId =Get.arguments != null ? Get.arguments as int : 0;
     fetchUpcoming();
   }
 
@@ -1582,13 +1583,15 @@ class PaymentController extends GetxController {
 
   void setPaymentMethod(int value) => selectedPaymentMethod.value = value;
   void setCardMethod(int value) => selectedCardMethod.value = value;
+  String currentAppointmentId = '';
 
   @override
   void onInit() {
     super.onInit();
+    currentAppointmentId = Get.arguments?.toString() ?? '1';
 
 
-    loadAppointmentDetails('1');
+    loadAppointmentDetails(currentAppointmentId);
   }
 
   // 1. استدعاء تفاصيل الموعد الـ GET
@@ -1619,7 +1622,7 @@ class PaymentController extends GetxController {
     isLoading.value = true;
     try {
       // تمرير البيانات  للسيرفر
-      final intentModel = await repo.fetchPaymentIntent('1',  summary.currency);
+      final intentModel = await repo.fetchPaymentIntent(currentAppointmentId,  summary.currency);
       final clientSecret = intentModel.clientSecret;
 
       // تهيئة نافذة الدفع
@@ -2169,7 +2172,7 @@ class AddChildApi {
 
 ```
 
-### File: lib\core\apis\home\appoimtments_api.dart
+### File: lib\core\apis\home\appointments_api.dart
 ```dart
 import 'package:http/http.dart' as http;
 import '../../constants.dart';
@@ -2393,7 +2396,7 @@ const kBookingAvatarTint = Color(0xFFEFF6FF);
 
 ### File: lib\core\constants.dart
 ```dart
-const String baseUrl = 'http://10.49.66.70:8000/api';
+const String baseUrl = 'http://192.168.164.45:8000/api';
 
 String token = '';
 ```
@@ -2800,13 +2803,24 @@ class AppointmentRepo {
       'date': date,
       'time': time,
     });
+    print('🚨 BACKEND RESPONSE: $response');
     final decoded = jsonDecode(response);
 
-    if (decoded is Map && decoded['appointment'] is Map<String, dynamic>) {
-      return AppointmentModel.fromJson(
-        decoded['appointment'] as Map<String, dynamic>,
-      );
+    if (decoded is Map) {
+      // جعلنا الكود ذكياً ومرناً: يبحث عن البيانات سواء كان اسمها appointment أو data أو أُرسلت مباشرة
+      final raw = decoded['appointment'] ?? decoded['data'] ?? decoded;
+
+      // إذا وجد البيانات وفيها ID الموعد، يكمل بنجاح
+      if (raw is Map<String, dynamic> && raw['id'] != null) {
+        return AppointmentModel.fromJson(raw);
+      }
     }
+
+    // if (decoded is Map && decoded['appointment'] is Map<String, dynamic>) {
+    //   return AppointmentModel.fromJson(
+    //     decoded['appointment'] as Map<String, dynamic>,
+    //   );
+    // }
 
     throw Exception(_errorMessage(decoded, 'Failed to book appointment'));
   }
@@ -3289,14 +3303,16 @@ class AddChildRepo {
 ```dart
 import 'dart:convert';
 
-import '../../../models/appointment/appointment_model.dart';
-import '../../apis/home/appoimtments_api.dart';
+
+import '../../../models/home/appointments_model.dart';
+import '../../apis/home/appointments_api.dart';
+
 
 
 class AppointmentsRepo {
   final AppointmentsApi _api = AppointmentsApi();
 
-  Future<List<AppointmentModel>> getUpcoming(int childId) async {
+  Future<List<AppointmentsModel>> getUpcoming(int childId) async {
     final response = await _api.getUpcoming(childId);
     final body = json.decode(response);
 
@@ -3305,10 +3321,10 @@ class AppointmentsRepo {
     }
 
     final List list = body['appointments'];
-    return list.map((e) => AppointmentModel.fromJson(e)).toList();
+    return list.map((e) => AppointmentsModel.fromJson(e)).toList();
   }
 
-  Future<List<AppointmentModel>> getPast(int childId) async {
+  Future<List<AppointmentsModel>> getPast(int childId) async {
     final response = await _api.getPast(childId);
     final body = json.decode(response);
 
@@ -3317,7 +3333,7 @@ class AppointmentsRepo {
     }
 
     final List list = body['appointments'];
-    return list.map((e) => AppointmentModel.fromJson(e)).toList();
+    return list.map((e) => AppointmentsModel.fromJson(e)).toList();
   }
 }
 
@@ -3449,9 +3465,8 @@ class PaymentRepo {
 import 'dart:io';
 
 void main() {
-  // المجلد الذي نريد البحث فيه (مجلد الأكواد فقط)
   var dir = Directory('lib');
-  // اسم الملف الذي سيتم إنشاؤه
+
   var outputFile = File('my_project_code.md');
   var output = StringBuffer();
 
@@ -3461,7 +3476,6 @@ void main() {
     // جلب كل الملفات داخل مجلد lib
     var files = dir.listSync(recursive: true);
     for (var file in files) {
-      // نأخذ فقط ملفات الدارت
       if (file is File && file.path.endsWith('.dart')) {
         output.writeln('### File: ${file.path}');
         output.writeln('```dart');
@@ -3471,11 +3485,14 @@ void main() {
     }
 
     outputFile.writeAsStringSync(output.toString());
-    print('✅ تمت العملية بنجاح! تم إنشاء ملف my_project_code.md');
+    print(
+      '  The operation was successful! The my_project_code.md file was created ',
+    );
   } else {
-    print('❌ مجلد lib غير موجود!');
+    print(' lib folder not found !');
   }
 }
+
 ```
 
 ### File: lib\main.dart
@@ -3484,9 +3501,14 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:flutter_stripe/flutter_stripe.dart';
 
-// 🌟 استيرادات اللغات والتخزين (تمت إضافتها)
 import 'package:kidcare/core/helper/secure_storage_service.dart';
 import 'package:kidcare/core/localization/app_translations.dart';
+import 'package:kidcare/core/repos/home/add_child_repo.dart';
+import 'package:kidcare/views/home/add_child_view.dart';
+import 'package:kidcare/views/home/appointments_view.dart';
+import 'package:kidcare/views/home/child_profile_view.dart';
+import 'package:kidcare/views/home/home_view.dart';
+import 'package:kidcare/views/home/profile_view.dart';
 
 // الواجهات الأساسية
 import 'package:kidcare/views/main_advanced.dart';
@@ -3495,6 +3517,7 @@ import 'package:kidcare/views/auth/login_view.dart';
 // Sign Up
 import 'package:kidcare/views/auth/sign_up_view.dart';
 import 'package:kidcare/core/repos/auth/sign_up_repo.dart';
+import 'controllers/appointment/appointment_controller.dart';
 import 'controllers/auth/sign_up_controller.dart';
 
 // Activation
@@ -3520,9 +3543,8 @@ import 'package:kidcare/views/payment/payment_method_view.dart';
 import 'package:kidcare/views/payment/checkout_summary_view.dart';
 import 'package:kidcare/views/payment/payment_success_view.dart';
 
-
 // Appointment Booking
-import 'package:kidcare/views/HomeView.dart';
+
 import 'package:kidcare/views/appointment/choose_doctor_view.dart';
 import 'package:kidcare/views/appointment/choose_child_view.dart';
 import 'package:kidcare/views/appointment/choose_date_time_view.dart';
@@ -3535,22 +3557,27 @@ import 'package:kidcare/core/repos/appointment/doctor_repo.dart';
 import 'package:kidcare/core/repos/appointment/child_repo.dart';
 import 'package:kidcare/core/repos/appointment/appointment_repo.dart';
 
-
 import 'package:kidcare/views/settings/settings_view.dart';
 
-
+import 'controllers/home/add_child_controller.dart';
+import 'controllers/home/appointments_controller.dart';
+import 'controllers/home/home_controller.dart';
+import 'controllers/home/profile_controller.dart';
+import 'core/repos/home/appointments_repo.dart';
+import 'core/repos/home/home_children_repo.dart';
+import 'core/repos/home/parent_name_repo.dart';
+import 'core/repos/home/profile_repo.dart';
 
 void main() async {
   // لتهيئة فلاتر قبل تشغيل أي ميزة Native مثل Stripe
   WidgetsFlutterBinding.ensureInitialized();
-  Stripe.publishableKey = 'pk_test_';
-
+  Stripe.publishableKey =
+      'pk_test_51TVx1BA9J421R1e0fArsBqsC3bNgwlcmhH407ymZp4Ncu9aVgwtEMgXg6lWcswqESufx6ZL7arNccQCdJCHA3QUG00GUsDRB6Q';
 
   String? savedLang = await SecureStorage.getLanguage();
   Locale initialLocale = savedLang == 'ar'
       ? const Locale('ar', 'SA')
       : const Locale('en', 'US');
-
 
   runApp(MyApp(initialLocale: initialLocale));
 }
@@ -3590,7 +3617,7 @@ class MyApp extends StatelessWidget {
           page: () => const SignUpView(),
           binding: BindingsBuilder(() {
             Get.lazyPut<SignUpController>(
-                  () => SignUpController(signUpRepo: SignUpRepo()),
+              () => SignUpController(signUpRepo: SignUpRepo()),
             );
           }),
         ),
@@ -3615,7 +3642,7 @@ class MyApp extends StatelessWidget {
           page: () => const VerifyOtpView(),
           binding: BindingsBuilder(() {
             Get.lazyPut<VerifyOtpController>(
-                  () => VerifyOtpController(verifyOtpRepo: VerifyOtpRepo()),
+              () => VerifyOtpController(verifyOtpRepo: VerifyOtpRepo()),
             );
           }),
         ),
@@ -3626,7 +3653,7 @@ class MyApp extends StatelessWidget {
           page: () => const ForgotPasswordView(),
           binding: BindingsBuilder(() {
             Get.lazyPut<ForgotPasswordController>(
-                  () => ForgotPasswordController(),
+              () => ForgotPasswordController(),
             );
           }),
         ),
@@ -3645,12 +3672,18 @@ class MyApp extends StatelessWidget {
           page: () => const PaymentSuccessView(),
         ),
 
-
         // Home
         GetPage(
           name: '/home',
           page: () => const HomeView(),
           binding: BindingsBuilder(() {
+            Get.lazyPut<HomeController>(
+              () => HomeController(
+                homeChildrenRepo: HomeChildrenRepo(),
+                parentNameRepo: ParentNameRepo(),
+              ),
+            );
+
             Get.lazyPut<ChildController>(
               () => ChildController(repo: ChildRepo()),
             );
@@ -3669,20 +3702,27 @@ class MyApp extends StatelessWidget {
           name: '/choose-doctor',
           page: () => const ChooseDoctorView(),
           binding: BindingsBuilder(() {
-            Get.lazyPut<DepartmentController>(
-              () => DepartmentController(repo: DepartmentRepo()),
-            );
-            Get.lazyPut<DoctorController>(
-              () => DoctorController(repo: DoctorRepo()),
+            Get.lazyPut(() => DepartmentController(repo: DepartmentRepo()));
+            Get.lazyPut(() => DoctorController(repo: DoctorRepo()));
+
+            Get.lazyPut<AppointmentController>(
+              () => AppointmentController(
+                repo: AppointmentRepo(),
+                doctorRepo: DoctorRepo(),
+              ),
             );
           }),
         ),
-        // ChildController is already alive from /home — no new binding needed.
-        // Re-registering would create a second instance that never sees the
-        // home-scope data and breaks cache coherence.
+
         GetPage(
           name: '/choose-child',
           page: () => const ChooseChildView(),
+
+          binding: BindingsBuilder(() {
+            Get.lazyPut<ChildController>(
+              () => ChildController(repo: ChildRepo()),
+            );
+          }),
         ),
         GetPage(
           name: '/choose-date-time',
@@ -3692,10 +3732,37 @@ class MyApp extends StatelessWidget {
         // Settings
         GetPage(name: '/settings', page: () => const SettingsView()),
 
+        GetPage(
+          name: '/appointments',
+          page: () => const AppointmentsView(),
+          binding: BindingsBuilder(() {
+            Get.lazyPut<AppointmentsController>(
+              () =>
+                  AppointmentsController(appointmentsRepo: AppointmentsRepo()),
+            );
+          }),
+        ),
+
+        GetPage(name: '/child-profile', page: () => const ChildProfileView()),
+        GetPage(
+          name: '/profile',
+          page: () => const ProfileView(),
+          binding: BindingsBuilder(() {
+            Get.lazyPut(() => ProfileController(profileRepo: ProfileRepo()));
+          }),
+        ),
+        GetPage(
+          name: '/add-child',
+          page: () => const AddChildView(),
+          binding: BindingsBuilder(() {
+            Get.lazyPut(() => AddChildController(addChildRepo: AddChildRepo()));
+          }),
+        ),
       ],
     );
   }
 }
+
 ```
 
 ### File: lib\models\appointment\appointment_model.dart
@@ -4673,19 +4740,20 @@ class _BookButton extends StatelessWidget {
     if (!success || !context.mounted) return;
 
     final appointment = controller.bookedAppointment.value!;
-    final doctorName = controller.selectedDoctor.value?.fullName;
-    final childName = controller.selectedChild.value?.fullName;
+
     Get.delete<AppointmentController>(force: true);
 
-    await showDialog<void>(
-      context: context,
-      barrierDismissible: false,
-      builder: (_) => _BookingSuccessDialog(
-        appointment: appointment,
-        doctorName: doctorName,
-        childName: childName,
-      ),
-    );
+    Get.offNamed('/checkout-summary', arguments: appointment.id.toString());
+
+    // await showDialog<void>(
+    //   context: context,
+    //   barrierDismissible: false,
+    //   builder: (_) => _BookingSuccessDialog(
+    //     appointment: appointment,
+    //     doctorName: doctorName,
+    //     childName: childName,
+    //   ),
+    // );
   }
 
   @override
@@ -7507,34 +7575,38 @@ class _InfoCard extends StatelessWidget {
                 : null,
           ),
           const SizedBox(width: 20),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Text(
-                child.name,
-                style: const TextStyle(
-                  fontSize: 26,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF1A2E5A),
-                ),
-              ),
-              const SizedBox(height: 6),
-              Text(
-                '${child.age} years',
-                style: TextStyle(fontSize: 16, color: Colors.grey.shade600),
-              ),
-              const SizedBox(height: 6),
-              const Row(
-                children: [
-                  Text(
-                    'Male',
-                    style: TextStyle(fontSize: 16, color: Color(0xFF4CAF50)),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text(
+                  child.name,
+                  style: const TextStyle(
+                    fontSize: 26,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF1A2E5A),
                   ),
-                  SizedBox(width: 4),
-                  Icon(Icons.male, color: Color(0xFF4CAF50), size: 18),
-                ],
-              ),
-            ],
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  '${child.age} years',
+                  style: TextStyle(fontSize: 16, color: Colors.grey.shade600),
+                ),
+                const SizedBox(height: 6),
+                const Row(
+                  children: [
+                    Text(
+                      'Male',
+                      style: TextStyle(fontSize: 16, color: Color(0xFF4CAF50)),
+                    ),
+                    SizedBox(width: 4),
+                    Icon(Icons.male, color: Color(0xFF4CAF50), size: 18),
+                  ],
+                ),
+              ],
+            ),
           ),
         ],
       ),
@@ -7755,8 +7827,6 @@ import 'package:get/get.dart';
 import '../../controllers/home/home_controller.dart';
 import '../../models/home/home_child_model.dart';
 
-
-
 class HomeView extends GetView<HomeController> {
   const HomeView({super.key});
 
@@ -7766,7 +7836,7 @@ class HomeView extends GetView<HomeController> {
       'icon': Icons.medical_services_outlined,
       'color': Color(0xFFE3F2FD),
       'iconColor': Color(0xFF1E88E5),
-      'route': '/doctors',
+      'route': '/choose-doctor', // عدلت هون
       'specialty': 'General Pediatrics',
     },
     {
@@ -7774,7 +7844,7 @@ class HomeView extends GetView<HomeController> {
       'icon': Icons.medical_information_outlined,
       'color': Color(0xFFE3F2FD),
       'iconColor': Color(0xFF1E88E5),
-      'route': '/doctors',
+      'route': '/choose-doctor', // عدلت هون
       'specialty': 'Dental Care',
     },
     {
@@ -7782,7 +7852,7 @@ class HomeView extends GetView<HomeController> {
       'icon': Icons.psychology_outlined,
       'color': Color(0xFFFCE4EC),
       'iconColor': Color(0xFFE91E63),
-      'route': '/doctors',
+      'route': '/choose-doctor', // عدلت هون
       'specialty': 'Psychiatry',
     },
   ];
@@ -7791,7 +7861,22 @@ class HomeView extends GetView<HomeController> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
+
+      // Floating Action Button
+      floatingActionButton: FloatingActionButton(
+        onPressed: () => Get.toNamed('/add-child'),
+        backgroundColor: const Color(0xFF3B9EFF),
+        elevation: 4,
+        shape: const CircleBorder(),
+        child: const Icon(Icons.add, color: Colors.white, size: 30),
+      ),
+
+
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
+
+
       bottomNavigationBar: const _BottomNav(),
+
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
@@ -7801,7 +7886,7 @@ class HomeView extends GetView<HomeController> {
               const _HeaderSection(),
               const SizedBox(height: 24),
 
-              // ✅ ربط الـ Slider بالـ Controller
+              // ربط الـ Slider بالـ Controller
               Obx(() {
                 if (controller.isLoading) {
                   return const SizedBox(
@@ -7858,43 +7943,45 @@ class _HeaderSection extends GetView<HomeController> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        // ✅ صورة البروفايل مع الاسم على اليسار
-        Row(
-          children: [
-            GestureDetector(
-              onTap: () => Get.toNamed('/profile'),
-              child: CircleAvatar(
-                radius: 26,
-                backgroundColor: Colors.grey.shade200,
-                child: Icon(Icons.person,
-                    color: Colors.grey.shade400, size: 28),
-              ),
-            ),
-            const SizedBox(width: 12),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Obx(() => Text(
-                  controller.parentName.value.isEmpty
-                      ? 'Welcome!'
-                      : controller.parentName.value,
-                  style: const TextStyle(
-                    fontSize: 17,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.black87,
-                  ),
-                )),
-                Text(
-                  'Welcome back!',
-                  style: TextStyle(
-                      fontSize: 13, color: Colors.grey.shade500),
+        // صورة البروفايل مع الاسم على اليسار
+        Expanded(
+          child: Row(
+            children: [
+              GestureDetector(
+                onTap: () => Get.toNamed('/profile'), // تم التصحيح ليطابق الـ main
+                child: CircleAvatar(
+                  radius: 26,
+                  backgroundColor: Colors.grey.shade200,
+                  child: Icon(Icons.person,
+                      color: Colors.grey.shade400, size: 28),
                 ),
-              ],
-            ),
-          ],
+              ),
+              const SizedBox(width: 12),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Obx(() => Text(
+                    controller.parentName.value.isEmpty
+                        ? 'Welcome!'
+                        : controller.parentName.value,
+                    style: const TextStyle(
+                      fontSize: 17,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black87,
+                    ),
+                  )),
+                  Text(
+                    'Welcome back!',
+                    style: TextStyle(
+                        fontSize: 13, color: Colors.grey.shade500),
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
 
-        // ✅ أيقونة الإشعارات على اليمين
+        // أيقونة الإشعارات على اليمين
         Stack(
           children: [
             GestureDetector(
@@ -7920,6 +8007,7 @@ class _HeaderSection extends GetView<HomeController> {
     );
   }
 }
+
 // ─── Children Slider ──────────────────────────────────────────────────────────
 
 class _ChildrenSlider extends StatefulWidget {
@@ -7981,7 +8069,7 @@ class _ChildCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-        onTap: () => Get.toNamed('/child-profile', arguments: child),
+      onTap: () => Get.toNamed('/child-profile', arguments: child),
 
       child: Container(
         decoration: BoxDecoration(
@@ -7990,7 +8078,7 @@ class _ChildCard extends StatelessWidget {
         ),
         child: Stack(
           children: [
-            // ✅ صورة الطفل من السيرفر
+            // صورة الطفل من السيرفر
             Center(
               child: Padding(
                 padding: const EdgeInsets.only(bottom: 50),
@@ -8009,7 +8097,7 @@ class _ChildCard extends StatelessWidget {
               ),
             ),
 
-            // ✅ الاسم والعمر من الـ API
+            // الاسم والعمر من الـ API
             Positioned(
               bottom: 14,
               left: 0,
@@ -8042,7 +8130,7 @@ class _ChildCard extends StatelessWidget {
   }
 }
 
-//  Book Button
+// ─── Book Button ──────────────────────────────────────────────────────────────
 
 class _BookButton extends StatelessWidget {
   const _BookButton();
@@ -8078,7 +8166,7 @@ class _BookButton extends StatelessWidget {
   }
 }
 
-//  Departments
+// ─── Departments ──────────────────────────────────────────────────────────────
 
 class _DepartmentsSection extends StatelessWidget {
   final List<Map<String, dynamic>> departments;
@@ -8152,7 +8240,7 @@ class _DepartmentItem extends StatelessWidget {
   }
 }
 
-//  Clinic Info
+// ─── Clinic Info ──────────────────────────────────────────────────────────────
 
 class _ClinicInfoSection extends StatelessWidget {
   const _ClinicInfoSection();
@@ -8230,65 +8318,71 @@ class _ClinicInfoSection extends StatelessWidget {
   }
 }
 
-//  Bottom Navigation
+// ─── Bottom Navigation (المعدل بالكامل) ──────────────────────────────────────
 
 class _BottomNav extends StatelessWidget {
   const _BottomNav();
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.06),
-            blurRadius: 10,
-            offset: const Offset(0, -2),
-          ),
-        ],
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
-        children: [
-          _NavItem(
-            icon: Icons.more_horiz,
-            label: 'More',
-            isSelected: false,
-            onTap: () => Get.toNamed('/more'),
-          ),
-          _NavItem(
-            icon: Icons.calendar_month_outlined,
-            label: 'Appointments',
-            isSelected: false,
-            onTap: () => Get.toNamed('/appointments'),
-          ),
-          GestureDetector(
-            onTap: () => Get.toNamed('/add-child'),
-            child: Container(
-              width: 56,
-              height: 56,
-              decoration: const BoxDecoration(
-                color: Color(0xFF3B9EFF),
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(Icons.add, color: Colors.white, size: 28),
+    // ✅ استخدمنا BottomAppBar بدلاً من Container ليدعم "الحفرة" المخصصة للزر العائم
+    return BottomAppBar(
+      color: Colors.white,
+      shape: const CircularNotchedRectangle(), // تصميم الحفرة الدائرية
+      notchMargin: 8.0, // المسافة بين الزر والحفرة
+      elevation: 10,
+      child: SizedBox(
+        height: 65,
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            // الأزرار على اليسار
+            Row(
+              children: [
+                const SizedBox(width: 10),
+                _NavItem(
+                  icon: Icons.home_rounded,
+                  label: 'Home',
+                  isSelected: true,
+                  onTap: () {},
+                ),
+                const SizedBox(width: 25), // مسافة بين زر الهوم والمواعيد
+                _NavItem(
+                  icon: Icons.calendar_month_outlined,
+                  label: 'Appointments',
+                  isSelected: false,
+                  onTap: () => Get.toNamed('/appointments'),
+                ),
+              ],
             ),
-          ),
-          // _NavItem(
-          //   icon: Icons.vaccines_outlined,
-          //   label: 'Vaccinations',
-          //   isSelected: false,
-          //   onTap: () => Get.toNamed('/vaccinations'),
-          // ),
-          _NavItem(
-            icon: Icons.home_rounded,
-            label: 'Home',
-            isSelected: true,
-            onTap: () {},
-          ),
-        ],
+
+            // الأزرار على اليمين (موازنة للتصميم)
+            Row(
+              children: [
+                _NavItem(
+                  icon: Icons.more_horiz,
+                  label: 'More',
+                  isSelected: false,
+                  onTap: () => Get.toNamed('/settings'),
+                ),
+                // عنصر وهمي مخفي لعمل توازن بصري مع الأزرار في اليسار (بما أنهم 3 أزرار فقط)
+                Visibility(
+                  maintainSize: true,
+                  maintainAnimation: true,
+                  maintainState: true,
+                  visible: false,
+                  child: _NavItem(
+                    icon: Icons.more_horiz,
+                    label: '',
+                    isSelected: false,
+                    onTap: () {},
+                  ),
+                ),
+                const SizedBox(width: 10),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -8311,8 +8405,10 @@ class _NavItem extends StatelessWidget {
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: onTap,
+      behavior: HitTestBehavior.opaque,
       child: Column(
         mainAxisSize: MainAxisSize.min,
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Icon(
             icon,
@@ -8580,6 +8676,8 @@ class _ProfileItem extends StatelessWidget {
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
+import '../core/helper/secure_storage_service.dart';
+
 class PediatricClinicScreen extends StatefulWidget {
   final bool hasToken;
   const PediatricClinicScreen({Key? key,  this.hasToken=false}) : super(key: key);
@@ -8652,8 +8750,8 @@ class _PediatricClinicScreenState extends State<PediatricClinicScreen>
 
     _doctorSlideAnimation =
         Tween<Offset>(begin: const Offset(0, 0.5), end: Offset.zero).animate(
-      CurvedAnimation(parent: _doctorController, curve: Curves.easeOutCubic),
-    );
+          CurvedAnimation(parent: _doctorController, curve: Curves.easeOutCubic),
+        );
 
     _doctorOpacityAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(parent: _doctorController, curve: Curves.easeIn),
@@ -8666,10 +8764,10 @@ class _PediatricClinicScreenState extends State<PediatricClinicScreen>
 
     _floatingAnimation =
         Tween<Offset>(
-                begin: const Offset(0, -0.015), end: const Offset(0, 0.015))
+            begin: const Offset(0, -0.015), end: const Offset(0, 0.015))
             .animate(
-      CurvedAnimation(parent: _floatingController, curve: Curves.easeInOut),
-    );
+          CurvedAnimation(parent: _floatingController, curve: Curves.easeInOut),
+        );
 
     _logoController.forward().then((_) => _textController.forward());
 
@@ -8677,12 +8775,26 @@ class _PediatricClinicScreenState extends State<PediatricClinicScreen>
       if (mounted) _doctorController.forward();
     });
 
-    Future.delayed(const Duration(seconds: 4), () {
-      if (mounted) {
-        widget.hasToken
-            ? Get.offAllNamed('/home')   // ✅ يوجه لـ home إذا يوجد Token
-            : Get.offAllNamed('/login');}
-    });
+    // ✅ التعديل هنا: قمنا باستدعاء دالة فحص التوكن بدلاً من الكود القديم
+    _checkLoginStatus();
+  }
+
+  // ✅ الدالة الجديدة التي ستقوم بالفحص بصمت في الخلفية
+  Future<void> _checkLoginStatus() async {
+    // 1. ننتظر 4 ثواني لكي تكتمل الـ Animations الجميلة الخاصة بك
+    await Future.delayed(const Duration(seconds: 4));
+
+    // 2. نقرأ التوكن من الذاكرة المشفرة
+    String? token = await SecureStorage.getToken();
+
+    // 3. نوجه المستخدم بناءً على وجود التوكن
+    if (mounted) {
+      if (token != null && token.isNotEmpty) {
+        Get.offAllNamed('/home'); // يوجه للرئيسية إذا كان مسجلاً للدخول
+      } else {
+        Get.offAllNamed('/login'); // يوجه لتسجيل الدخول إذا لم يكن هناك توكن
+      }
+    }
   }
 
   @override
@@ -8845,7 +8957,6 @@ class _PediatricClinicScreenState extends State<PediatricClinicScreen>
     );
   }
 }
-
 ```
 
 ### File: lib\views\payment\checkout_summary_view.dart
@@ -9236,7 +9347,7 @@ class PaymentSuccessView extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               const Spacer(),
-              // تم إضافة صورة النجاح الخاصة بك هنا
+
               Image.asset(
                 'assets/images/success_celebration_icon.png',
                 height: 200,
@@ -9258,7 +9369,7 @@ class PaymentSuccessView extends StatelessWidget {
 
               const SizedBox(height: 40),
 
-              // كارت ملخص الفاتورة
+              //  ملخص الفاتورة
               Container(
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
@@ -9305,9 +9416,11 @@ class PaymentSuccessView extends StatelessWidget {
               ),
               const SizedBox(height: 16),
               TextButton(
-                onPressed: () {},
+                onPressed: () {
+                  Get.offAllNamed('/appointments');
+                },
                 child: Text(
-                  'View Appointment Details',
+                  'View My Appointments',
                   style: TextStyle(
                     fontSize: 16,
                     color: Colors.blue.shade700,
@@ -9366,43 +9479,43 @@ class SettingsView extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // 1.  البروفايل
-            ProfileCard(
-              name: 'أحمد الرحال',
-              email: 'ahmed.mohamed@email.com',
-              imageUrl: 'https://i.pravatar.cc/150?img=11',
-              onViewProfile: () {
-                // Get.toNamed('/profile');
-              },
-            ),
-            const SizedBox(height: 25),
+            // // 1.  البروفايل
+            // ProfileCard(
+            //   name: 'أحمد الرحال',
+            //   email: 'ahmed.mohamed@email.com',
+            //   imageUrl: 'https://i.pravatar.cc/150?img=11',
+            //   onViewProfile: () {
+            //     // Get.toNamed('/profile');
+            //   },
+            // ),
+            // const SizedBox(height: 25),
 
             // 2. قسم الحساب
-            SettingsSection(
-              title: 'account'.tr,
-              children: [
-                SettingsTile(
-                  icon: Icons.person_outline,
-                  title: 'profile'.tr,
-                  subtitle: 'edit_personal_info'.tr,
-                  onTap: () {},
-                ),
-                SettingsTile(
-                  icon: Icons.face,
-                  title: 'your_children'.tr,
-                  subtitle: 'manage_children_info'.tr,
-                  onTap: () {},
-                ),
-                SettingsTile(
-                  icon: Icons.account_balance_wallet_outlined,
-                  title: 'payment_data'.tr,
-                  subtitle: 'manage_payment_methods'.tr,
-                  showDivider: false,
-                  onTap: () {},
-                ),
-              ],
-            ),
-            const SizedBox(height: 25),
+            // SettingsSection(
+            //   title: 'account'.tr,
+            //   children: [
+            //     // SettingsTile(
+            //     //   icon: Icons.person_outline,
+            //     //   title: 'profile'.tr,
+            //     //   subtitle: 'edit_personal_info'.tr,
+            //     //   onTap: () {},
+            //     // ),
+            //     // SettingsTile(
+            //     //   icon: Icons.face,
+            //     //   title: 'your_children'.tr,
+            //     //   subtitle: 'manage_children_info'.tr,
+            //     //   onTap: () {},
+            //     // ),
+            //     // SettingsTile(
+            //     //   icon: Icons.account_balance_wallet_outlined,
+            //     //   title: 'payment_data'.tr,
+            //     //   subtitle: 'manage_payment_methods'.tr,
+            //     //   showDivider: false,
+            //     //   onTap: () {},
+            //     // ),
+            //   ],
+            // ),
+            // const SizedBox(height: 25),
 
             // 3. قسم التفضيلات
             SettingsSection(
@@ -9424,19 +9537,19 @@ class SettingsView extends StatelessWidget {
                   subtitle: 'light_mode'.tr,
                   onTap: () {},
                 ),
-                SettingsTile(
-                  icon: Icons.text_fields,
-                  title: 'font_size'.tr,
-                  subtitle: 'medium'.tr,
-                  onTap: () {},
-                ),
-                SettingsTile(
-                  icon: Icons.notifications_none,
-                  title: 'notifications'.tr,
-                  subtitle: 'manage_notifications'.tr,
-                  showDivider: false,
-                  onTap: () {},
-                ),
+                // SettingsTile(
+                //   icon: Icons.text_fields,
+                //   title: 'font_size'.tr,
+                //   subtitle: 'medium'.tr,
+                //   onTap: () {},
+                // ),
+                // SettingsTile(
+                //   icon: Icons.notifications_none,
+                //   title: 'notifications'.tr,
+                //   subtitle: 'manage_notifications'.tr,
+                //   showDivider: false,
+                //   onTap: () {},
+                // ),
               ],
             ),
             const SizedBox(height: 25),
@@ -9464,9 +9577,9 @@ class SettingsView extends StatelessWidget {
                   onTap: () {},
                 ),
                 SettingsTile(
-                  icon: Icons.logout,
-                  title: 'logout'.tr,
-                  subtitle: 'logout_from_account'.tr,
+                  icon: Icons.delete_forever_rounded,
+                  title: 'Delete account'.tr,
+                  subtitle: ''.tr,
                   isLogout: true,
                   showDivider: false,
                   onTap: () {},

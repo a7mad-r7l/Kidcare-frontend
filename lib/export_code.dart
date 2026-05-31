@@ -1,9 +1,8 @@
 import 'dart:io';
 
 void main() {
-  // المجلد الذي نريد البحث فيه (مجلد الأكواد فقط)
   var dir = Directory('lib');
-  // اسم الملف الذي سيتم إنشاؤه
+
   var outputFile = File('my_project_code.md');
   var output = StringBuffer();
 
@@ -13,7 +12,6 @@ void main() {
     // جلب كل الملفات داخل مجلد lib
     var files = dir.listSync(recursive: true);
     for (var file in files) {
-      // نأخذ فقط ملفات الدارت
       if (file is File && file.path.endsWith('.dart')) {
         output.writeln('### File: ${file.path}');
         output.writeln('```dart');
@@ -23,8 +21,10 @@ void main() {
     }
 
     outputFile.writeAsStringSync(output.toString());
-    print('✅ تمت العملية بنجاح! تم إنشاء ملف my_project_code.md');
+    print(
+      '  The operation was successful! The my_project_code.md file was created ',
+    );
   } else {
-    print('❌ مجلد lib غير موجود!');
+    print(' lib folder not found !');
   }
 }

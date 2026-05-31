@@ -2,10 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:flutter_stripe/flutter_stripe.dart';
 
-// 🌟 استيرادات اللغات والتخزين (تمت إضافتها)
 import 'package:kidcare/core/helper/secure_storage_service.dart';
 import 'package:kidcare/core/localization/app_translations.dart';
+import 'package:kidcare/core/repos/home/add_child_repo.dart';
+import 'package:kidcare/views/home/add_child_view.dart';
+import 'package:kidcare/views/home/appointments_view.dart';
+import 'package:kidcare/views/home/child_profile_view.dart';
 import 'package:kidcare/views/home/home_view.dart';
+import 'package:kidcare/views/home/profile_view.dart';
 
 // الواجهات الأساسية
 import 'package:kidcare/views/main_advanced.dart';
@@ -14,6 +18,7 @@ import 'package:kidcare/views/auth/login_view.dart';
 // Sign Up
 import 'package:kidcare/views/auth/sign_up_view.dart';
 import 'package:kidcare/core/repos/auth/sign_up_repo.dart';
+import 'controllers/appointment/appointment_controller.dart';
 import 'controllers/auth/sign_up_controller.dart';
 
 // Activation
@@ -39,7 +44,6 @@ import 'package:kidcare/views/payment/payment_method_view.dart';
 import 'package:kidcare/views/payment/checkout_summary_view.dart';
 import 'package:kidcare/views/payment/payment_success_view.dart';
 
-
 // Appointment Booking
 
 import 'package:kidcare/views/appointment/choose_doctor_view.dart';
@@ -54,22 +58,27 @@ import 'package:kidcare/core/repos/appointment/doctor_repo.dart';
 import 'package:kidcare/core/repos/appointment/child_repo.dart';
 import 'package:kidcare/core/repos/appointment/appointment_repo.dart';
 
-
 import 'package:kidcare/views/settings/settings_view.dart';
 
-
+import 'controllers/home/add_child_controller.dart';
+import 'controllers/home/appointments_controller.dart';
+import 'controllers/home/home_controller.dart';
+import 'controllers/home/profile_controller.dart';
+import 'core/repos/home/appointments_repo.dart';
+import 'core/repos/home/home_children_repo.dart';
+import 'core/repos/home/parent_name_repo.dart';
+import 'core/repos/home/profile_repo.dart';
 
 void main() async {
   // لتهيئة فلاتر قبل تشغيل أي ميزة Native مثل Stripe
   WidgetsFlutterBinding.ensureInitialized();
-  Stripe.publishableKey = 'pk_test_';
-
+  Stripe.publishableKey =
+      'pk_test_51TVx1BA9J421R1e0fArsBqsC3bNgwlcmhH407ymZp4Ncu9aVgwtEMgXg6lWcswqESufx6ZL7arNccQCdJCHA3QUG00GUsDRB6Q';
 
   String? savedLang = await SecureStorage.getLanguage();
   Locale initialLocale = savedLang == 'ar'
       ? const Locale('ar', 'SA')
       : const Locale('en', 'US');
-
 
   runApp(MyApp(initialLocale: initialLocale));
 }
@@ -109,7 +118,7 @@ class MyApp extends StatelessWidget {
           page: () => const SignUpView(),
           binding: BindingsBuilder(() {
             Get.lazyPut<SignUpController>(
-                  () => SignUpController(signUpRepo: SignUpRepo()),
+              () => SignUpController(signUpRepo: SignUpRepo()),
             );
           }),
         ),
@@ -134,7 +143,7 @@ class MyApp extends StatelessWidget {
           page: () => const VerifyOtpView(),
           binding: BindingsBuilder(() {
             Get.lazyPut<VerifyOtpController>(
-                  () => VerifyOtpController(verifyOtpRepo: VerifyOtpRepo()),
+              () => VerifyOtpController(verifyOtpRepo: VerifyOtpRepo()),
             );
           }),
         ),
@@ -145,7 +154,7 @@ class MyApp extends StatelessWidget {
           page: () => const ForgotPasswordView(),
           binding: BindingsBuilder(() {
             Get.lazyPut<ForgotPasswordController>(
-                  () => ForgotPasswordController(),
+              () => ForgotPasswordController(),
             );
           }),
         ),
@@ -164,12 +173,18 @@ class MyApp extends StatelessWidget {
           page: () => const PaymentSuccessView(),
         ),
 
-
         // Home
         GetPage(
           name: '/home',
           page: () => const HomeView(),
           binding: BindingsBuilder(() {
+            Get.lazyPut<HomeController>(
+              () => HomeController(
+                homeChildrenRepo: HomeChildrenRepo(),
+                parentNameRepo: ParentNameRepo(),
+              ),
+            );
+
             Get.lazyPut<ChildController>(
               () => ChildController(repo: ChildRepo()),
             );
@@ -188,20 +203,27 @@ class MyApp extends StatelessWidget {
           name: '/choose-doctor',
           page: () => const ChooseDoctorView(),
           binding: BindingsBuilder(() {
-            Get.lazyPut<DepartmentController>(
-              () => DepartmentController(repo: DepartmentRepo()),
-            );
-            Get.lazyPut<DoctorController>(
-              () => DoctorController(repo: DoctorRepo()),
+            Get.lazyPut(() => DepartmentController(repo: DepartmentRepo()));
+            Get.lazyPut(() => DoctorController(repo: DoctorRepo()));
+
+            Get.lazyPut<AppointmentController>(
+              () => AppointmentController(
+                repo: AppointmentRepo(),
+                doctorRepo: DoctorRepo(),
+              ),
             );
           }),
         ),
-        // ChildController is already alive from /home — no new binding needed.
-        // Re-registering would create a second instance that never sees the
-        // home-scope data and breaks cache coherence.
+
         GetPage(
           name: '/choose-child',
           page: () => const ChooseChildView(),
+
+          binding: BindingsBuilder(() {
+            Get.lazyPut<ChildController>(
+              () => ChildController(repo: ChildRepo()),
+            );
+          }),
         ),
         GetPage(
           name: '/choose-date-time',
@@ -211,6 +233,32 @@ class MyApp extends StatelessWidget {
         // Settings
         GetPage(name: '/settings', page: () => const SettingsView()),
 
+        GetPage(
+          name: '/appointments',
+          page: () => const AppointmentsView(),
+          binding: BindingsBuilder(() {
+            Get.lazyPut<AppointmentsController>(
+              () =>
+                  AppointmentsController(appointmentsRepo: AppointmentsRepo()),
+            );
+          }),
+        ),
+
+        GetPage(name: '/child-profile', page: () => const ChildProfileView()),
+        GetPage(
+          name: '/profile',
+          page: () => const ProfileView(),
+          binding: BindingsBuilder(() {
+            Get.lazyPut(() => ProfileController(profileRepo: ProfileRepo()));
+          }),
+        ),
+        GetPage(
+          name: '/add-child',
+          page: () => const AddChildView(),
+          binding: BindingsBuilder(() {
+            Get.lazyPut(() => AddChildController(addChildRepo: AddChildRepo()));
+          }),
+        ),
       ],
     );
   }

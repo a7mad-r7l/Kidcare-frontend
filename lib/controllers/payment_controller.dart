@@ -16,13 +16,15 @@ class PaymentController extends GetxController {
 
   void setPaymentMethod(int value) => selectedPaymentMethod.value = value;
   void setCardMethod(int value) => selectedCardMethod.value = value;
+  String currentAppointmentId = '';
 
   @override
   void onInit() {
     super.onInit();
+    currentAppointmentId = Get.arguments?.toString() ?? '1';
 
 
-    loadAppointmentDetails('1');
+    loadAppointmentDetails(currentAppointmentId);
   }
 
   // 1. استدعاء تفاصيل الموعد الـ GET
@@ -53,7 +55,7 @@ class PaymentController extends GetxController {
     isLoading.value = true;
     try {
       // تمرير البيانات  للسيرفر
-      final intentModel = await repo.fetchPaymentIntent('1',  summary.currency);
+      final intentModel = await repo.fetchPaymentIntent(currentAppointmentId,  summary.currency);
       final clientSecret = intentModel.clientSecret;
 
       // تهيئة نافذة الدفع

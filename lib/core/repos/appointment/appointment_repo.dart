@@ -21,13 +21,24 @@ class AppointmentRepo {
       'date': date,
       'time': time,
     });
+    print('🚨 BACKEND RESPONSE: $response');
     final decoded = jsonDecode(response);
 
-    if (decoded is Map && decoded['appointment'] is Map<String, dynamic>) {
-      return AppointmentModel.fromJson(
-        decoded['appointment'] as Map<String, dynamic>,
-      );
+    if (decoded is Map) {
+      // جعلنا الكود ذكياً ومرناً: يبحث عن البيانات سواء كان اسمها appointment أو data أو أُرسلت مباشرة
+      final raw = decoded['appointment'] ?? decoded['data'] ?? decoded;
+
+      // إذا وجد البيانات وفيها ID الموعد، يكمل بنجاح
+      if (raw is Map<String, dynamic> && raw['id'] != null) {
+        return AppointmentModel.fromJson(raw);
+      }
     }
+
+    // if (decoded is Map && decoded['appointment'] is Map<String, dynamic>) {
+    //   return AppointmentModel.fromJson(
+    //     decoded['appointment'] as Map<String, dynamic>,
+    //   );
+    // }
 
     throw Exception(_errorMessage(decoded, 'Failed to book appointment'));
   }

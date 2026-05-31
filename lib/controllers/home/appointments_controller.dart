@@ -19,7 +19,7 @@ class AppointmentsController extends BaseController {
   @override
   void onInit() {
     super.onInit();
-    childId = Get.arguments as int;
+    childId =Get.arguments != null ? Get.arguments as int : 0;
     fetchUpcoming();
   }
 

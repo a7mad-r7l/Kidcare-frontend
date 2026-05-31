@@ -159,34 +159,38 @@ class _InfoCard extends StatelessWidget {
                 : null,
           ),
           const SizedBox(width: 20),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Text(
-                child.name,
-                style: const TextStyle(
-                  fontSize: 26,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF1A2E5A),
-                ),
-              ),
-              const SizedBox(height: 6),
-              Text(
-                '${child.age} years',
-                style: TextStyle(fontSize: 16, color: Colors.grey.shade600),
-              ),
-              const SizedBox(height: 6),
-              const Row(
-                children: [
-                  Text(
-                    'Male',
-                    style: TextStyle(fontSize: 16, color: Color(0xFF4CAF50)),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text(
+                  child.name,
+                  style: const TextStyle(
+                    fontSize: 26,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF1A2E5A),
                   ),
-                  SizedBox(width: 4),
-                  Icon(Icons.male, color: Color(0xFF4CAF50), size: 18),
-                ],
-              ),
-            ],
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  '${child.age} years',
+                  style: TextStyle(fontSize: 16, color: Colors.grey.shade600),
+                ),
+                const SizedBox(height: 6),
+                const Row(
+                  children: [
+                    Text(
+                      'Male',
+                      style: TextStyle(fontSize: 16, color: Color(0xFF4CAF50)),
+                    ),
+                    SizedBox(width: 4),
+                    Icon(Icons.male, color: Color(0xFF4CAF50), size: 18),
+                  ],
+                ),
+              ],
+            ),
           ),
         ],
       ),

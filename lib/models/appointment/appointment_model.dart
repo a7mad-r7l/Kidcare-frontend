@@ -1,7 +1,7 @@
 import '../../core/helper/json_utils.dart';
 
 class AppointmentModel {
-  final int id;
+  final String id;
   final int childId;
   final int doctorId;
   final String date;
@@ -25,7 +25,7 @@ class AppointmentModel {
 
   factory AppointmentModel.fromJson(Map<String, dynamic> json) {
     return AppointmentModel(
-      id: toIntSafe(json['id']),
+      id:  json['id']?.toString() ?? '',
       childId: toIntSafe(json['child_id']),
       doctorId: toIntSafe(json['doctor_id']),
       date: json['date']?.toString() ?? '',

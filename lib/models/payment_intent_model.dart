@@ -12,9 +12,9 @@ class PaymentIntentModel {
 
   factory PaymentIntentModel.fromJson(Map<String, dynamic> json) {
     return PaymentIntentModel(
-      status: json['status'] ?? '',
-      clientSecret: json['client_secret'] ?? '',
-      transactionId: json['transaction_id'] ?? '',
+      status: json['status']?.toString() ?? '',
+      clientSecret: json['client_secret']?.toString() ?? '',
+      transactionId: json['transaction_id']?.toString() ?? '',
     );
   }
 }

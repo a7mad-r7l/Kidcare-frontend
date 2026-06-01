@@ -10,6 +10,7 @@ class PaymentController extends GetxController {
   var isLoading = false.obs;
   var isDetailsLoading = false.obs;
   var appointmentSummary = Rxn<AppointmentDetailsModel>();
+  var transactionId = ''.obs;
 
   var selectedPaymentMethod = 2.obs;
   var selectedCardMethod = 1.obs;
@@ -57,6 +58,7 @@ class PaymentController extends GetxController {
       // تمرير البيانات  للسيرفر
       final intentModel = await repo.fetchPaymentIntent(currentAppointmentId,  summary.currency);
       final clientSecret = intentModel.clientSecret;
+      transactionId.value = intentModel.transactionId;
 
       // تهيئة نافذة الدفع
       await Stripe.instance.initPaymentSheet(
@@ -91,7 +93,8 @@ class PaymentController extends GetxController {
     try {
       await Stripe.instance.presentPaymentSheet();
       isLoading.value = false;
-      Get.offAllNamed('/payment-success');
+      Get.offAllNamed('/payment-success', arguments:{ 'summary': appointmentSummary.value,
+        'transaction_id': transactionId.value,});
     } on StripeException catch (e) {
       isLoading.value = false;
       Get.snackbar('Payment Cancelled', e.error.message ?? 'User cancelled the payment');

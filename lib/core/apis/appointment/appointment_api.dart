@@ -71,7 +71,7 @@ class AppointmentApi {
     return response.body;
   }
 
-  Future<String> getById(String token, int appointmentId) async {
+  Future<String> getById(String token, String appointmentId) async {
     final response = await client.get(
       Uri.parse('$baseUrl/appointments/$appointmentId'),
       headers: {
@@ -84,7 +84,7 @@ class AppointmentApi {
 
   Future<String> update(
     String token,
-    int appointmentId,
+      String appointmentId,
     Map<String, dynamic> body,
   ) async {
     final response = await client.put(
@@ -98,7 +98,7 @@ class AppointmentApi {
     return response.body;
   }
 
-  Future<String> delete(String token, int appointmentId) async {
+  Future<String> delete(String token, String appointmentId) async {
     final response = await client.delete(
       Uri.parse('$baseUrl/appointments/$appointmentId'),
       headers: {

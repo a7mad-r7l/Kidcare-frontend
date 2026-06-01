@@ -32,34 +32,41 @@ class PaymentApi {
 
   // 2.  طلب الدفع
   Future<String> createPaymentIntent(
-    String token,
-    String appointmentId,
-    String currency,
-  ) async {
+      String token,
+      String appointmentId,
+      String currency,
+      ) async {
     try {
-      Map<String, dynamic> body = {
-        'appointment_id': appointmentId,
-        'currency': currency.toLowerCase(),
-      };
 
-      var response = await http.post(
+
+      var request = http.MultipartRequest(
+        'POST',
         Uri.parse('$baseUrl/payment/checkout'),
-        headers: {
-          'Accept': 'application/json',
-          'Authorization': 'Bearer $token',
-        },
-        body: body,
       );
+
+      request.headers.addAll({
+        'Accept': 'application/json',
+        'Authorization': 'Bearer $token',
+      });
+
+      request.fields['appointment_id'] = appointmentId;
+      request.fields['currency'] = currency.toUpperCase();
+
+      var streamedResponse = await request.send();
+      var response = await http.Response.fromStream(streamedResponse);
+
+
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         return response.body;
       } else {
         var errorData = jsonDecode(response.body);
         throw Exception(
-          errorData['message'] ?? 'Failed to initialize payment from server',
+          errorData['message'] ?? 'Backend Error: ${response.body}',
         );
       }
     } catch (err) {
+
       throw Exception(err.toString());
     }
   }

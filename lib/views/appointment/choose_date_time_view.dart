@@ -213,11 +213,11 @@ class _BookButton extends StatelessWidget {
     final success = await controller.bookAppointment();
     if (!success || !context.mounted) return;
 
-    final appointment = controller.bookedAppointment.value!;
+    final appointmentId = controller.bookedAppointmentId.value!;
 
     Get.delete<AppointmentController>(force: true);
 
-    Get.offNamed('/checkout-summary', arguments: appointment.id.toString());
+    Get.offNamed('/payment-method', arguments: appointmentId);
 
     // await showDialog<void>(
     //   context: context,

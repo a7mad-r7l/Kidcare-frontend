@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:http/http.dart' as http;
 import '../../constants.dart';
 
@@ -46,9 +48,10 @@ class DoctorApi {
       Uri.parse('$baseUrl/doctors/$doctorId/available-times'),
       headers: {
         'Accept': 'application/json',
+        'Content-Type': 'application/json',
         'Authorization': 'Bearer $token',
       },
-      body: {'date': date},
+      body: jsonEncode({'date': date}),
     );
     return response.body;
   }

@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import '../../controllers/appointment/my_appointments_controller.dart';
+import '../../controllers/home/appointments_controller.dart';
+import '../../controllers/home/home_controller.dart';
 import '../../widgets/payment_widgets.dart';
 
 class PaymentSuccessView extends StatelessWidget {
@@ -39,29 +42,46 @@ class PaymentSuccessView extends StatelessWidget {
               const SizedBox(height: 40),
 
               //  ملخص الفاتورة
-              Container(
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  border: Border.all(color: Colors.grey.shade200),
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: const Column(
-                  children: [
-                    InvoiceRow(label: 'Date', value: 'Sun, 12 May 2024'),
-                    SizedBox(height: 12),
-                    InvoiceRow(label: 'Time', value: '10:00 AM'),
-                    SizedBox(height: 12),
-                    InvoiceRow(label: 'Doctor', value: 'Dr. Sarah Ahmed'),
-                    SizedBox(height: 12),
-                    InvoiceRow(label: 'Amount', value: '200 SAR'),
-                    Divider(height: 30),
-                    InvoiceRow(
-                      label: 'Transaction ID',
-                      value: '#PAY-2024-5678',
-                      isBold: true,
+              // 👈 استقبال البيانات من الـ arguments
+              Builder(
+                builder: (context) {
+                  final args = Get.arguments as Map<String, dynamic>?;
+                  final summary = args?['summary'];
+                  final transId = args?['transaction_id'] ?? '#N/A';
+
+                  return Container(
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      border: Border.all(color: Colors.grey.shade200),
+                      borderRadius: BorderRadius.circular(16),
                     ),
-                  ],
-                ),
+                    child: Column(
+                      children: [
+                        InvoiceRow(
+                          label: 'Date & Time',
+                          value: summary?.dateTime ?? 'N/A',
+                        ),
+                        const SizedBox(height: 12),
+                        InvoiceRow(
+                          label: 'Doctor',
+                          value: summary?.doctorName ?? 'N/A',
+                        ),
+                        const SizedBox(height: 12),
+                        InvoiceRow(
+                          label: 'Amount',
+                          value:
+                              '${summary?.price ?? 0} ${summary?.currency ?? ''}',
+                        ),
+                        const Divider(height: 30),
+                        InvoiceRow(
+                          label: 'Transaction ID',
+                          value: '#$transId',
+                          isBold: true,
+                        ),
+                      ],
+                    ),
+                  );
+                },
               ),
 
               const Spacer(),
@@ -76,7 +96,17 @@ class PaymentSuccessView extends StatelessWidget {
                       borderRadius: BorderRadius.circular(12),
                     ),
                   ),
-                  onPressed: () => Get.offAllNamed('/home'),
+                  onPressed: () {
+                    // 1. تحديث الكنترولر العام للمواعيد القادمة
+                    if (Get.isRegistered<MyAppointmentsController>()) {
+                      Get.find<MyAppointmentsController>().loadUpcoming();
+                    }
+                    // 2. تحديث قائمة الأطفال في الهوم بيج لتحديث الوجبات إن وجدت
+                    if (Get.isRegistered<HomeController>()) {
+                      Get.find<HomeController>().fetchChildren();
+                    }
+                    Get.offAllNamed('/home');
+                  },
                   child: const Text(
                     'Back to Home',
                     style: TextStyle(fontSize: 18, color: Colors.white),
@@ -86,6 +116,14 @@ class PaymentSuccessView extends StatelessWidget {
               const SizedBox(height: 16),
               TextButton(
                 onPressed: () {
+                  // 1. تحديث الكنترولر العام فوراً قبل فتح الشاشة
+                  if (Get.isRegistered<MyAppointmentsController>()) {
+                    Get.find<MyAppointmentsController>().loadUpcoming();
+                  }
+                  // 2. تحديث كونتولر مواعيد الطفل (الخاص بشاشة ملف الطفل)
+                  if (Get.isRegistered<AppointmentsController>()) {
+                    Get.find<AppointmentsController>().fetchUpcoming();
+                  }
                   Get.offAllNamed('/appointments');
                 },
                 child: Text(

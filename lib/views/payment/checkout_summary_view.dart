@@ -231,7 +231,7 @@ class CheckoutSummaryView extends GetView<PaymentController> {
               // زر الدفع
               SizedBox(
                 width: double.infinity,
-                height: 55,
+                height: 30,
                 child: ElevatedButton(
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF1976D2),

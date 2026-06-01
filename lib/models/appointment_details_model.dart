@@ -20,15 +20,21 @@ class AppointmentDetailsModel {
   });
 
   factory AppointmentDetailsModel.fromJson(Map<String, dynamic> json) {
+
+    String rawUrl = json['patient_image_url']?.toString() ?? '';
+    if (rawUrl.contains('storage/http')) {
+      rawUrl = rawUrl.split('storage/').last;
+    }
+
     return AppointmentDetailsModel(
-      patientName: json['patient_name'] ?? '',
-      patientAge: json['patient_age'] ?? '',
-      patientImageUrl: json['patient_image_url'] ?? '',
-      doctorName: json['doctor_name'] ?? '',
-      departmentName: json['department_name'] ?? '',
-      dateTime: json['date_time'] ?? '',
-      price: json['price'] ?? '0',
-      currency: json['currency'] ?? '',
+      patientName: json['patient_name']?.toString() ?? '',
+      patientAge: json['patient_age']?.toString() ?? '',
+      patientImageUrl: rawUrl,
+      doctorName: json['doctor_name']?.toString() ?? '',
+      departmentName: json['department_name']?.toString() ?? '',
+      dateTime: json['date_time']?.toString() ?? '',
+      price: json['price']?.toString() ?? '0',
+      currency: json['currency']?.toString() ?? '',
     );
   }
 }

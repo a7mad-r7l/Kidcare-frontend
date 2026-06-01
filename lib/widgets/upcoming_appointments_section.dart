@@ -10,7 +10,7 @@ import '../models/appointment/appointment_model.dart';
 final _fakeAppointments = List<AppointmentModel>.generate(
   2,
   (i) => AppointmentModel(
-    id: -i - 1,
+    id: (-i - 1).toString(),
     childId: -1,
     doctorId: -1,
     date: '2026-01-01',

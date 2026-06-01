@@ -64,6 +64,7 @@ import 'controllers/home/add_child_controller.dart';
 import 'controllers/home/appointments_controller.dart';
 import 'controllers/home/home_controller.dart';
 import 'controllers/home/profile_controller.dart';
+import 'controllers/payment_controller.dart';
 import 'core/repos/home/appointments_repo.dart';
 import 'core/repos/home/home_children_repo.dart';
 import 'core/repos/home/parent_name_repo.dart';
@@ -93,6 +94,16 @@ class MyApp extends StatelessWidget {
     return GetMaterialApp(
       title: 'Kidcare',
       debugShowCheckedModeBanner: false,
+
+      initialBinding: BindingsBuilder(() {
+        Get.lazyPut<AppointmentController>(
+              () => AppointmentController(
+            repo: AppointmentRepo(),
+            doctorRepo: DoctorRepo(),
+          ),
+          fenix: true,
+        );
+      }),
 
       //  Localization
       translations: AppTranslations(),
@@ -167,6 +178,9 @@ class MyApp extends StatelessWidget {
         GetPage(
           name: '/checkout-summary',
           page: () => const CheckoutSummaryView(),
+          binding: BindingsBuilder(() {
+            Get.lazyPut(() => PaymentController());
+          }),
         ),
         GetPage(
           name: '/payment-success',

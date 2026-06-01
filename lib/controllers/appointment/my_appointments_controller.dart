@@ -80,7 +80,7 @@ class MyAppointmentsController extends BaseController {
     }
   }
 
-  Future<void> loadOne(int id) async {
+  Future<void> loadOne(String id) async {
     showLoading();
     try {
       final list = await _enrich([await repo.fetchOne(id)]);

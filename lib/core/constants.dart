@@ -1,3 +1,3 @@
-const String baseUrl = 'http://192.168.164.45:8000/api';
+const String baseUrl = 'https://deputize-daylong-puritan.ngrok-free.dev/api';
 
 String token = '';

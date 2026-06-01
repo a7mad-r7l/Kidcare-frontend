@@ -1,4 +1,6 @@
 import 'dart:convert';
+
+
 import '../../apis/appointment/appointment_api.dart';
 import '../../helper/secure_storage_service.dart';
 import '../../../models/appointment/appointment_model.dart';
@@ -8,7 +10,7 @@ class AppointmentRepo {
 
   AppointmentRepo({AppointmentApi? api}) : _api = api ?? AppointmentApi();
 
-  Future<AppointmentModel> book({
+  Future<String> book({
     required int doctorId,
     required int childId,
     required String date,
@@ -21,24 +23,22 @@ class AppointmentRepo {
       'date': date,
       'time': time,
     });
-    print('🚨 BACKEND RESPONSE: $response');
+
     final decoded = jsonDecode(response);
 
     if (decoded is Map) {
-      // جعلنا الكود ذكياً ومرناً: يبحث عن البيانات سواء كان اسمها appointment أو data أو أُرسلت مباشرة
-      final raw = decoded['appointment'] ?? decoded['data'] ?? decoded;
 
-      // إذا وجد البيانات وفيها ID الموعد، يكمل بنجاح
-      if (raw is Map<String, dynamic> && raw['id'] != null) {
-        return AppointmentModel.fromJson(raw);
+      if (decoded['appointment_id'] != null) {
+        return decoded['appointment_id'].toString();
+      }
+
+      final raw = decoded['appointment'] ?? decoded['data'];
+      if (raw is Map && raw['id'] != null) {
+        return raw['id'].toString();
       }
     }
 
-    // if (decoded is Map && decoded['appointment'] is Map<String, dynamic>) {
-    //   return AppointmentModel.fromJson(
-    //     decoded['appointment'] as Map<String, dynamic>,
-    //   );
-    // }
+
 
     throw Exception(_errorMessage(decoded, 'Failed to book appointment'));
   }
@@ -64,7 +64,7 @@ class AppointmentRepo {
     );
   }
 
-  Future<AppointmentModel> fetchOne(int id) async {
+  Future<AppointmentModel> fetchOne(String id) async {
     final token = await SecureStorage.getToken();
     final response = await _api.getById(token, id);
     final decoded = jsonDecode(response);
@@ -82,7 +82,7 @@ class AppointmentRepo {
   }
 
   Future<AppointmentModel> reschedule(
-    int id, {
+      String id, {
     String? date,
     String? time,
   }) async {
@@ -103,7 +103,7 @@ class AppointmentRepo {
     throw Exception(_errorMessage(decoded, 'Failed to reschedule appointment'));
   }
 
-  Future<void> cancel(int id) async {
+  Future<void> cancel(String id) async {
     final token = await SecureStorage.getToken();
     final response = await _api.delete(token, id);
     if (response.isEmpty) return;

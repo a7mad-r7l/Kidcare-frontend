@@ -38,18 +38,6 @@ class HomeView extends GetView<HomeController> {
     return Scaffold(
       backgroundColor: Colors.white,
 
-      // Floating Action Button
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => Get.toNamed('/add-child'),
-        backgroundColor: const Color(0xFF3B9EFF),
-        elevation: 4,
-        shape: const CircleBorder(),
-        child: const Icon(Icons.add, color: Colors.white, size: 30),
-      ),
-
-
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
-
 
       bottomNavigationBar: const _BottomNav(),
 
@@ -501,63 +489,85 @@ class _BottomNav extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // ✅ استخدمنا BottomAppBar بدلاً من Container ليدعم "الحفرة" المخصصة للزر العائم
-    return BottomAppBar(
-      color: Colors.white,
-      shape: const CircularNotchedRectangle(), // تصميم الحفرة الدائرية
-      notchMargin: 8.0, // المسافة بين الزر والحفرة
-      elevation: 10,
-      child: SizedBox(
-        height: 65,
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            // الأزرار على اليسار
-            Row(
-              children: [
-                const SizedBox(width: 10),
-                _NavItem(
-                  icon: Icons.home_rounded,
-                  label: 'Home',
-                  isSelected: true,
-                  onTap: () {},
-                ),
-                const SizedBox(width: 25), // مسافة بين زر الهوم والمواعيد
-                _NavItem(
-                  icon: Icons.calendar_month_outlined,
-                  label: 'Appointments',
-                  isSelected: false,
-                  onTap: () => Get.toNamed('/appointments'),
-                ),
-              ],
-            ),
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: const BorderRadius.only(
+          topLeft: Radius.circular(24),
+          topRight: Radius.circular(24),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.08),
+            blurRadius: 20,
+            offset: const Offset(0, -4),
+          ),
+        ],
+      ),
+      child: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
+              // ─── Home ─────────────────────────────
+              _NavItem(
+                icon: Icons.home_rounded,
+                label: 'Home',
+                isSelected: true,
+                onTap: () {},
+              ),
 
-            // الأزرار على اليمين (موازنة للتصميم)
-            Row(
-              children: [
-                _NavItem(
-                  icon: Icons.more_horiz,
-                  label: 'More',
-                  isSelected: false,
-                  onTap: () => Get.toNamed('/settings'),
-                ),
-                // عنصر وهمي مخفي لعمل توازن بصري مع الأزرار في اليسار (بما أنهم 3 أزرار فقط)
-                Visibility(
-                  maintainSize: true,
-                  maintainAnimation: true,
-                  maintainState: true,
-                  visible: false,
-                  child: _NavItem(
-                    icon: Icons.more_horiz,
-                    label: '',
-                    isSelected: false,
-                    onTap: () {},
+              // ─── Appointments ──────────────────────
+              _NavItem(
+                icon: Icons.calendar_month_outlined,
+                label: 'Appointments',
+                isSelected: false,
+                onTap: () => Get.toNamed('/appointments'),
+              ),
+
+              // ─── زر + في المنتصف ───────────────────
+              GestureDetector(
+                onTap: () => Get.toNamed('/add-child'),
+                child: Container(
+                  width: 56,
+                  height: 56,
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFF3B9EFF), Color(0xFF1565C0)],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                        color: const Color(0xFF3B9EFF).withValues(alpha: 0.4),
+                        blurRadius: 12,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
                   ),
+                  child: const Icon(Icons.add, color: Colors.white, size: 28),
                 ),
-                const SizedBox(width: 10),
-              ],
-            ),
-          ],
+              ),
+
+              // ─── Vaccinations ──────────────────────
+              _NavItem(
+                icon: Icons.vaccines_outlined,
+                label: 'Vaccinations',
+                isSelected: false,
+                onTap: () => Get.toNamed('/vaccinations'),
+              ),
+
+              // ─── More ──────────────────────────────
+              _NavItem(
+                icon: Icons.more_horiz,
+                label: 'More',
+                isSelected: false,
+                onTap: () => Get.toNamed('/settings'),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -582,30 +592,39 @@ class _NavItem extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       behavior: HitTestBehavior.opaque,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            icon,
-            color: isSelected
-                ? const Color(0xFF3B9EFF)
-                : Colors.grey.shade400,
-            size: 26,
-          ),
-          const SizedBox(height: 4),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 11,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? const Color(0xFF3B9EFF).withValues(alpha: 0.1)
+              : Colors.transparent,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              icon,
               color: isSelected
                   ? const Color(0xFF3B9EFF)
                   : Colors.grey.shade400,
-              fontWeight:
-              isSelected ? FontWeight.bold : FontWeight.normal,
+              size: 24,
             ),
-          ),
-        ],
+            const SizedBox(height: 3),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 10,
+                color: isSelected
+                    ? const Color(0xFF3B9EFF)
+                    : Colors.grey.shade400,
+                fontWeight:
+                isSelected ? FontWeight.bold : FontWeight.normal,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

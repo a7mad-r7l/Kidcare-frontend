@@ -1,3 +1,3 @@
-const String baseUrl = 'https://deputize-daylong-puritan.ngrok-free.dev/api';
+const String baseUrl = 'https://precise-napkin-unused.ngrok-free.dev/api';
 
 String token = '';

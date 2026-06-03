@@ -4,6 +4,7 @@ import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../core/repos/home/add_child_repo.dart';
 import '../base_controller.dart';
+import 'home_controller.dart';
 
 
 class AddChildController extends BaseController {
@@ -139,6 +140,9 @@ class AddChildController extends BaseController {
       );
       await Future.delayed(const Duration(seconds: 1));
       Get.back();
+      if (Get.isRegistered<HomeController>()) {
+        Get.find<HomeController>().fetchChildren();
+      }
     } catch (e) {
       handleError(e);
     } finally {

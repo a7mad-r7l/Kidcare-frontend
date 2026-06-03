@@ -43,6 +43,8 @@ dependencies:
   flutter_stripe_web: ^7.6.0
   skeletonizer: ^2.1.0+1
   image_picker: ^1.2.2
+  firebase_core: ^4.9.0
+  firebase_messaging: ^16.2.2
 
 
 dev_dependencies:

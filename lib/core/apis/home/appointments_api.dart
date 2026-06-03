@@ -1,6 +1,7 @@
 import 'package:http/http.dart' as http;
 import '../../constants.dart';
 import '../../helper/secure_storage_service.dart';
+import 'package:get/get.dart';
 
 
 
@@ -16,6 +17,7 @@ class AppointmentsApi {
       headers: {
         'Accept': 'application/json',
         'Authorization': 'Bearer $token',
+        'Accept-Language': Get.locale?.languageCode ?? 'en',
       },
     );
     return response.body;
@@ -30,6 +32,7 @@ class AppointmentsApi {
       headers: {
         'Accept': 'application/json',
         'Authorization': 'Bearer $token',
+        'Accept-Language': Get.locale?.languageCode ?? 'en',
       },
     );
     return response.body;

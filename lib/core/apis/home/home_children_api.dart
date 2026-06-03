@@ -1,5 +1,5 @@
 import 'package:http/http.dart' as http;
-
+import 'package:get/get.dart';
 import '../../constants.dart';
 import '../../helper/secure_storage_service.dart';
 
@@ -19,6 +19,7 @@ class HomeChildrenApi {
       headers: {
         'Accept': 'application/json',
         'Authorization': 'Bearer $token',
+        'Accept-Language': Get.locale?.languageCode ?? 'en',
       },
     );
 

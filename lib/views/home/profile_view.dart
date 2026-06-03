@@ -14,8 +14,8 @@ class ProfileView extends GetView<ProfileController> {
         backgroundColor: const Color(0xFFF4F6FA),
         elevation: 0,
         centerTitle: true,
-        title: const Text(
-          'Personal Profile',
+        title:  Text(
+          'Personal Profile'.tr,
           style: TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.bold,
@@ -36,7 +36,7 @@ class ProfileView extends GetView<ProfileController> {
         }
 
         if (controller.profile.value == null) {
-          return const Center(child: Text('Failed to load profile'));
+          return  Center(child: Text('Failed to load profile'.tr));
         }
 
         final profile = controller.profile.value!;
@@ -44,12 +44,12 @@ class ProfileView extends GetView<ProfileController> {
         return SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
           child: Column(
-            // ✅ تغيير إلى start
+
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const SizedBox(height: 10),
 
-              // ─── Avatar ─── مركز دائماً
+              // ─── Avatar ───
               Center(
                 child: CircleAvatar(
                   radius: 55,
@@ -61,7 +61,7 @@ class ProfileView extends GetView<ProfileController> {
               ),
               const SizedBox(height: 16),
 
-              // ─── Full Name ✅ من اليسار
+              // ─── Full Name
               Align(
                 alignment: Alignment.centerLeft,
                 child: Text(
@@ -78,7 +78,7 @@ class ProfileView extends GetView<ProfileController> {
               // ─── Info Items ───────────────────────────
               _ProfileItem(
                 icon: Icons.email_outlined,
-                label: 'Email',
+                label: 'Email'.tr,
                 value: profile.email,
                 onEdit: () {
                   // TODO: تعديل البريد الإلكتروني
@@ -88,7 +88,7 @@ class ProfileView extends GetView<ProfileController> {
 
               _ProfileItem(
                 icon: Icons.phone_outlined,
-                label: 'Phone Number',
+                label: 'Phone Number'.tr,
                 value: profile.phoneNumber,
                 onEdit: () {
                   // TODO: تعديل رقم الهاتف
@@ -98,7 +98,7 @@ class ProfileView extends GetView<ProfileController> {
 
               _ProfileItem(
                 icon: Icons.location_on_outlined,
-                label: 'Address',
+                label: 'Address'.tr,
                 value: profile.address,
                 onEdit: () {
                   // TODO: تعديل العنوان
@@ -108,7 +108,7 @@ class ProfileView extends GetView<ProfileController> {
 
               _ProfileItem(
                 icon: Icons.group_outlined,
-                label: 'Number of Children',
+                label: 'Number of Children'.tr,
                 value: profile.childrenCount.toString(),
                 onEdit: () {
                   // TODO: الانتقال لإدارة الأطفال
@@ -123,8 +123,8 @@ class ProfileView extends GetView<ProfileController> {
                 child: ElevatedButton.icon(
                   onPressed: controller.logout,
                   icon: const Icon(Icons.logout, color: Color(0xFF1A2E5A)),
-                  label: const Text(
-                    'Logout',
+                  label:  Text(
+                    'Logout'.tr,
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
@@ -179,10 +179,10 @@ class _ProfileItem extends StatelessWidget {
           ),
         ],
       ),
-      // ✅ عكس ترتيب الـ Row
+
       child: Row(
         children: [
-          // ─── Icon ✅ على اليسار
+          // ─── Icon
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
@@ -193,7 +193,7 @@ class _ProfileItem extends StatelessWidget {
           ),
           const SizedBox(width: 12),
 
-          // ─── Label & Value ✅ من اليسار
+          // ─── Label & Value
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -218,7 +218,7 @@ class _ProfileItem extends StatelessWidget {
 
           const Spacer(),
 
-          // ─── Edit icon ✅ على اليمين
+          // ─── Edit icon
           GestureDetector(
             onTap: onEdit,
             child: const Icon(Icons.edit_outlined,

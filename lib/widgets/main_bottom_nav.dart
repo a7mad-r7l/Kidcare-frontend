@@ -52,7 +52,7 @@ class MainBottomNav extends StatelessWidget {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  item.label,
+                  item.label.tr,
                   style: TextStyle(
                     fontSize: 11,
                     color: isSelected

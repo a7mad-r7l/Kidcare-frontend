@@ -74,7 +74,7 @@ class _ChooseDoctorViewState extends State<ChooseDoctorView> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: _kBackground,
-      appBar: bookingAppBar(subtitle: 'Choose Doctor'),
+      appBar: bookingAppBar(subtitle: 'Choose Doctor'.tr),
       body: SafeArea(
         child: Column(
           children: [
@@ -98,9 +98,9 @@ class _ChooseDoctorViewState extends State<ChooseDoctorView> {
             isLoading ? _fakeDepartments : departmentController.departments;
 
         if (!isLoading && depts.isEmpty) {
-          return const Center(
+          return  Center(
             child: Text(
-              'No departments available',
+              'No departments available'.tr,
               style: TextStyle(color: _kTextSecondary),
             ),
           );
@@ -130,11 +130,11 @@ class _ChooseDoctorViewState extends State<ChooseDoctorView> {
 
   Widget _buildDoctorList() {
     if (selectedDepartment == null) {
-      return const Center(
+      return  Center(
         child: Padding(
           padding: EdgeInsets.symmetric(horizontal: 32),
           child: Text(
-            'Pick a department above to see the doctors.',
+            'Pick a department above to see the doctors.'.tr,
             textAlign: TextAlign.center,
             style: TextStyle(color: _kTextSecondary, fontSize: 14),
           ),
@@ -146,9 +146,9 @@ class _ChooseDoctorViewState extends State<ChooseDoctorView> {
       final doctors = isLoading ? _fakeDoctors : doctorController.doctors;
 
       if (!isLoading && doctors.isEmpty) {
-        return const Center(
+        return  Center(
           child: Text(
-            'No doctors available in this department.',
+            'No doctors available in this department.'.tr,
             style: TextStyle(color: _kTextSecondary, fontSize: 14),
           ),
         );
@@ -190,8 +190,8 @@ class _ChooseDoctorViewState extends State<ChooseDoctorView> {
             ),
           ),
           onPressed: enabled ? _onNextPressed : null,
-          child: const Text(
-            'Next',
+          child:  Text(
+            'Next'.tr,
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w700,
@@ -298,7 +298,7 @@ class _DoctorCard extends StatelessWidget {
                   if (specialty.isNotEmpty) ...[
                     const SizedBox(height: 3),
                     Text(
-                      '$specialty Specialist',
+                      '$specialty ${'Specialist'.tr}',
                       style: const TextStyle(
                         fontSize: 12.5,
                         color: _kTextSecondary,

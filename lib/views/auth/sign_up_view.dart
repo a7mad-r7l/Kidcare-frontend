@@ -37,8 +37,8 @@ class SignUpView extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             const SizedBox(height: 12),
-            const Text(
-              'Create New Account',
+            Text(
+              'Create New Account'.tr,
               style: TextStyle(
                 fontSize: 24,
                 fontWeight: FontWeight.bold,
@@ -47,7 +47,7 @@ class SignUpView extends StatelessWidget {
             ),
             const SizedBox(height: 6),
             Text(
-              'Create your account to benefit from our services',
+              'Create your account to benefit from our services'.tr,
               style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
               textAlign: TextAlign.center,
             ),
@@ -61,24 +61,24 @@ class SignUpView extends StatelessWidget {
 
             CustomTextField(
               controller: controller.firstNameController,
-              hintText: 'Enter your name',
-              label: 'Name',
+              hintText: 'Enter your name'.tr,
+              label: 'Name'.tr,
               labelIcon: Icons.person_outline,
             ),
             const SizedBox(height: 14),
 
             CustomTextField(
               controller: controller.lastNameController,
-              hintText: 'Enter your last name',
-              label: 'Last Name',
+              hintText: 'Enter your last name'.tr,
+              label: 'Last Name'.tr,
               labelIcon: Icons.person_outline,
             ),
             const SizedBox(height: 14),
 
             CustomTextField(
               controller: controller.emailController,
-              hintText: 'Enter your email',
-              label: 'Email',
+              hintText: 'Enter your email'.tr,
+              label: 'Email'.tr,
               labelIcon: Icons.mail_outline,
               keyboardType: TextInputType.emailAddress,
             ),
@@ -86,17 +86,17 @@ class SignUpView extends StatelessWidget {
 
             CustomTextField(
               controller: controller.phoneController,
-              hintText: 'Enter your phone number',
+              hintText: 'Enter your phone number'.tr,
               keyboardType: TextInputType.phone,
-              label: 'Phone',
+              label: 'Phone'.tr,
               labelIcon: Icons.phone_outlined,
             ),
             const SizedBox(height: 14),
 
             CustomTextField(
               controller: controller.addressController,
-              hintText: 'Enter your address in detail',
-              label: 'Address',
+              hintText: 'Enter your address in detail'.tr,
+              label: 'Address'.tr,
               labelIcon: Icons.location_on_outlined,
             ),
             const SizedBox(height: 14),
@@ -104,9 +104,9 @@ class SignUpView extends StatelessWidget {
             Obx(
               () => CustomTextField(
                 controller: controller.passwordController,
-                hintText: 'Enter your password',
+                hintText: 'Enter your password'.tr,
                 isPassword: controller.isPasswordHidden.value,
-                label: 'Password',
+                label: 'Password'.tr,
                 labelIcon: Icons.lock_outline,
                 suffixIcon: IconButton(
                   icon: Icon(
@@ -124,7 +124,8 @@ class SignUpView extends StatelessWidget {
             Align(
               alignment: Alignment.centerRight,
               child: Text(
-                'At least 8 characters with uppercase, lowercase and a number',
+                'At least 8 characters with uppercase, lowercase and a number'
+                    .tr,
                 style: TextStyle(fontSize: 11, color: Colors.grey.shade500),
               ),
             ),
@@ -133,9 +134,9 @@ class SignUpView extends StatelessWidget {
             Obx(
               () => CustomTextField(
                 controller: controller.confirmPasswordController,
-                hintText: 'Enter your password again',
+                hintText: 'Enter your password again'.tr,
                 isPassword: controller.isConfirmPasswordHidden.value,
-                label: 'Confirm Password',
+                label: 'Confirm Password'.tr,
                 labelIcon: Icons.lock_outline,
                 suffixIcon: IconButton(
                   icon: Icon(
@@ -157,7 +158,7 @@ class SignUpView extends StatelessWidget {
                       child: CircularProgressIndicator(color: Colors.blue),
                     )
                   : PrimaryButton(
-                      text: 'Create Account',
+                      text: 'Create Account'.tr,
                       onPressed: controller.signUp,
                     ),
             ),
@@ -169,7 +170,7 @@ class SignUpView extends StatelessWidget {
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 12),
                   child: Text(
-                    'Already have an account?',
+                    'Already have an account?'.tr,
                     style: TextStyle(color: Colors.grey.shade500, fontSize: 13),
                   ),
                 ),
@@ -178,7 +179,7 @@ class SignUpView extends StatelessWidget {
             ),
             const SizedBox(height: 16),
 
-            OutlinedPrimaryButton(text: 'LogIn', onPressed: () => Get.back()),
+            OutlinedPrimaryButton(text: 'Login'.tr, onPressed: () => Get.back()),
             const SizedBox(height: 32),
           ],
         ),

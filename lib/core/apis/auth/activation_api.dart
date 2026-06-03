@@ -1,6 +1,6 @@
 import 'package:http/http.dart' as http;
 import '../../constants.dart';
-
+import 'package:get/get.dart';
 
 class ActivationApi {
   final http.Client client = http.Client();
@@ -9,7 +9,10 @@ class ActivationApi {
   Future<String> sendOtp(String phoneNumber) async {
     final response = await client.post(
       Uri.parse("$baseUrl/sendOtp"),
-      headers: {"Accept": "application/json"},
+      headers: {
+        "Accept": "application/json",
+        "Accept-Language": Get.locale?.languageCode ?? "en",
+      },
       body: {"phone_number": phoneNumber},
     );
     return response.body;
@@ -19,11 +22,11 @@ class ActivationApi {
   Future<String> verifyOtp(String phoneNumber, String otp) async {
     final response = await client.post(
       Uri.parse("$baseUrl/verifyOtp"),
-      headers: {"Accept": "application/json"},
-      body: {
-        "phone_number": phoneNumber,
-        "otp": otp
+      headers: {
+        "Accept": "application/json",
+        "Accept-Language": Get.locale?.languageCode ?? "en",
       },
+      body: {"phone_number": phoneNumber, "otp": otp},
     );
     return response.body;
   }
@@ -32,11 +35,14 @@ class ActivationApi {
   Future<String> setPassword(String phoneNumber, String password) async {
     final response = await client.post(
       Uri.parse("$baseUrl/SetPassword"),
-      headers: {"Accept": "application/json"},
+      headers: {
+        "Accept": "application/json",
+        "Accept-Language": Get.locale?.languageCode ?? "en",
+      },
       body: {
         "phone_number": phoneNumber,
         "password": password,
-        "password_confirmation": password
+        "password_confirmation": password,
       },
     );
     return response.body;

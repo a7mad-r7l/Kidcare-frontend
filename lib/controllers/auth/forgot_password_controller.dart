@@ -41,8 +41,8 @@ class ForgotPasswordController extends BaseController {
     String phone = phoneController.text.trim();
     if (phone.isEmpty || phone.length < 9) {
       Get.snackbar(
-        "Notice",
-        "Please enter a valid phone number",
+        "Notice".tr,
+        "Please enter a valid phone number".tr,
         backgroundColor: Colors.orange,
         colorText: Colors.white,
       );
@@ -65,8 +65,8 @@ class ForgotPasswordController extends BaseController {
     String otp = otpController.text.trim();
     if (otp.length != 4) {
       Get.snackbar(
-        "Notice",
-        "Please enter the 4-digit code",
+        "Notice".tr,
+        "Please enter the 4-digit code".tr,
         backgroundColor: Colors.orange,
         colorText: Colors.white,
       );
@@ -91,8 +91,8 @@ class ForgotPasswordController extends BaseController {
 
     if (password.length < 8) {
       Get.snackbar(
-        "Weak Password",
-        "Password must be at least 8 characters long",
+        "Weak Password".tr,
+        "Password must be at least 8 characters long".tr,
         backgroundColor: Colors.orange,
         colorText: Colors.white,
       );
@@ -100,8 +100,8 @@ class ForgotPasswordController extends BaseController {
     }
     if (password != confirmPassword) {
       Get.snackbar(
-        "Error",
-        "Passwords do not match",
+        "Error".tr,
+        "Passwords do not match".tr,
         backgroundColor: Colors.redAccent,
         colorText: Colors.white,
       );

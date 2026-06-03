@@ -57,7 +57,7 @@ class _ChooseChildViewState extends State<ChooseChildView> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: _kBackground,
-      appBar: bookingAppBar(subtitle: 'Choose Child'),
+      appBar: bookingAppBar(subtitle: 'Choose Child'.tr),
       body: SafeArea(
         child: Column(
           children: [
@@ -68,11 +68,11 @@ class _ChooseChildViewState extends State<ChooseChildView> {
                     isLoading ? _fakeChildren : childController.children;
 
                 if (!isLoading && children.isEmpty) {
-                  return const Center(
+                  return  Center(
                     child: Padding(
                       padding: EdgeInsets.symmetric(horizontal: 32),
                       child: Text(
-                        "You haven't added any children yet.",
+                        "You haven't added any children yet.".tr,
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           color: _kTextSecondary,
@@ -125,8 +125,8 @@ class _ChooseChildViewState extends State<ChooseChildView> {
             ),
           ),
           onPressed: enabled ? _onNextPressed : null,
-          child: const Text(
-            'Next',
+          child:  Text(
+            'Next'.tr,
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w700,
@@ -196,7 +196,7 @@ class _ChildCard extends StatelessWidget {
                   ),
                   const SizedBox(height: 3),
                   Text(
-                    '${child.ageYears} years',
+                    '${child.ageYears} ${'years'.tr}',
                     style: const TextStyle(
                       fontSize: 13,
                       color: _kTextSecondary,

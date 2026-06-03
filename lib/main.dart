@@ -77,9 +77,23 @@ void main() async {
       'pk_test_51TVx1BA9J421R1e0fArsBqsC3bNgwlcmhH407ymZp4Ncu9aVgwtEMgXg6lWcswqESufx6ZL7arNccQCdJCHA3QUG00GUsDRB6Q';
 
   String? savedLang = await SecureStorage.getLanguage();
-  Locale initialLocale = savedLang == 'ar'
-      ? const Locale('ar', 'SA')
-      : const Locale('en', 'US');
+  Locale initialLocale;
+  if (savedLang == null || savedLang == 'system') {
+    Locale? deviceLocale = WidgetsBinding.instance.platformDispatcher.locales.isNotEmpty
+        ? WidgetsBinding.instance.platformDispatcher.locales.first
+        : null;
+
+    if (deviceLocale != null && deviceLocale.languageCode == 'ar') {
+      initialLocale = const Locale('ar', 'SA');
+    } else {
+      initialLocale = const Locale('en', 'US');
+    }
+  } else if (savedLang == 'ar') {
+    initialLocale = const Locale('ar', 'SA');
+  } else {
+    initialLocale = const Locale('en', 'US');
+  }
+
 
   runApp(MyApp(initialLocale: initialLocale));
 }
@@ -97,7 +111,7 @@ class MyApp extends StatelessWidget {
 
       initialBinding: BindingsBuilder(() {
         Get.lazyPut<AppointmentController>(
-              () => AppointmentController(
+          () => AppointmentController(
             repo: AppointmentRepo(),
             doctorRepo: DoctorRepo(),
           ),

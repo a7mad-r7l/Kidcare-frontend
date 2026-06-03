@@ -7,7 +7,6 @@ class ForgotPasswordView extends GetView<ForgotPasswordController> {
 
   @override
   Widget build(BuildContext context) {
-
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
@@ -22,8 +21,8 @@ class ForgotPasswordView extends GetView<ForgotPasswordController> {
             children: [
               Image.asset('assets/images/logo.jpg', height: 120),
               const SizedBox(height: 20),
-              const Text(
-                "Forgot Password?",
+              Text(
+                "Forgot Password?".tr,
                 style: TextStyle(
                   fontSize: 24,
                   fontWeight: FontWeight.bold,
@@ -32,15 +31,16 @@ class ForgotPasswordView extends GetView<ForgotPasswordController> {
               ),
               const SizedBox(height: 10),
               Text(
-                "Don't worry, enter your phone number and we will send you a verification code.",
+                "Don't worry, enter your phone number and we will send you a verification code."
+                    .tr,
                 textAlign: TextAlign.center,
                 style: TextStyle(color: Colors.grey[600]),
               ),
               const SizedBox(height: 40),
-              const Align(
-                alignment: Alignment.centerLeft,
+              Align(
+                alignment:AlignmentDirectional.topStart,
                 child: Text(
-                  "Phone Number",
+                  "Phone Number".tr,
                   style: TextStyle(fontWeight: FontWeight.bold),
                 ),
               ),
@@ -49,7 +49,7 @@ class ForgotPasswordView extends GetView<ForgotPasswordController> {
                 controller: controller.phoneController,
                 keyboardType: TextInputType.phone,
                 decoration: InputDecoration(
-                  hintText: '9639XXXXXXXX', // إضافة تلميح للمستخدم
+                  hintText: '9639XXXXXXXX',
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(15),
                   ),
@@ -58,28 +58,32 @@ class ForgotPasswordView extends GetView<ForgotPasswordController> {
               const SizedBox(height: 30),
 
               // الاستماع اللحظي لحالة التحميل باستخدام الكود الموحد الخاص بك
-              Obx(() => SizedBox(
-                width: double.infinity,
-                height: 55,
-                child: ElevatedButton(
-                  onPressed: controller.isLoading ? null : () => controller.sendCode(),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF4A86D1),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(15),
+              Obx(
+                () => SizedBox(
+                  width: double.infinity,
+                  height: 55,
+                  child: ElevatedButton(
+                    onPressed: controller.isLoading
+                        ? null
+                        : () => controller.sendCode(),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF4A86D1),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(15),
+                      ),
                     ),
-                  ),
-                  child: controller.isLoading
-                      ? const CircularProgressIndicator(color: Colors.white)
-                      : const Text(
-                    "Send Verification Code",
-                    style: TextStyle(fontSize: 18, color: Colors.white),
+                    child: controller.isLoading
+                        ? const CircularProgressIndicator(color: Colors.white)
+                        : Text(
+                            "Send Verification Code".tr,
+                            style: TextStyle(fontSize: 18, color: Colors.white),
+                          ),
                   ),
                 ),
-              )),
+              ),
 
               const SizedBox(height: 40),
-              Image.asset('assets/images/child_welcome.png',)
+              Image.asset('assets/images/child_welcome.png'),
             ],
           ),
         ),

@@ -44,10 +44,10 @@ class OtpVerificationView extends GetView<ActivationController> {
               const StepProgressIndicator(currentStep: 2),
               ActivationHeader(
                 imagePath: 'assets/images/mobile_blue_logo.png',
-                title: 'Verify Your Phone',
+                title: 'Verify Your Phone'.tr,
 
                 subtitle:
-                    'We have sent a 4-digit verification code to\n+${controller.phoneController.text}',
+                    '${'We have sent a 4-digit verification code to'.tr}\n+${controller.phoneController.text}',
               ),
 
               // حقل Pinput
@@ -68,8 +68,8 @@ class OtpVerificationView extends GetView<ActivationController> {
               //  إعادة إرسال الرمز
               Obx(() => Column(
                 children: [
-                  const Text(
-                    "Didn't receive the code?",
+                   Text(
+                    "Didn't receive the code?".tr,
                     style: TextStyle(color: Colors.grey),
                   ),
                   TextButton(
@@ -78,8 +78,8 @@ class OtpVerificationView extends GetView<ActivationController> {
                         : null,
                     child: Text(
                       controller.secondsRemaining.value == 0
-                          ? "Resend Code"
-                          : "Resend in (00:${controller.secondsRemaining.value.toString().padLeft(2, '0')})",
+                          ? "Resend Code".tr
+                          : "${"Resend in".tr} (00:${controller.secondsRemaining.value.toString().padLeft(2, '0')})",
                       style: TextStyle(
                         color: controller.secondsRemaining.value == 0
                             ? Colors.blue
@@ -96,7 +96,7 @@ class OtpVerificationView extends GetView<ActivationController> {
                 () => controller.isLoading
                     ? const CircularProgressIndicator()
                     : PrimaryButton(
-                        text: 'Verify and Activate Account',
+                        text: 'Verify and Activate Account'.tr,
                         onPressed: controller.verifyOtp,
                       ),
               ),

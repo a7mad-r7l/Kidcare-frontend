@@ -36,8 +36,8 @@ class SignUpController extends BaseController {
         passwordController.text.isEmpty ||
         confirmPasswordController.text.isEmpty) {
       Get.snackbar(
-        'Required Fields',
-        'Please fill in all fields',
+        'Required Fields'.tr,
+        'Please fill in all fields'.tr,
         backgroundColor: Colors.grey.shade700,
         colorText: Colors.white,
         snackPosition: SnackPosition.TOP,
@@ -50,8 +50,8 @@ class SignUpController extends BaseController {
     // 2. التحقق من طول رقم الهاتف
     if (phone.length != 12) {
       Get.snackbar(
-        'Invalid Phone Number',
-        'Phone number must be exactly 12 numbers (e.g., 9639XXXXXXXX)',
+        'Invalid Phone Number'.tr,
+        'Phone number must be exactly 12 numbers (e.g., 9639XXXXXXXX)'.tr,
         backgroundColor: Colors.grey.shade700,
         colorText: Colors.white,
         snackPosition: SnackPosition.TOP,
@@ -64,8 +64,8 @@ class SignUpController extends BaseController {
     // 3. التحقق من تطابق كلمتي المرور
     if (passwordController.text != confirmPasswordController.text) {
       Get.snackbar(
-        'Error',
-        'Passwords do not match',
+        'Error'.tr,
+        'Passwords do not match'.tr,
         backgroundColor: Colors.redAccent,
         colorText: Colors.white,
         snackPosition: SnackPosition.TOP,
@@ -78,8 +78,8 @@ class SignUpController extends BaseController {
     // 4. التحقق من طول كلمة المرور
     if (passwordController.text.length < 8) {
       Get.snackbar(
-        'Weak Password',
-        'Password must be at least 8 characters long',
+        'Weak Password'.tr,
+        'Password must be at least 8 characters long'.tr,
         backgroundColor: Colors.orange,
         colorText: Colors.white,
         snackPosition: SnackPosition.TOP,
@@ -102,7 +102,7 @@ class SignUpController extends BaseController {
       );
 
       Get.snackbar(
-        'Success',
+        'Success'.tr,
         result.message,
         backgroundColor: Colors.green,
         colorText: Colors.white,

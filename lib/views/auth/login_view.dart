@@ -16,6 +16,7 @@ class LoginView extends StatelessWidget {
     final size = MediaQuery.of(context).size;
     final settingsController = Get.put(SettingsController());
 
+
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
@@ -87,18 +88,21 @@ class LoginView extends StatelessWidget {
                 ),
 
                 Align(
-                  alignment:AlignmentDirectional.centerEnd,
+                  alignment:AlignmentDirectional.topStart,
                   child: TextButton(
+
                     onPressed: () {
                       Get.toNamed('/forgot-password');
                     },
                     style: TextButton.styleFrom(
+
                       padding: const EdgeInsets.only(top: 8, bottom: 8),
                       minimumSize: Size.zero,
                       tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                     ),
                     child:  Text(
                       'Forgot Password?'.tr,
+
                       style: TextStyle(
                         color: Colors.blue,
                         fontSize: 13,

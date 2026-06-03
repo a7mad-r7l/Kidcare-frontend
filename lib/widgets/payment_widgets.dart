@@ -6,7 +6,7 @@ class PaymentMethodCard extends StatelessWidget {
   final int value;
   final int groupValue;
   final VoidCallback onTap;
-  final Widget? trailingWidget; // التعديل هنا: ليدعم أيقونة أو صورة
+  final Widget? trailingWidget;
 
   const PaymentMethodCard({
     super.key,
@@ -45,7 +45,7 @@ class PaymentMethodCard extends StatelessWidget {
                 ],
               ),
             ),
-            if (trailingWidget != null) trailingWidget!, // عرض الأيقونة أو الصورة هنا
+            ?trailingWidget,
           ],
         ),
       ),
@@ -58,7 +58,7 @@ class PaymentOptionCard extends StatelessWidget {
   final int value;
   final int groupValue;
   final VoidCallback onTap;
-  final Widget? trailingWidget; // التعديل هنا لدعم صور الشعارات المتعددة
+  final Widget? trailingWidget;
 
   const PaymentOptionCard({
     super.key,
@@ -89,7 +89,7 @@ class PaymentOptionCard extends StatelessWidget {
             Icon(isSelected ? Icons.radio_button_checked : Icons.radio_button_unchecked, color: isSelected ? const Color(0xFF1976D2) : Colors.grey.shade400, size: 24),
             const SizedBox(width: 16),
             Expanded(child: Text(title, style: const TextStyle(fontSize: 16, color: Colors.black87, fontWeight: FontWeight.w500))),
-            if (trailingWidget != null) trailingWidget!, // عرض الصور
+            ?trailingWidget,
           ],
         ),
       ),

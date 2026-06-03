@@ -1,5 +1,5 @@
 import 'dart:convert';
-
+import 'package:get/get.dart';
 import 'package:http/http.dart' as http;
 import '../../constants.dart';
 
@@ -12,6 +12,7 @@ class DoctorApi {
       headers: {
         'Accept': 'application/json',
         'Authorization': 'Bearer $token',
+        "Accept-Language": Get.locale?.languageCode ?? "en",
       },
     );
     return response.body;
@@ -23,6 +24,7 @@ class DoctorApi {
       headers: {
         'Accept': 'application/json',
         'Authorization': 'Bearer $token',
+        "Accept-Language": Get.locale?.languageCode ?? "en",
       },
     );
     return response.body;
@@ -34,6 +36,7 @@ class DoctorApi {
       headers: {
         'Accept': 'application/json',
         'Authorization': 'Bearer $token',
+        "Accept-Language": Get.locale?.languageCode ?? "en",
       },
     );
     return response.body;
@@ -50,6 +53,7 @@ class DoctorApi {
         'Accept': 'application/json',
         'Content-Type': 'application/json',
         'Authorization': 'Bearer $token',
+        "Accept-Language": Get.locale?.languageCode ?? "en",
       },
       body: jsonEncode({'date': date}),
     );

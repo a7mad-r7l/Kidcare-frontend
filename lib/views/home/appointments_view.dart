@@ -16,8 +16,8 @@ class AppointmentsView extends GetView<AppointmentsController> {
         backgroundColor: const Color(0xFFF0F4FF),
         elevation: 0,
         centerTitle: true,
-        title: const Text(
-          'My Appointments',
+        title:  Text(
+          'My Appointments'.tr,
           style: TextStyle(
             fontSize: 20,
             fontWeight: FontWeight.bold,
@@ -70,7 +70,7 @@ class AppointmentsView extends GetView<AppointmentsController> {
                             ),
                             const SizedBox(width: 6),
                             Text(
-                              'Upcoming',
+                              'Upcoming'.tr,
                               style: TextStyle(
                                 fontWeight: FontWeight.bold,
                                 color: controller.showUpcoming.value
@@ -109,7 +109,7 @@ class AppointmentsView extends GetView<AppointmentsController> {
                             ),
                             const SizedBox(width: 6),
                             Text(
-                              'Past',
+                              'Past'.tr,
                               style: TextStyle(
                                 fontWeight: FontWeight.bold,
                                 color: !controller.showUpcoming.value
@@ -150,7 +150,7 @@ class AppointmentsView extends GetView<AppointmentsController> {
                           size: 60, color: Colors.grey.shade300),
                       const SizedBox(height: 12),
                       Text(
-                        'No appointments found',
+                        'No appointments found'.tr,
                         style: TextStyle(
                           fontSize: 16,
                           color: Colors.grey.shade400,

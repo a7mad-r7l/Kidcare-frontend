@@ -110,7 +110,7 @@ class MyAppointmentsController extends BaseController {
           final doctor = await doctorRepo.fetchById(id);
           _doctorNameCache[id] = doctor.fullName;
         } catch (_) {
-          _doctorNameCache[id] = 'Doctor #$id';
+          _doctorNameCache[id] = '${'Doctor # '.tr}$id';
         }
       }),
     );
@@ -134,7 +134,7 @@ class MyAppointmentsController extends BaseController {
     return items.map((a) {
       return a.withNames(
         doctorName: _doctorNameCache[a.doctorId],
-        childName: _childNameCache[a.childId] ?? 'Child #${a.childId}',
+        childName: _childNameCache[a.childId] ?? '${'Child #'.tr}${a.childId}',
       );
     }).toList();
   }

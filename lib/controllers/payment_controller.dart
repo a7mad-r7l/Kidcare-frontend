@@ -35,7 +35,7 @@ class PaymentController extends GetxController {
       final summary = await repo.fetchAppointmentSummary(appointmentId);
       appointmentSummary.value = summary;
     } catch (e) {
-      Get.snackbar('Error Loading Details', e.toString().replaceAll('Exception:', '').trim());
+      Get.snackbar('Error Loading Details'.tr, e.toString().replaceAll('Exception:', '').trim());
     } finally {
       isDetailsLoading.value = false;
     }
@@ -49,7 +49,7 @@ class PaymentController extends GetxController {
   Future<void> processPayment() async {
     final summary = appointmentSummary.value;
     if (summary == null) {
-      Get.snackbar('Error', 'No appointment data found to process');
+      Get.snackbar('Error'.tr, 'No appointment data found to process'.tr);
       return;
     }
 
@@ -64,7 +64,7 @@ class PaymentController extends GetxController {
       await Stripe.instance.initPaymentSheet(
         paymentSheetParameters: SetupPaymentSheetParameters(
           paymentIntentClientSecret: clientSecret,
-          merchantDisplayName: 'KidCare Clinic',
+          merchantDisplayName: 'KidCare Clinic'.tr,
           style: ThemeMode.light,
           billingDetailsCollectionConfiguration: const BillingDetailsCollectionConfiguration(
             address: AddressCollectionMode.never, // إخفاء الرمز البريدي
@@ -78,7 +78,7 @@ class PaymentController extends GetxController {
     } catch (e) {
       isLoading.value = false;
       Get.snackbar(
-        'Payment Error',
+        'Payment Error'.tr,
         e.toString().replaceAll('Exception:', '').trim(),
         backgroundColor: Colors.red.shade800,
         colorText: Colors.white,
@@ -97,10 +97,10 @@ class PaymentController extends GetxController {
         'transaction_id': transactionId.value,});
     } on StripeException catch (e) {
       isLoading.value = false;
-      Get.snackbar('Payment Cancelled', e.error.message ?? 'User cancelled the payment');
+      Get.snackbar('Payment Cancelled'.tr, e.error.message ?? 'User cancelled the payment'.tr);
     } catch (e) {
       isLoading.value = false;
-      Get.snackbar('Error', 'An unexpected error occurred');
+      Get.snackbar('Error'.tr, 'An unexpected error occurred'.tr);
     }
   }
 }

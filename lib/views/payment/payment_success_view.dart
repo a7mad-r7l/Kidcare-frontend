@@ -25,8 +25,8 @@ class PaymentSuccessView extends StatelessWidget {
                 height: 200,
               ),
               const SizedBox(height: 24),
-              const Text(
-                'Payment Successful!',
+              Text(
+                'Payment Successful!'.tr,
                 style: TextStyle(
                   fontSize: 24,
                   fontWeight: FontWeight.bold,
@@ -35,7 +35,7 @@ class PaymentSuccessView extends StatelessWidget {
               ),
               const SizedBox(height: 8),
               Text(
-                'Your appointment is confirmed',
+                'Your appointment is confirmed'.tr,
                 style: TextStyle(fontSize: 16, color: Colors.grey.shade600),
               ),
 
@@ -58,23 +58,23 @@ class PaymentSuccessView extends StatelessWidget {
                     child: Column(
                       children: [
                         InvoiceRow(
-                          label: 'Date & Time',
+                          label: 'Date & Time'.tr,
                           value: summary?.dateTime ?? 'N/A',
                         ),
                         const SizedBox(height: 12),
                         InvoiceRow(
-                          label: 'Doctor',
+                          label: 'Doctor'.tr,
                           value: summary?.doctorName ?? 'N/A',
                         ),
                         const SizedBox(height: 12),
                         InvoiceRow(
-                          label: 'Amount',
+                          label: 'Amount'.tr,
                           value:
                               '${summary?.price ?? 0} ${summary?.currency ?? ''}',
                         ),
                         const Divider(height: 30),
                         InvoiceRow(
-                          label: 'Transaction ID',
+                          label: 'Transaction ID'.tr,
                           value: '#$transId',
                           isBold: true,
                         ),
@@ -97,18 +97,17 @@ class PaymentSuccessView extends StatelessWidget {
                     ),
                   ),
                   onPressed: () {
-                    // 1. تحديث الكنترولر العام للمواعيد القادمة
                     if (Get.isRegistered<MyAppointmentsController>()) {
                       Get.find<MyAppointmentsController>().loadUpcoming();
                     }
-                    // 2. تحديث قائمة الأطفال في الهوم بيج لتحديث الوجبات إن وجدت
+
                     if (Get.isRegistered<HomeController>()) {
                       Get.find<HomeController>().fetchChildren();
                     }
                     Get.offAllNamed('/home');
                   },
-                  child: const Text(
-                    'Back to Home',
+                  child: Text(
+                    'Back to Home'.tr,
                     style: TextStyle(fontSize: 18, color: Colors.white),
                   ),
                 ),
@@ -116,18 +115,17 @@ class PaymentSuccessView extends StatelessWidget {
               const SizedBox(height: 16),
               TextButton(
                 onPressed: () {
-                  // 1. تحديث الكنترولر العام فوراً قبل فتح الشاشة
                   if (Get.isRegistered<MyAppointmentsController>()) {
                     Get.find<MyAppointmentsController>().loadUpcoming();
                   }
-                  // 2. تحديث كونتولر مواعيد الطفل (الخاص بشاشة ملف الطفل)
+
                   if (Get.isRegistered<AppointmentsController>()) {
                     Get.find<AppointmentsController>().fetchUpcoming();
                   }
                   Get.offAllNamed('/appointments');
                 },
                 child: Text(
-                  'View My Appointments',
+                  'View My Appointments'.tr,
                   style: TextStyle(
                     fontSize: 16,
                     color: Colors.blue.shade700,

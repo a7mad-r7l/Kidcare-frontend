@@ -10,14 +10,13 @@ class PaymentMethodView extends GetView<PaymentController> {
   Widget build(BuildContext context) {
     Get.put(PaymentController());
 
-    // إجبار الكونترولر على اختيار الأونلاين كقيمة افتراضية (2)
     controller.selectedPaymentMethod.value = 2;
 
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        title: const Text(
-          'Finalize Appointment',
+        title: Text(
+          'Finalize Appointment'.tr,
           style: TextStyle(
             color: Colors.black87,
             fontWeight: FontWeight.bold,
@@ -35,7 +34,6 @@ class PaymentMethodView extends GetView<PaymentController> {
           children: [
             const SizedBox(height: 20),
             Center(
-              // تم إضافة صورة المحفظة الخاصة بك بدلاً من الأيقونة الزرقاء
               child: Image.asset(
                 'assets/images/wallet_lock_icon.png',
                 height: 250,
@@ -43,15 +41,15 @@ class PaymentMethodView extends GetView<PaymentController> {
             ),
             const SizedBox(height: 40),
 
-            // البطاقة الإجبارية الوحيدة (Pay Online)
+            // Pay Online
             PaymentMethodCard(
-              title: 'Pay Online Now',
-              subtitle: 'Pay online to confirm booking',
+              title: 'Pay Online Now'.tr,
+              subtitle: 'Pay online to confirm booking'.tr,
               value: 2,
               groupValue: 2,
-              // دائماً محددة
+
               onTap: () {},
-              // لا تفعل شيئاً عند الضغط لأنها إجبارية
+
               trailingWidget: const Icon(
                 Icons.credit_card_outlined,
                 color: Color(0xFF1976D2),
@@ -73,8 +71,8 @@ class PaymentMethodView extends GetView<PaymentController> {
                   elevation: 0,
                 ),
                 onPressed: controller.proceedToCheckout,
-                child: const Text(
-                  'Confirm & Proceed',
+                child: Text(
+                  'Confirm & Proceed'.tr,
                   style: TextStyle(
                     fontSize: 18,
                     color: Colors.white,

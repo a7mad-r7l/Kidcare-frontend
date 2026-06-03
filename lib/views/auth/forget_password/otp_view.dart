@@ -23,13 +23,13 @@ class OtpView extends StatelessWidget {
             children: [
               Image.asset('assets/images/logo.jpg', height: 100),
               const SizedBox(height: 20),
-              const Text(
-                "Verify Your Number",
+              Text(
+                "Verify Your Number".tr,
                 style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 10),
-              const Text(
-                "We sent a 4-digit code to",
+              Text(
+                "We sent a 4-digit code to".tr,
                 style: TextStyle(color: Colors.grey),
               ),
 
@@ -65,8 +65,8 @@ class OtpView extends StatelessWidget {
               Obx(
                 () => Column(
                   children: [
-                    const Text(
-                      "Didn't receive the code?",
+                    Text(
+                      "Didn't receive the code?".tr,
                       style: TextStyle(color: Colors.grey),
                     ),
                     TextButton(
@@ -75,8 +75,8 @@ class OtpView extends StatelessWidget {
                           : null,
                       child: Text(
                         controller.secondsRemaining.value == 0
-                            ? "Resend Code"
-                            : "Resend in (00:${controller.secondsRemaining.value.toString().padLeft(2, '0')})",
+                            ? "Resend Code".tr
+                            : "${"Resend in".tr} (00:${controller.secondsRemaining.value.toString().padLeft(2, '0')})",
                       ),
                     ),
                   ],
@@ -101,8 +101,8 @@ class OtpView extends StatelessWidget {
                     ),
                     child: controller.isLoading
                         ? const CircularProgressIndicator(color: Colors.white)
-                        : const Text(
-                            "Verify",
+                        : Text(
+                            "Verify".tr,
                             style: TextStyle(color: Colors.white, fontSize: 18),
                           ),
                   ),

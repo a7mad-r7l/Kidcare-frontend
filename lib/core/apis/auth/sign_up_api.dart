@@ -1,5 +1,6 @@
 import 'package:http/http.dart' as http;
 import '../../constants.dart';
+import 'package:get/get.dart';
 
 class SignUpApi {
   final http.Client client = http.Client();
@@ -16,6 +17,7 @@ class SignUpApi {
       Uri.parse('$baseUrl/register'),
       headers: {
         'Accept': 'application/json',
+        "Accept-Language": Get.locale?.languageCode ?? "en",
       },
       body: {
         'first_name': firstName,

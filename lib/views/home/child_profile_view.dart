@@ -17,8 +17,8 @@ class ChildProfileView extends StatelessWidget {
         backgroundColor: const Color(0xFFF4F6FA),
         elevation: 0,
         centerTitle: true,
-        title: const Text(
-          'Child Profile',
+        title:  Text(
+          'Child Profile'.tr,
           style: TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.bold,
@@ -44,7 +44,7 @@ class ChildProfileView extends StatelessWidget {
 
             _ActionButton(
               icon: Icons.vaccines_outlined,
-              label: 'Vaccination Record',
+              label: 'Vaccination Record'.tr,
               color: Colors.blue,
               onTap: () => Get.toNamed(
                 '/vaccinations',
@@ -54,7 +54,7 @@ class ChildProfileView extends StatelessWidget {
             const SizedBox(height: 10),
             _ActionButton(
               icon: Icons.calendar_today_outlined,
-              label: 'Appointments',
+              label: 'Appointments'.tr,
               color: Colors.blue,
               onTap: () => Get.toNamed(
                 '/appointments',
@@ -64,7 +64,7 @@ class ChildProfileView extends StatelessWidget {
             const SizedBox(height: 10),
             _ActionButton(
               icon: Icons.medical_information_outlined,
-              label: 'Medical Prescriptions',
+              label: 'Medical Prescriptions'.tr,
               color: Colors.blue,
               onTap: () {
                 // TODO: Get.toNamed('/prescriptions', arguments: child.id)
@@ -80,14 +80,14 @@ class ChildProfileView extends StatelessWidget {
                 onPressed: () {
                   Get.dialog(
                     AlertDialog(
-                      title: const Text('Delete Child'),
-                      content: const Text(
-                        'Are you sure you want to delete this child profile? This action cannot be undone.',
+                      title:  Text('Delete Child'.tr),
+                      content:  Text(
+                        'Are you sure you want to delete this child profile? This action cannot be undone.'.tr,
                       ),
                       actions: [
                         TextButton(
                           onPressed: () => Get.back(),
-                          child: const Text('Cancel'),
+                          child:  Text('Cancel'.tr),
                         ),
                         TextButton(
                           onPressed: () {
@@ -95,8 +95,8 @@ class ChildProfileView extends StatelessWidget {
                             Get.find<AddChildController>()
                                 .deleteChild(child.id);
                           },
-                          child: const Text(
-                            'Delete',
+                          child:  Text(
+                            'Delete'.tr,
                             style: TextStyle(color: Colors.red),
                           ),
                         ),
@@ -105,8 +105,8 @@ class ChildProfileView extends StatelessWidget {
                   );
                 },
                 icon: const Icon(Icons.delete_outline, color: Colors.white),
-                label: const Text(
-                  'Delete Child Profile',
+                label:  Text(
+                  'Delete Child Profile'.tr,
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
@@ -175,14 +175,14 @@ class _InfoCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 6),
                 Text(
-                  '${child.age} years',
+                  '${child.age}${' years'.tr}',
                   style: TextStyle(fontSize: 16, color: Colors.grey.shade600),
                 ),
                 const SizedBox(height: 6),
-                const Row(
+                 Row(
                   children: [
                     Text(
-                      'Male',
+                      'Male'.tr,
                       style: TextStyle(fontSize: 16, color: Color(0xFF4CAF50)),
                     ),
                     SizedBox(width: 4),
@@ -225,7 +225,7 @@ class _StatsCard extends StatelessWidget {
             child: _StatItem(
               icon: Icons.water_drop_outlined,
               value: 'O+',
-              label: 'Blood Type',
+              label: 'Blood Type'.tr,
             ),
           ),
           _VerticalDivider(),
@@ -233,7 +233,7 @@ class _StatsCard extends StatelessWidget {
             child: _StatItem(
               icon: Icons.straighten_outlined,
               value: '95 cm',
-              label: 'Height',
+              label: 'Height'.tr,
             ),
           ),
           _VerticalDivider(),
@@ -241,7 +241,7 @@ class _StatsCard extends StatelessWidget {
             child: _StatItem(
               icon: Icons.monitor_weight_outlined,
               value: '11 kg',
-              label: 'Weight',
+              label: 'Weight'.tr,
             ),
           ),
         ],
@@ -316,8 +316,8 @@ class _AllergiesCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Allergies',
+           Text(
+            'Allergies'.tr,
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.bold,

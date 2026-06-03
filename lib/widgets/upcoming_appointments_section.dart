@@ -5,8 +5,6 @@ import 'package:skeletonizer/skeletonizer.dart';
 import '../controllers/appointment/my_appointments_controller.dart';
 import '../models/appointment/appointment_model.dart';
 
-// Placeholder rows shown behind the skeleton shimmer while real data loads.
-// Negative ids guarantee they never collide with real backend records.
 final _fakeAppointments = List<AppointmentModel>.generate(
   2,
   (i) => AppointmentModel(
@@ -22,16 +20,9 @@ final _fakeAppointments = List<AppointmentModel>.generate(
   ),
 );
 
-/// Home-page card listing the soonest upcoming appointments.
-///
-/// Reads from [MyAppointmentsController.upcoming] reactively and renders at
-/// most [maxItems] entries sorted chronologically (earliest first). Shows a
-/// skeleton while loading and an empty-state card when the list is empty.
 class UpcomingAppointmentsSection extends StatelessWidget {
   final MyAppointmentsController controller;
 
-  /// Caps how many appointments to render. The home page only wants a
-  /// preview; the full list lives on the dedicated appointments screen.
   final int maxItems;
 
   const UpcomingAppointmentsSection({
@@ -45,10 +36,10 @@ class UpcomingAppointmentsSection extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.end,
       children: [
-        const Align(
+        Align(
           alignment: Alignment.centerLeft,
           child: Text(
-            'Upcoming Appointments',
+            'Upcoming Appointments'.tr,
             style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.bold,
@@ -59,15 +50,16 @@ class UpcomingAppointmentsSection extends StatelessWidget {
         const SizedBox(height: 14),
         Obx(() {
           final isLoading = controller.isLoading;
-          // Sort by "date time" string — works because date is ISO (YYYY-MM-DD)
-          // and time is HH:mm, so lexicographic order matches chronological.
+
           final appointments = isLoading
               ? _fakeAppointments
-              : (controller.upcoming.toList()
-                  ..sort((a, b) =>
-                      '${a.date} ${a.time}'.compareTo('${b.date} ${b.time}')))
-                  .take(maxItems)
-                  .toList();
+              : (controller.upcoming.toList()..sort(
+                      (a, b) => '${a.date} ${a.time}'.compareTo(
+                        '${b.date} ${b.time}',
+                      ),
+                    ))
+                    .take(maxItems)
+                    .toList();
 
           if (!isLoading && appointments.isEmpty) {
             return const _EmptyAppointmentsCard();
@@ -113,8 +105,8 @@ class _EmptyAppointmentsCard extends StatelessWidget {
             size: 28,
           ),
           const SizedBox(height: 8),
-          const Text(
-            'No upcoming appointments',
+          Text(
+            'No upcoming appointments'.tr,
             style: TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.w600,
@@ -127,8 +119,6 @@ class _EmptyAppointmentsCard extends StatelessWidget {
   }
 }
 
-/// Single appointment row — doctor, child, status pill, date/time, and a
-/// placeholder avatar. Tap should open the appointment details screen.
 class _AppointmentCard extends StatelessWidget {
   final AppointmentModel appointment;
 
@@ -160,7 +150,7 @@ class _AppointmentCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
                   Text(
-                    appointment.doctorName ?? 'Doctor #${appointment.doctorId}',
+                    appointment.doctorName ?? '${'Doctor'.tr} #${appointment.doctorId}',
                     style: const TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
@@ -169,11 +159,8 @@ class _AppointmentCard extends StatelessWidget {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    appointment.childName ?? 'Child #${appointment.childId}',
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: Colors.grey.shade500,
-                    ),
+                    appointment.childName ?? '${'Child'.tr} #${appointment.childId}',
+                    style: TextStyle(fontSize: 13, color: Colors.grey.shade500),
                   ),
                   const SizedBox(height: 10),
                   Row(
@@ -201,11 +188,7 @@ class _AppointmentCard extends StatelessWidget {
                 color: Colors.grey.shade200,
                 borderRadius: BorderRadius.circular(14),
               ),
-              child: Icon(
-                Icons.person,
-                color: Colors.grey.shade400,
-                size: 30,
-              ),
+              child: Icon(Icons.person, color: Colors.grey.shade400, size: 30),
             ),
           ],
         ),
@@ -214,9 +197,6 @@ class _AppointmentCard extends StatelessWidget {
   }
 }
 
-/// Color-coded status badge. Backend status strings come in lowercase, so we
-/// normalize then map each known value to a (background, foreground) pair.
-/// Anything unknown — including empty — falls back to the "pending" style.
 class _StatusPill extends StatelessWidget {
   final String status;
 
@@ -257,11 +237,7 @@ class _StatusPill extends StatelessWidget {
       ),
       child: Text(
         label,
-        style: TextStyle(
-          fontSize: 12,
-          fontWeight: FontWeight.bold,
-          color: fg,
-        ),
+        style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: fg),
       ),
     );
   }

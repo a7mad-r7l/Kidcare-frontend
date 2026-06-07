@@ -14,6 +14,7 @@ class HomeView extends GetView<HomeController> {
       'iconColor': Color(0xFF1E88E5),
       'route': '/choose-doctor', // عدلت هون
       'specialty': 'General Pediatrics',
+      'departmentId': 1,
     },
     {
       'label': 'Dental Care',
@@ -22,6 +23,7 @@ class HomeView extends GetView<HomeController> {
       'iconColor': Color(0xFF1E88E5),
       'route': '/choose-doctor', // عدلت هون
       'specialty': 'Dental Care',
+      'departmentId': 2,
     },
     {
       'label': 'Psychiatry',
@@ -30,8 +32,10 @@ class HomeView extends GetView<HomeController> {
       'iconColor': Color(0xFFE91E63),
       'route': '/choose-doctor', // عدلت هون
       'specialty': 'Psychiatry',
+      'departmentId': 3,
     },
   ];
+
 
   @override
   Widget build(BuildContext context) {
@@ -330,7 +334,7 @@ class _BookButton extends StatelessWidget {
   }
 }
 
-// ─── Departments ──────────────────────────────────────────────────────────────
+// ─── Departments
 
 class _DepartmentsSection extends StatelessWidget {
   final List<Map<String, dynamic>> departments;
@@ -340,7 +344,7 @@ class _DepartmentsSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.end,
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Text(
           'Departments',
@@ -373,7 +377,10 @@ class _DepartmentItem extends StatelessWidget {
       onTap: () {
         Get.toNamed(
           department['route'],
-          arguments: department['specialty'],
+          arguments: {
+            'departmentId': department['departmentId'],
+            'specialty': department['specialty'],
+          },
         );
       },
       child: Column(

@@ -14,7 +14,7 @@ class SignUpRepo {
     required String address,
     required String password,
   }) async {
-    var response = await _api.register(
+    String response = await _api.register(
       firstName: firstName,
       lastName: lastName,
       email: email,
@@ -22,6 +22,13 @@ class SignUpRepo {
       address: address,
       password: password,
     );
+
+    // ─── Defensive Programming: Sanitize Backend Response ───
+    // تجاهل أي رسائل خطأ أو HTML تسبق بداية الـ JSON الحقيقي
+    final int startIndex = response.indexOf(RegExp(r'[\{\[]'));
+    if (startIndex != -1) {
+      response = response.substring(startIndex);
+    }
 
     var body = json.decode(response);
 

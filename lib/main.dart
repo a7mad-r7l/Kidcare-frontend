@@ -44,6 +44,9 @@ import 'package:kidcare/views/payment/payment_method_view.dart';
 import 'package:kidcare/views/payment/checkout_summary_view.dart';
 import 'package:kidcare/views/payment/payment_success_view.dart';
 
+import 'package:kidcare/controllers/home/child_profile_controller.dart';
+import 'package:kidcare/core/repos/home/child_profile_repo.dart';
+
 // Appointment Booking
 
 import 'package:kidcare/views/appointment/choose_doctor_view.dart';
@@ -133,6 +136,13 @@ class MyApp extends StatelessWidget {
             );
           }),
         ),
+        GetPage(
+          name: '/profile',
+          page: () => const ProfileView(),
+          binding: BindingsBuilder(() {
+            Get.lazyPut(() => ProfileController(profileRepo: ProfileRepo()));
+          }),
+        ),
 
         // Activation
         GetPage(
@@ -217,7 +227,6 @@ class MyApp extends StatelessWidget {
           name: '/choose-doctor',
           page: () => const ChooseDoctorView(),
           binding: BindingsBuilder(() {
-            Get.lazyPut(() => DepartmentController(repo: DepartmentRepo()));
             Get.lazyPut(() => DoctorController(repo: DoctorRepo()));
 
             Get.lazyPut<AppointmentController>(
@@ -258,12 +267,11 @@ class MyApp extends StatelessWidget {
           }),
         ),
 
-        GetPage(name: '/child-profile', page: () => const ChildProfileView()),
         GetPage(
-          name: '/profile',
-          page: () => const ProfileView(),
+          name: '/child-profile',
+          page: () => const ChildProfileView(),
           binding: BindingsBuilder(() {
-            Get.lazyPut(() => ProfileController(profileRepo: ProfileRepo()));
+            Get.lazyPut(() => ChildProfileController(repo: ChildProfileRepo()));
           }),
         ),
         GetPage(

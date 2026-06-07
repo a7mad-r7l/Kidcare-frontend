@@ -3,21 +3,14 @@ import 'package:get/get.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 
 import '../../controllers/appointment/appointment_controller.dart';
-import '../../controllers/appointment/department_controller.dart';
 import '../../controllers/appointment/doctor_controller.dart';
 import '../../core/booking_theme.dart';
-import '../../models/appointment/department_model.dart';
 import '../../models/appointment/doctor_model.dart';
 import '../../widgets/booking_app_bar.dart';
 
-final _fakeDepartments = List<DepartmentModel>.generate(
-  5,
-  (i) => DepartmentModel(id: -i - 1, name: 'Department'),
-);
-
 final _fakeDoctors = List<DoctorModel>.generate(
   5,
-  (i) => DoctorModel(
+      (i) => DoctorModel(
     id: -i - 1,
     departmentId: -1,
     firstName: 'Doctor',
@@ -43,204 +36,124 @@ class ChooseDoctorView extends StatefulWidget {
 }
 
 class _ChooseDoctorViewState extends State<ChooseDoctorView> {
-  final DepartmentController departmentController =
-      Get.find<DepartmentController>();
-  final DoctorController doctorController = Get.find<DoctorController>();
-  final AppointmentController appointmentController =
-      Get.find<AppointmentController>();
+final DoctorController doctorController = Get.find<DoctorController>();
+final AppointmentController appointmentController =
+Get.find<AppointmentController>();
 
-  DepartmentModel? selectedDepartment;
-  int? selectedDoctorId;
+int? selectedDoctorId;
 
-  void _onDepartmentTapped(DepartmentModel d) {
-    setState(() {
-      selectedDepartment = d;
-      selectedDoctorId = null;
-    });
-    doctorController.loadDoctors(d.id);
-  }
+// ← استقبال departmentId واسم القسم من HomeView
+late final int departmentId;
+late final String specialty;
 
-  void _onDoctorTapped(DoctorModel doctor) {
-    setState(() => selectedDoctorId = doctor.id);
-    appointmentController.selectDoctor(doctor);
-  }
+@override
+void initState() {
+super.initState();
 
-  void _onNextPressed() {
-    if (selectedDoctorId == null) return;
-    Get.toNamed('/choose-child');
-  }
+// ← استخراج البيانات المرسلة من HomeView
+final args = Get.arguments as Map<String, dynamic>?;
+departmentId = args?['departmentId'] ?? 1;
+specialty = args?['specialty'] ?? 'General Pediatrics';
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: _kBackground,
-      appBar: bookingAppBar(subtitle: 'Choose Doctor'),
-      body: SafeArea(
-        child: Column(
-          children: [
-            _buildDepartmentChips(),
-            const SizedBox(height: 8),
-            Expanded(child: _buildDoctorList()),
-            _buildNextButton(),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildDepartmentChips() {
-    return SizedBox(
-      height: 56,
-      child: Obx(() {
-        final isLoading = departmentController.isLoading &&
-            departmentController.departments.isEmpty;
-        final depts =
-            isLoading ? _fakeDepartments : departmentController.departments;
-
-        if (!isLoading && depts.isEmpty) {
-          return const Center(
-            child: Text(
-              'No departments available',
-              style: TextStyle(color: _kTextSecondary),
-            ),
-          );
-        }
-
-        return Skeletonizer(
-          enabled: isLoading,
-          child: ListView.separated(
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-            itemCount: depts.length,
-            separatorBuilder: (_, _) => const SizedBox(width: 8),
-            itemBuilder: (context, index) {
-              final dept = depts[index];
-              final isSelected = selectedDepartment?.id == dept.id;
-              return _DepartmentChip(
-                label: dept.name,
-                selected: isSelected,
-                onTap: isLoading ? () {} : () => _onDepartmentTapped(dept),
-              );
-            },
-          ),
-        );
-      }),
-    );
-  }
-
-  Widget _buildDoctorList() {
-    if (selectedDepartment == null) {
-      return const Center(
-        child: Padding(
-          padding: EdgeInsets.symmetric(horizontal: 32),
-          child: Text(
-            'Pick a department above to see the doctors.',
-            textAlign: TextAlign.center,
-            style: TextStyle(color: _kTextSecondary, fontSize: 14),
-          ),
-        ),
-      );
-    }
-    return Obx(() {
-      final isLoading = doctorController.isLoading;
-      final doctors = isLoading ? _fakeDoctors : doctorController.doctors;
-
-      if (!isLoading && doctors.isEmpty) {
-        return const Center(
-          child: Text(
-            'No doctors available in this department.',
-            style: TextStyle(color: _kTextSecondary, fontSize: 14),
-          ),
-        );
-      }
-
-      return Skeletonizer(
-        enabled: isLoading,
-        child: ListView.builder(
-          padding: const EdgeInsets.fromLTRB(20, 8, 20, 8),
-          itemCount: doctors.length,
-          itemBuilder: (context, index) {
-            final doctor = doctors[index];
-            return _DoctorCard(
-              doctor: doctor,
-              specialty: selectedDepartment?.name ?? 'Specialty',
-              isSelected: selectedDoctorId == doctor.id,
-              onTap: isLoading ? () {} : () => _onDoctorTapped(doctor),
-            );
-          },
-        ),
-      );
-    });
-  }
-
-  Widget _buildNextButton() {
-    final enabled = selectedDoctorId != null;
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
-      child: SizedBox(
-        width: double.infinity,
-        height: 54,
-        child: ElevatedButton(
-          style: ElevatedButton.styleFrom(
-            backgroundColor: _kPrimary,
-            disabledBackgroundColor: _kPrimary.withValues(alpha: 0.4),
-            elevation: 0,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
-            ),
-          ),
-          onPressed: enabled ? _onNextPressed : null,
-          child: const Text(
-            'Next',
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w700,
-              color: Colors.white,
-            ),
-          ),
-        ),
-      ),
-    );
-  }
+// ← تحميل أطباء القسم مباشرة بدون انتظار اختيار المستخدم
+doctorController.loadDoctors(departmentId);
 }
 
-class _DepartmentChip extends StatelessWidget {
-  final String label;
-  final bool selected;
-  final VoidCallback onTap;
+void _onDoctorTapped(DoctorModel doctor) {
+setState(() => selectedDoctorId = doctor.id);
+appointmentController.selectDoctor(doctor);
+}
 
-  const _DepartmentChip({
-    required this.label,
-    required this.selected,
-    required this.onTap,
-  });
+void _onNextPressed() {
+if (selectedDoctorId == null) return;
+Get.toNamed('/choose-child');
+}
 
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 180),
-        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 9),
-        decoration: BoxDecoration(
-          color: selected ? _kPrimary : Colors.white,
-          borderRadius: BorderRadius.circular(100),
-          border: Border.all(
-            color: selected ? _kPrimary : _kBorder,
-            width: 1,
-          ),
-        ),
-        child: Text(
-          label,
-          style: TextStyle(
-            fontSize: 13,
-            fontWeight: FontWeight.w600,
-            color: selected ? Colors.white : _kTextPrimary,
-          ),
-        ),
-      ),
-    );
-  }
+@override
+Widget build(BuildContext context) {
+return Scaffold(
+backgroundColor: _kBackground,
+// ← عرض اسم القسم في العنوان
+appBar: bookingAppBar(subtitle: 'Choose Doctor - $specialty'),
+body: SafeArea(
+child: Column(
+children: [
+// ← حُذف شريط الأقسام (_buildDepartmentChips)
+const SizedBox(height: 16),
+Expanded(child: _buildDoctorList()),
+_buildNextButton(),
+],
+),
+),
+);
+}
+
+Widget _buildDoctorList() {
+return Obx(() {
+final isLoading = doctorController.isLoading;
+final doctors = isLoading ? _fakeDoctors : doctorController.doctors;
+
+if (!isLoading && doctors.isEmpty) {
+return const Center(
+child: Padding(
+padding: EdgeInsets.symmetric(horizontal: 32),
+child: Text(
+'No doctors available in this department.',
+textAlign: TextAlign.center,
+style: TextStyle(color: _kTextSecondary, fontSize: 14),
+),
+),
+);
+}
+
+return Skeletonizer(
+enabled: isLoading,
+child: ListView.builder(
+padding: const EdgeInsets.fromLTRB(20, 8, 20, 8),
+itemCount: doctors.length,
+itemBuilder: (context, index) {
+final doctor = doctors[index];
+return _DoctorCard(
+doctor: doctor,
+specialty: specialty, // ← استخدام القسم المُمرر من HomeView
+isSelected: selectedDoctorId == doctor.id,
+onTap: isLoading ? () {} : () => _onDoctorTapped(doctor),
+);
+},
+),
+);
+});
+}
+
+Widget _buildNextButton() {
+final enabled = selectedDoctorId != null;
+return Padding(
+padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
+child: SizedBox(
+width: double.infinity,
+height: 54,
+child: ElevatedButton(
+style: ElevatedButton.styleFrom(
+backgroundColor: _kPrimary,
+disabledBackgroundColor: _kPrimary.withValues(alpha: 0.4),
+elevation: 0,
+shape: RoundedRectangleBorder(
+borderRadius: BorderRadius.circular(16),
+),
+),
+onPressed: enabled ? _onNextPressed : null,
+child: const Text(
+'Next',
+style: TextStyle(
+fontSize: 16,
+fontWeight: FontWeight.w700,
+color: Colors.white,
+),
+),
+),
+),
+);
+}
 }
 
 class _DoctorCard extends StatelessWidget {
@@ -362,10 +275,10 @@ class _Avatar extends StatelessWidget {
       clipBehavior: Clip.antiAlias,
       child: url != null
           ? Image.network(
-              url!,
-              fit: BoxFit.cover,
-              errorBuilder: (_, _, _) => const _FallbackPersonIcon(),
-            )
+        url!,
+        fit: BoxFit.cover,
+        errorBuilder: (_, _, _) => const _FallbackPersonIcon(),
+      )
           : const _FallbackPersonIcon(),
     );
   }
@@ -406,4 +319,3 @@ class _SelectionDot extends StatelessWidget {
     );
   }
 }
-

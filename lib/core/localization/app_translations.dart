@@ -5,10 +5,8 @@ class AppTranslations extends Translations {
   Map<String, Map<String, String>> get keys => {
     // ==========================================================
     // 1. ENGLISH LOCALE (en_US)
-    // (هنا المفاتيح والقيم هي نفس النص الإنجليزي الموجود في مشروعك)
     // ==========================================================
     'en_US': {
-      // --- General & Bottom Nav ---
       'Home': 'Home',
       'Appointments': 'Appointments',
       'Records': 'Records',
@@ -20,6 +18,8 @@ class AppTranslations extends Translations {
       'Save': 'Save',
       'Done': 'Done',
       'Verify': 'Verify',
+      'Today': 'Today',
+      'version': 'Version',
 
       // --- Login View ---
       'Welcome Back': 'Welcome Back',
@@ -33,8 +33,7 @@ class AppTranslations extends Translations {
       'LogIn': 'LogIn',
 
       // --- Sign Up View ---
-      'Create your account to benefit from our services':
-          'Create your account to benefit from our services',
+      'Create your account to benefit from our services': 'Create your account to benefit from our services',
       'Enter your name': 'Enter your name',
       'Name': 'Name',
       'Enter your last name': 'Enter your last name',
@@ -46,8 +45,7 @@ class AppTranslations extends Translations {
       'Enter your address in detail': 'Enter your address in detail',
       'Address': 'Address',
       'Enter your password': 'Enter your password',
-      'At least 8 characters with uppercase, lowercase and a number':
-          'At least 8 characters with uppercase, lowercase and a number',
+      'At least 8 characters with uppercase, lowercase and a number': 'At least 8 characters with uppercase, lowercase and a number',
       'Enter your password again': 'Enter your password again',
       'Confirm Password': 'Confirm Password',
       'Create Account': 'Create Account',
@@ -55,41 +53,35 @@ class AppTranslations extends Translations {
 
       // --- Activation & OTP Views ---
       'Activate Account': 'Activate Account',
-      'Enter your phone number registered at the clinic':
-          'Enter your phone number registered at the clinic',
+      'Enter your phone number registered at the clinic': 'Enter your phone number registered at the clinic',
       'phone number': 'phone number',
-      'Please enter your registered phone number':
-          'Please enter your registered phone number',
+      'Please enter your registered phone number': 'Please enter your registered phone number',
       'Send Verification Code': 'Send Verification Code',
       'Verify Your Phone': 'Verify Your Phone',
       'Verify Your Phone Number': 'Verify Your Phone Number',
       'Verify Your Number': 'Verify Your Number',
       "Didn't receive the code?": "Didn't receive the code?",
       'Resend Code': 'Resend Code',
+      'Resend in': 'Resend in',
       'Verify and Activate Account': 'Verify and Activate Account',
       'Create New Password': 'Create New Password',
-      'Create a strong password to protect your account':
-          'Create a strong password to protect your account',
+      'Create a strong password to protect your account': 'Create a strong password to protect your account',
       'New Password': 'New Password',
       'Password must contain:': 'Password must contain:',
       'At least 8 characters': 'At least 8 characters',
       'Set Password and Login': 'Set Password and Login',
       'The code is valid for ': 'The code is valid for ',
       ' minutes': ' minutes',
-      'You can resend the code after the countdown ends':
-          'You can resend the code after the countdown ends',
+      'You can resend the code after the countdown ends': 'You can resend the code after the countdown ends',
       'Change Phone Number': 'Change Phone Number',
 
       // --- Forgot Password ---
-      "Don't worry, enter your phone number and we will send you a verification code.":
-          "Don't worry, enter your phone number and we will send you a verification code.",
+      "Don't worry, enter your phone number and we will send you a verification code.": "Don't worry, enter your phone number and we will send you a verification code.",
       'We sent a 4-digit code to': 'We sent a 4-digit code to',
-      'Your new password must be different':
-          'Your new password must be different',
+      'Your new password must be different': 'Your new password must be different',
       'Update Password': 'Update Password',
       'Password Updated!': 'Password Updated!',
-      'Your password has been updated successfully. You can now log in with your new password.':
-          'Your password has been updated successfully. You can now log in with your new password.',
+      'Your password has been updated successfully. You can now log in with your new password.': 'Your password has been updated successfully. You can now log in with your new password.',
       'Back to Login': 'Back to Login',
 
       // --- Home View ---
@@ -102,9 +94,9 @@ class AppTranslations extends Translations {
       'Dental Care': 'Dental Care',
       'Psychiatry': 'Psychiatry',
       'About the Clinic': 'About the Clinic',
-      'We provide comprehensive healthcare for your children with the highest quality standards.':
-          'We provide comprehensive healthcare for your children with the highest quality standards.',
+      'We provide comprehensive healthcare for your children with the highest quality standards.': 'We provide comprehensive healthcare for your children with the highest quality standards.',
       'Read More': 'Read More',
+      'Vaccinations' : 'Vaccinations',
 
       // --- Add Child & Child Profile ---
       'Child Profile': 'Child Profile',
@@ -129,37 +121,36 @@ class AppTranslations extends Translations {
       'Medical Prescriptions': 'Medical Prescriptions',
       'Delete Child Profile': 'Delete Child Profile',
       'Delete Child': 'Delete Child',
-      'Are you sure you want to delete this child profile? This action cannot be undone.':
-          'Are you sure you want to delete this child profile? This action cannot be undone.',
+      'Are you sure you want to delete this child profile? This action cannot be undone.': 'Are you sure you want to delete this child profile? This action cannot be undone.',
+      'Age': 'Age',
+      'Child age cannot exceed 6 years.': 'Child age cannot exceed 6 years.',
 
       // --- Appointments List View ---
       'My Appointments': 'My Appointments',
+      'Child Appointments': 'Child Appointments',
       'Upcoming': 'Upcoming',
       'Past': 'Past',
       'No appointments found': 'No appointments found',
+      'Upcoming Appointments': 'Upcoming Appointments',
 
       // --- Booking Flow ---
       'Choose Doctor': 'Choose Doctor',
       'No departments available': 'No departments available',
-      'Pick a department above to see the doctors.':
-          'Pick a department above to see the doctors.',
-      'No doctors available in this department.':
-          'No doctors available in this department.',
+      'Pick a department above to see the doctors.': 'Pick a department above to see the doctors.',
+      'No doctors available in this department.': 'No doctors available in this department.',
       'Specialist': 'Specialist',
       'rating': 'rating',
       'Choose Child': 'Choose Child',
-      "You haven't added any children yet.":
-          "You haven't added any children yet.",
+      "You haven't added any children yet.": "You haven't added any children yet.",
       ' years': ' years',
       'Pick Date & Time': 'Pick Date & Time',
       'Available Times': 'Available Times',
-      'Pick a date to see available times.':
-          'Pick a date to see available times.',
+      'Pick a date to see available times.': 'Pick a date to see available times.',
       'No times available for this date.': 'No times available for this date.',
       'Book Appointment': 'Book Appointment',
       'Appointment Booked!': 'Appointment Booked!',
-      'Your appointment has been confirmed.\nSee you soon!':
-          'Your appointment has been confirmed.\nSee you soon!',
+      'Your appointment has been confirmed.\nSee you soon!': 'Your appointment has been confirmed.\nSee you soon!',
+      'Dr. ': 'Dr. ',
 
       // --- Payment & Checkout ---
       'Finalize Appointment': 'Finalize Appointment',
@@ -185,6 +176,7 @@ class AppTranslations extends Translations {
       'Transaction ID': 'Transaction ID',
       'Back to Home': 'Back to Home',
       'View My Appointments': 'View My Appointments',
+      'Pay ': 'Pay ',
 
       // --- Profile & Settings ---
       'Personal Profile': 'Personal Profile',
@@ -206,45 +198,31 @@ class AppTranslations extends Translations {
       'preferences': 'Preferences',
       'Notice': 'Notice',
       'Please enter phone number': 'Please enter phone number',
-      'Phone number must be 12 numbers (e.g., 9639XXXXXXXX)':
-          'Phone number must be 12 numbers (e.g., 9639XXXXXXXX)',
+      'Phone number must be 12 numbers (e.g., 9639XXXXXXXX)': 'Phone number must be 12 numbers (e.g., 9639XXXXXXXX)',
       'Success': 'Success',
-      'Verification code resent successfully':
-          'Verification code resent successfully',
+      'Verification code resent successfully': 'Verification code resent successfully',
       'Check Code': 'Check Code',
       'Please enter OTP': 'Please enter the verification code',
-      'Please enter the 4-digit code correctly':
-          'Please enter the 4-digit code correctly',
+      'Please enter the 4-digit code correctly': 'Please enter the 4-digit code correctly',
       'Passwords do not match': 'Passwords do not match',
       'Weak Password': 'Weak Password',
-      'Password must be at least 8 characters long':
-          'Password must be at least 8 characters long',
+      'Password must be at least 8 characters long': 'Password must be at least 8 characters long',
       'Account activated successfully': 'Account activated successfully',
       'Please enter a valid phone number': 'Please enter a valid phone number',
       'Please enter the 4-digit code': 'Please enter the 4-digit code',
       'Password Updated Successfully!': 'Password Updated Successfully!',
       'Invalid Phone Number': 'Invalid Phone Number',
-      'Phone number must be exactly 12 numbers (e.g., 9639XXXXXXXX)':
-          'Phone number must be exactly 12 numbers (e.g., 9639XXXXXXXX)',
       'Welcome Back,': 'Welcome Back,',
-      'Phone number must be exactly 12 numbers (e.g., 9639XXXXXXXX)'.tr:
-          'Phone number must be exactly 12 numbers (e.g., 9639XXXXXXXX)',
       'Required': 'Required',
-      'Please enter the verification code':
-          'Please enter the verification code',
+      'Please enter the verification code': 'Please enter the verification code',
       'Invalid Code': 'Invalid Code',
-      'Please enter the complete 4-digit code':
-          'Please enter the complete 4-digit code',
+      'Please enter the complete 4-digit code': 'Please enter the complete 4-digit code',
       'Phone verified successfully!': 'Phone verified successfully!',
       'Code resent successfully!': 'Code resent successfully!',
-      'Something went wrong. Please try again.':
-          'Something went wrong. Please try again.',
-      'Incorrect phone number or password.':
-          'Incorrect phone number or password.',
-      'No Internet connection. Please check your network.':
-          'No Internet connection. Please check your network.',
-      'Request timed out. Please try again.':
-          'Request timed out. Please try again.',
+      'Something went wrong. Please try again.': 'Something went wrong. Please try again.',
+      'Incorrect phone number or password.': 'Incorrect phone number or password.',
+      'No Internet connection. Please check your network.': 'No Internet connection. Please check your network.',
+      'Request timed out. Please try again.': 'Request timed out. Please try again.',
       'Error': 'Error',
       'Info': 'Info',
       'Child deleted successfully!': 'Child deleted successfully!',
@@ -254,48 +232,20 @@ class AppTranslations extends Translations {
       'Child added successfully!': 'Child added successfully!',
       'Failed to load profile': 'Failed to load profile',
       'Error Loading Details': 'Error Loading Details',
-      'No appointment data found to process':
-          'No appointment data found to process',
+      'No appointment data found to process': 'No appointment data found to process',
       'KidCare Clinic': 'KidCare Clinic',
       'Payment Error': 'Payment Error',
       'Payment Cancelled': 'Payment Cancelled',
       'User cancelled the payment': 'User cancelled the payment',
       'An unexpected error occurred': 'An unexpected error occurred',
-      'Failed to book appointment': 'Failed to book appointment',
-      'Failed to load appointment': 'Failed to load appointment',
-      'Failed to reschedule appointment': 'Failed to reschedule appointment',
-      'Failed to cancel appointment': 'Failed to cancel appointment',
-      'Failed to load children': 'Failed to load children',
-      'Failed to load departments': 'Failed to load departments',
-      'Failed to load doctors': 'Failed to load doctors',
-      'Failed to load availability': 'Failed to load availability',
-      'Failed to load available times': 'Failed to load available times',
-      'Invalid OTP': 'Invalid OTP',
-      'Activation failed': 'Activation failed',
-      'Login successful, but \'user\' data is missing from server!':
-          'Login successful, but \'user\' data is missing from server!',
-      'Invalid login details': 'Invalid login details',
-      'Registration failed': 'Registration failed',
-      'Error verifying OTP': 'Error verifying OTP',
-      'Error resending OTP': 'Error resending OTP',
-      'Failed to delete child': 'Failed to delete child',
-      'Failed to add child': 'Failed to add child',
-      'Failed to load appointments': 'Failed to load appointments',
-      'Failed to load user': 'Failed to load user',
-      'Failed to parse summary details': 'Failed to parse summary details',
-      'Failed to process payment data': 'Failed to process payment data',
-      'Premium Pediatric Care': 'Premium Pediatric Care',
-      'Doctor # ': 'Doctor # ',
-      'Child #': 'Child #',
-      'Pay': 'Pay',
+      'favorite_doctors': 'Favorite Doctors',
+      'view_favorite_doctors': 'View your favorite doctors',
     },
 
     // ==========================================================
     // 2. ARABIC LOCALE (ar_SA)
-    // (هنا القيم المترجمة التي ستظهر عند تحويل التطبيق للعربية)
     // ==========================================================
     'ar_SA': {
-      // --- General & Bottom Nav ---
       'Home': 'الرئيسية',
       'Appointments': 'المواعيد',
       'Records': 'الملفات',
@@ -307,6 +257,8 @@ class AppTranslations extends Translations {
       'Save': 'حفظ',
       'Done': 'تم',
       'Verify': 'تحقق',
+      'Today': 'اليوم',
+      'version': 'الإصدار',
 
       // --- Login View ---
       'Welcome Back': 'مرحباً بك مجدداً',
@@ -320,8 +272,7 @@ class AppTranslations extends Translations {
       'LogIn': 'تسجيل الدخول',
 
       // --- Sign Up View ---
-      'Create your account to benefit from our services':
-          'أنشئ حسابك للاستفادة من خدماتنا',
+      'Create your account to benefit from our services': 'أنشئ حسابك للاستفادة من خدماتنا',
       'Enter your name': 'أدخل اسمك',
       'Name': 'الاسم',
       'Enter your last name': 'أدخل اسم العائلة',
@@ -333,8 +284,7 @@ class AppTranslations extends Translations {
       'Enter your address in detail': 'أدخل عنوانك بالتفصيل',
       'Address': 'العنوان',
       'Enter your password': 'أدخل كلمة المرور',
-      'At least 8 characters with uppercase, lowercase and a number':
-          '8 أحرف على الأقل، تتضمن أحرف كبيرة وصغيرة ورقم',
+      'At least 8 characters with uppercase, lowercase and a number': '8 أحرف على الأقل، تتضمن أحرف كبيرة وصغيرة ورقم',
       'Enter your password again': 'أدخل كلمة المرور مرة أخرى',
       'Confirm Password': 'تأكيد كلمة المرور',
       'Create Account': 'إنشاء الحساب',
@@ -342,41 +292,35 @@ class AppTranslations extends Translations {
 
       // --- Activation & OTP Views ---
       'Activate Account': 'تفعيل الحساب',
-      'Enter your phone number registered at the clinic':
-          'أدخل رقم هاتفك المسجل في العيادة',
+      'Enter your phone number registered at the clinic': 'أدخل رقم هاتفك المسجل في العيادة',
       'phone number': 'رقم الهاتف',
-      'Please enter your registered phone number':
-          'يرجى إدخال رقم هاتفك المسجل',
+      'Please enter your registered phone number': 'يرجى إدخال رقم هاتفك المسجل',
       'Send Verification Code': 'إرسال رمز التحقق',
       'Verify Your Phone': 'تحقق من رقم الهاتف',
       'Verify Your Phone Number': 'تحقق من رقم الهاتف',
       'Verify Your Number': 'تحقق من رقمك',
       "Didn't receive the code?": "لم يصلك الرمز؟",
       'Resend Code': 'إعادة إرسال الرمز',
+      'Resend in': 'إعادة الإرسال خلال',
       'Verify and Activate Account': 'تحقق وفعل الحساب',
       'Create New Password': 'إنشاء كلمة مرور جديدة',
-      'Create a strong password to protect your account':
-          'أنشئ كلمة مرور قوية لحماية حسابك',
+      'Create a strong password to protect your account': 'أنشئ كلمة مرور قوية لحماية حسابك',
       'New Password': 'كلمة المرور الجديدة',
       'Password must contain:': 'يجب أن تحتوي كلمة المرور على:',
       'At least 8 characters': '8 أحرف على الأقل',
       'Set Password and Login': 'تعيين كلمة المرور وتسجيل الدخول',
       'The code is valid for ': 'الرمز صالح لمدة ',
       ' minutes': ' دقائق',
-      'You can resend the code after the countdown ends':
-          'يمكنك إعادة إرسال الرمز بعد انتهاء العداد',
+      'You can resend the code after the countdown ends': 'يمكنك إعادة إرسال الرمز بعد انتهاء العداد',
       'Change Phone Number': 'تغيير رقم الهاتف',
 
       // --- Forgot Password ---
-      "Don't worry, enter your phone number and we will send you a verification code.":
-          "لا تقلق، أدخل رقم هاتفك وسنرسل لك رمز التحقق.",
+      "Don't worry, enter your phone number and we will send you a verification code.": "لا تقلق، أدخل رقم هاتفك وسنرسل لك رمز التحقق.",
       'We sent a 4-digit code to': 'أرسلنا رمزاً من 4 أرقام إلى',
-      'Your new password must be different':
-          'يجب أن تكون كلمة المرور جديدة ومختلفة',
+      'Your new password must be different': 'يجب أن تكون كلمة المرور جديدة ومختلفة',
       'Update Password': 'تحديث كلمة المرور',
       'Password Updated!': 'تم تحديث كلمة المرور!',
-      'Your password has been updated successfully. You can now log in with your new password.':
-          'تم تحديث كلمة المرور بنجاح. يمكنك الآن تسجيل الدخول بكلمة المرور الجديدة.',
+      'Your password has been updated successfully. You can now log in with your new password.': 'تم تحديث كلمة المرور بنجاح. يمكنك الآن تسجيل الدخول بكلمة المرور الجديدة.',
       'Back to Login': 'العودة لتسجيل الدخول',
 
       // --- Home View ---
@@ -389,9 +333,9 @@ class AppTranslations extends Translations {
       'Dental Care': 'عناية الأسنان',
       'Psychiatry': 'الطب النفسي',
       'About the Clinic': 'عن العيادة',
-      'We provide comprehensive healthcare for your children with the highest quality standards.':
-          'نقدم رعاية صحية شاملة لأطفالك بأعلى معايير الجودة.',
+      'We provide comprehensive healthcare for your children with the highest quality standards.': 'نقدم رعاية صحية شاملة لأطفالك بأعلى معايير الجودة.',
       'Read More': 'اقرأ المزيد',
+      'Vaccinations' : 'اللقاحات',
 
       // --- Add Child & Child Profile ---
       'Child Profile': 'ملف الطفل',
@@ -416,22 +360,23 @@ class AppTranslations extends Translations {
       'Medical Prescriptions': 'الوصفات الطبية',
       'Delete Child Profile': 'حذف ملف الطفل',
       'Delete Child': 'حذف الطفل',
-      'Are you sure you want to delete this child profile? This action cannot be undone.':
-          'هل أنت متأكد أنك تريد حذف ملف هذا الطفل؟ لا يمكن التراجع عن هذا الإجراء.',
+      'Are you sure you want to delete this child profile? This action cannot be undone.': 'هل أنت متأكد أنك تريد حذف ملف هذا الطفل؟ لا يمكن التراجع عن هذا الإجراء.',
+      'Age': 'العمر',
+      'Child age cannot exceed 6 years.': 'عمر الطفل لا يمكن أن يتجاوز 6 سنوات.',
 
       // --- Appointments List View ---
       'My Appointments': 'مواعيدي',
+      'Child Appointments': 'مواعيد الطفل',
       'Upcoming': 'القادمة',
       'Past': 'السابقة',
       'No appointments found': 'لا توجد مواعيد',
+      'Upcoming Appointments': 'المواعيد القادمة',
 
       // --- Booking Flow ---
       'Choose Doctor': 'اختر الطبيب',
       'No departments available': 'لا توجد أقسام متاحة',
-      'Pick a department above to see the doctors.':
-          'اختر قسماً من الأعلى لرؤية الأطباء.',
-      'No doctors available in this department.':
-          'لا يوجد أطباء متاحين في هذا القسم.',
+      'Pick a department above to see the doctors.': 'اختر قسماً من الأعلى لرؤية الأطباء.',
+      'No doctors available in this department.': 'لا يوجد أطباء متاحين في هذا القسم.',
       'Specialist': 'أخصائي',
       'rating': 'تقييم',
       'Choose Child': 'اختر الطفل',
@@ -439,14 +384,12 @@ class AppTranslations extends Translations {
       ' years': ' سنوات',
       'Pick Date & Time': 'اختر التاريخ والوقت',
       'Available Times': 'الأوقات المتاحة',
-      'Pick a date to see available times.':
-          'اختر تاريخاً لرؤية الأوقات المتاحة.',
-      'No times available for this date.':
-          'لا توجد أوقات متاحة في هذا التاريخ.',
+      'Pick a date to see available times.': 'اختر تاريخاً لرؤية الأوقات المتاحة.',
+      'No times available for this date.': 'لا توجد أوقات متاح في هذا التاريخ.',
       'Book Appointment': 'تأكيد الحجز',
       'Appointment Booked!': 'تم حجز الموعد!',
-      'Your appointment has been confirmed.\nSee you soon!':
-          'تم تأكيد موعدك.\nنراك قريباً!',
+      'Your appointment has been confirmed.\nSee you soon!': 'تم تأكيد موعدك.\nنراك قريباً!',
+      'Dr. ': 'د. ',
 
       // --- Payment & Checkout ---
       'Finalize Appointment': 'إتمام الحجز',
@@ -472,6 +415,7 @@ class AppTranslations extends Translations {
       'Transaction ID': 'رقم العملية',
       'Back to Home': 'العودة للرئيسية',
       'View My Appointments': 'عرض مواعيدي',
+      'Pay ': 'دفع ',
 
       // --- Profile & Settings ---
       'Personal Profile': 'الملف الشخصي',
@@ -491,47 +435,35 @@ class AppTranslations extends Translations {
       'Delete account': 'حذف الحساب',
       'account': 'الحساب',
       'preferences': 'التفضيلات',
-      'Premium Pediatric Care': 'رعاية  أطفال مميزة',
       'Required Fields': 'الحقول المطلوبة',
       'Please fill in all fields': 'يرجى ملء جميع الحقول',
       'Notice': 'تنبيه',
       'Please enter phone number': 'يرجى إدخال رقم الهاتف',
-      'Phone number must be 12 numbers (e.g., 9639XXXXXXXX)':
-          'يجب أن يتكون رقم الهاتف من 12 رقماً (مثال: 9639XXXXXXXX)',
+      'Phone number must be 12 numbers (e.g., 9639XXXXXXXX)': 'يجب أن يتكون رقم الهاتف من 12 رقماً (مثال: 9639XXXXXXXX)',
       'Success': 'نجاح',
-      'Verification code resent successfully':
-          'تم إعادة إرسال رمز التحقق بنجاح',
+      'Verification code resent successfully': 'تم إعادة إرسال رمز التحقق بنجاح',
       'Check Code': 'التحقق من الرمز',
       'Please enter OTP': 'يرجى إدخال رمز التحقق',
-      'Please enter the 4-digit code correctly':
-          'يرجى إدخال الرمز المكون من 4 أرقام بشكل صحيح',
+      'Please enter the 4-digit code correctly': 'يرجى إدخال الرمز المكون من 4 أرقام بشكل صحيح',
       'Passwords do not match': 'كلمتا المرور غير متطابقتين',
       'Weak Password': 'كلمة مرور ضعيفة',
-      'Password must be at least 8 characters long':
-          'يجب أن تتكون كلمة المرور من 8 أحرف على الأقل',
+      'Password must be at least 8 characters long': 'يجب أن تتكون كلمة المرور من 8 أحرف على الأقل',
       'Account activated successfully': 'تم تفعيل الحساب بنجاح',
       'Please enter a valid phone number': 'يرجى إدخال رقم هاتف صحيح',
       'Please enter the 4-digit code': 'يرجى إدخال الرمز المكون من 4 أرقام',
       'Password Updated Successfully!': 'تم تحديث كلمة المرور بنجاح!',
       'Invalid Phone Number': 'رقم هاتف غير صحيح',
-      'Phone number must be exactly 12 numbers (e.g., 9639XXXXXXXX)':
-          'يجب أن يكون رقم الهاتف 12 رقماً تماماً (مثال: 9639XXXXXXXX)',
       'Welcome Back,': 'مرحباً بك مجدداً،',
       'Required': 'مطلوب',
       'Please enter the verification code': 'يرجى إدخال رمز التحقق',
       'Invalid Code': 'رمز غير صحيح',
-      'Please enter the complete 4-digit code':
-          'يرجى إدخال رمز التحقق كاملاً المكون من 4 أرقام',
+      'Please enter the complete 4-digit code': 'يرجى إدخال رمز التحقق كاملاً المكون من 4 أرقام',
       'Phone verified successfully!': 'تم التحقق من رقم الهاتف بنجاح!',
       'Code resent successfully!': 'تم إعادة إرسال الرمز بنجاح!',
-      'Something went wrong. Please try again.':
-          'حدث خطأ ما، يرجى المحاولة مرة أخرى.',
-      'Incorrect phone number or password.':
-          'رقم الهاتف أو كلمة المرور غير صحيحة.',
-      'No Internet connection. Please check your network.':
-          'لا يوجد اتصال بالإنترنت، يرجى التحقق من الشبكة.',
-      'Request timed out. Please try again.':
-          'انتهت مهلة الطلب، يرجى المحاولة مجدداً.',
+      'Something went wrong. Please try again.': 'حدث خطأ ما، يرجى المحاولة مرة أخرى.',
+      'Incorrect phone number or password.': 'رقم الهاتف أو كلمة المرور غير صحيحة.',
+      'No Internet connection. Please check your network.': 'لا يوجد اتصال بالإنترنت، يرجى التحقق من الشبكة.',
+      'Request timed out. Please try again.': 'انتهت مهلة الطلب، يرجى المحاولة مجدداً.',
       'Error': 'خطأ',
       'Info': 'معلومات',
       'Child deleted successfully!': 'تم حذف ملف الطفل بنجاح!',
@@ -541,39 +473,14 @@ class AppTranslations extends Translations {
       'Child added successfully!': 'تم إضافة الطفل بنجاح!',
       'Failed to load profile': 'فشل في تحميل بيانات الملف الشخصي',
       'Error Loading Details': 'خطأ في تحميل التفاصيل',
-      'No appointment data found to process':
-          'لم يتم العثور على بيانات للموعد لإتمام العملية',
+      'No appointment data found to process': 'لم يتم العثور على بيانات للموعد لإتمام العملية',
       'KidCare Clinic': 'عيادة كيد كير',
       'Payment Error': 'خطأ في عملية الدفع',
       'Payment Cancelled': 'تم إلغاء الدفع',
       'User cancelled the payment': 'قام المستخدم بإلغاء عملية الدفع',
       'An unexpected error occurred': 'حدث خطأ غير متوقع',
-      'Failed to book appointment': 'فشل في حجز الموعد',
-      'Failed to load appointment': 'فشل في تحميل الموعد',
-      'Failed to reschedule appointment': 'فشل في إعادة جدولة الموعد',
-      'Failed to cancel appointment': 'فشل في إلغاء الموعد',
-      'Failed to load children': 'فشل في تحميل بيانات الأطفال',
-      'Failed to load departments': 'فشل في تحميل الأقسام',
-      'Failed to load doctors': 'فشل في تحميل بيانات الأطباء',
-      'Failed to load availability': 'Fفشل في تحميل الأوقات المتاحة',
-      'Failed to load available times': 'فشل في تحميل الأوقات المتاحة',
-      'Invalid OTP': 'رمز التحقق غير صحيح',
-      'Activation failed': 'فشل في تفعيل الحساب',
-      'Login successful, but \'user\' data is missing from server!':
-          'تم تسجيل الدخول بنجاح، ولكن بيانات المستخدم مفقودة من السيرفر!',
-      'Invalid login details': 'بيانات تسجيل الدخول غير صحيحة',
-      'Registration failed': 'فشلت عملية إنشاء الحساب',
-      'Error verifying OTP': 'خطأ أثناء التحقق من الرمز',
-      'Error resending OTP': 'خطأ أثناء إعادة إرسال الرمز',
-      'Failed to delete child': 'فشل في حذف الطفل',
-      'Failed to add child': 'فشل في إضافة الطفل',
-      'Failed to load appointments': 'فشل في تحميل المواعيد',
-      'Failed to load user': 'فشل في تحميل بيانات المستخدم',
-      'Failed to parse summary details': 'فشل في تحليل تفاصيل الملخص',
-      'Failed to process payment data': 'فشل في معالجة بيانات الدفع',
-      'Doctor # ': 'طبيب رقم ',
-      'Child #': 'طفل رقم ',
-      'Pay': 'ادفع',
+      'favorite_doctors': 'الأطباء المفضلون',
+      'view_favorite_doctors': 'عرض قائمة أطبائك المفضلين',
     },
   };
 }

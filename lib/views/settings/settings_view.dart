@@ -56,6 +56,14 @@ class SettingsView extends StatelessWidget {
                   subtitle: 'light_mode'.tr,
                   onTap: () {},
                 ),
+                SettingsTile(
+                  icon: Icons.favorite_border_rounded,
+                  title: 'favorite_doctors'.tr,
+                  subtitle: 'view_favorite_doctors'.tr,
+                  onTap: () {
+                    Get.toNamed('/favorites');
+                  },
+                ),
               ],
             ),
             const SizedBox(height: 25),

@@ -34,7 +34,7 @@ class ChildProfileView extends GetView<ChildProfileController> {
 
         final child = controller.child.value;
         if (child == null) {
-          return const Center(child: Text('Failed to load profile'));
+          return  Center(child: Text('Failed to load profile'.tr));
         }
 
         return SingleChildScrollView(
@@ -48,26 +48,26 @@ class ChildProfileView extends GetView<ChildProfileController> {
 
               // كارت التاريخ الطبي
               if (child.medicalHistory != null && child.medicalHistory!.isNotEmpty) ...[
-                _DataCard(title: 'Medical History', content: child.medicalHistory!),
+                _DataCard(title: 'Medical History'.tr, content: child.medicalHistory!),
                 const SizedBox(height: 16),
               ],
 
               // كارت الحساسية
               if (child.allergies != null && child.allergies!.isNotEmpty) ...[
-                _DataCard(title: 'Allergies', content: child.allergies!),
+                _DataCard(title: 'Allergies'.tr, content: child.allergies!),
                 const SizedBox(height: 16),
               ],
 
               _ActionButton(
                 icon: Icons.vaccines_outlined,
-                label: 'Vaccination Record',
+                label: 'Vaccination Record'.tr,
                 color: Colors.blue,
                 onTap: () => Get.toNamed('/vaccinations', arguments: child.id),
               ),
               const SizedBox(height: 10),
               _ActionButton(
                 icon: Icons.calendar_today_outlined,
-                label: 'Appointments',
+                label: 'Appointments'.tr,
                 color: Colors.blue,
                 onTap: () => Get.toNamed('/appointments', arguments: child.id),
               ),
@@ -81,29 +81,29 @@ class ChildProfileView extends GetView<ChildProfileController> {
                   onPressed: () {
                     Get.dialog(
                       AlertDialog(
-                        title: const Text('Delete Child'),
-                        content: const Text(
-                          'Are you sure you want to delete this child profile? This action cannot be undone.',
+                        title:  Text('Delete Child'.tr),
+                        content:  Text(
+                          'Are you sure you want to delete this child profile? This action cannot be undone.'.tr,
                         ),
                         actions: [
                           TextButton(
                             onPressed: () => Get.back(),
-                            child: const Text('Cancel'),
+                            child:  Text('Cancel'.tr),
                           ),
                           TextButton(
                             onPressed: () {
                               Get.back();
                               controller.deleteCurrentChild();
                             },
-                            child: const Text('Delete', style: TextStyle(color: Colors.red)),
+                            child:  Text('Delete'.tr, style: TextStyle(color: Colors.red)),
                           ),
                         ],
                       ),
                     );
                   },
                   icon: const Icon(Icons.delete_outline, color: Colors.white),
-                  label: const Text(
-                    'Delete Child Profile',
+                  label:  Text(
+                    'Delete Child Profile'.tr,
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
@@ -172,7 +172,7 @@ class _InfoCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 6),
                 Text(
-                  '${child.ageYears} years',
+                  '${child.ageYears} ${' years'.tr}',
                   style: TextStyle(fontSize: 16, color: Colors.grey.shade600),
                 ),
                 const SizedBox(height: 6),
@@ -226,7 +226,7 @@ class _StatsCard extends StatelessWidget {
             child: _StatItem(
               icon: Icons.water_drop_outlined,
               value: child.bloodType ?? 'N/A',
-              label: 'Blood Type',
+              label: 'Blood Type'.tr,
             ),
           ),
           _VerticalDivider(),
@@ -234,7 +234,7 @@ class _StatsCard extends StatelessWidget {
             child: _StatItem(
               icon: Icons.calendar_month_outlined,
               value: '${child.ageYears}',
-              label: 'Age (Years)',
+              label: 'Age'.tr,
             ),
           ),
           _VerticalDivider(),
@@ -242,7 +242,7 @@ class _StatsCard extends StatelessWidget {
             child: _StatItem(
               icon: child.gender.toLowerCase() == 'female' ? Icons.female : Icons.male,
               value: child.gender.capitalizeFirst ?? '',
-              label: 'Gender',
+              label: 'Gender'.tr,
             ),
           ),
         ],

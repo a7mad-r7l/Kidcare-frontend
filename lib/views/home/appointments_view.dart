@@ -16,7 +16,7 @@ class AppointmentsView extends GetView<AppointmentsController> {
         centerTitle: true,
         title: Text(
           // تغيير العنوان ديناميكياً
-          controller.childId == null ? 'My Appointments' : 'Child Appointments',
+          controller.childId == null ? 'My Appointments'.tr : 'Child Appointments'.tr,
           style: const TextStyle(
             fontSize: 20,
             fontWeight: FontWeight.bold,

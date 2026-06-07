@@ -36,124 +36,131 @@ class ChooseDoctorView extends StatefulWidget {
 }
 
 class _ChooseDoctorViewState extends State<ChooseDoctorView> {
-final DoctorController doctorController = Get.find<DoctorController>();
-final AppointmentController appointmentController =
-Get.find<AppointmentController>();
+  final DoctorController doctorController = Get.find<DoctorController>();
+  final AppointmentController appointmentController = Get.find<AppointmentController>();
 
-int? selectedDoctorId;
+  int? selectedDoctorId;
 
-// ← استقبال departmentId واسم القسم من HomeView
-late final int departmentId;
-late final String specialty;
 
-@override
-void initState() {
-super.initState();
+  late final int departmentId;
+  late final String specialty;
 
-// ← استخراج البيانات المرسلة من HomeView
-final args = Get.arguments as Map<String, dynamic>?;
-departmentId = args?['departmentId'] ?? 1;
-specialty = args?['specialty'] ?? 'General Pediatrics';
+  @override
+  void initState() {
+    super.initState();
 
-// ← تحميل أطباء القسم مباشرة بدون انتظار اختيار المستخدم
-doctorController.loadDoctors(departmentId);
-}
 
-void _onDoctorTapped(DoctorModel doctor) {
-setState(() => selectedDoctorId = doctor.id);
-appointmentController.selectDoctor(doctor);
-}
+    final args = Get.arguments as Map<String, dynamic>?;
+    departmentId = args?['departmentId'] ?? 1;
+    specialty = args?['specialty'] ?? 'General Pediatrics';
 
-void _onNextPressed() {
-if (selectedDoctorId == null) return;
-Get.toNamed('/choose-child');
-}
 
-@override
-Widget build(BuildContext context) {
-return Scaffold(
-backgroundColor: _kBackground,
-// ← عرض اسم القسم في العنوان
-appBar: bookingAppBar(subtitle: 'Choose Doctor - $specialty'),
-body: SafeArea(
-child: Column(
-children: [
-// ← حُذف شريط الأقسام (_buildDepartmentChips)
-const SizedBox(height: 16),
-Expanded(child: _buildDoctorList()),
-_buildNextButton(),
-],
-),
-),
-);
-}
+    doctorController.loadDoctors(departmentId);
+  }
 
-Widget _buildDoctorList() {
-return Obx(() {
-final isLoading = doctorController.isLoading;
-final doctors = isLoading ? _fakeDoctors : doctorController.doctors;
+  void _onDoctorTapped(DoctorModel doctor) {
+    setState(() => selectedDoctorId = doctor.id);
+    appointmentController.selectDoctor(doctor);
+  }
 
-if (!isLoading && doctors.isEmpty) {
-return const Center(
-child: Padding(
-padding: EdgeInsets.symmetric(horizontal: 32),
-child: Text(
-'No doctors available in this department.',
-textAlign: TextAlign.center,
-style: TextStyle(color: _kTextSecondary, fontSize: 14),
-),
-),
-);
-}
+  void _onNextPressed() {
+    if (selectedDoctorId == null) return;
+    Get.toNamed('/choose-child');
+  }
 
-return Skeletonizer(
-enabled: isLoading,
-child: ListView.builder(
-padding: const EdgeInsets.fromLTRB(20, 8, 20, 8),
-itemCount: doctors.length,
-itemBuilder: (context, index) {
-final doctor = doctors[index];
-return _DoctorCard(
-doctor: doctor,
-specialty: specialty, // ← استخدام القسم المُمرر من HomeView
-isSelected: selectedDoctorId == doctor.id,
-onTap: isLoading ? () {} : () => _onDoctorTapped(doctor),
-);
-},
-),
-);
-});
-}
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: _kBackground,
 
-Widget _buildNextButton() {
-final enabled = selectedDoctorId != null;
-return Padding(
-padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
-child: SizedBox(
-width: double.infinity,
-height: 54,
-child: ElevatedButton(
-style: ElevatedButton.styleFrom(
-backgroundColor: _kPrimary,
-disabledBackgroundColor: _kPrimary.withValues(alpha: 0.4),
-elevation: 0,
-shape: RoundedRectangleBorder(
-borderRadius: BorderRadius.circular(16),
-),
-),
-onPressed: enabled ? _onNextPressed : null,
-child: const Text(
-'Next',
-style: TextStyle(
-fontSize: 16,
-fontWeight: FontWeight.w700,
-color: Colors.white,
-),
-),
-),
-),
-);
-}
+      appBar: bookingAppBar(subtitle: '${'Choose Doctor'.tr} - $specialty'),
+      body: SafeArea(
+        child: Column(
+          children: [
+
+            const SizedBox(height: 16),
+            Expanded(child: _buildDoctorList()),
+            _buildNextButton(),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDoctorList() {
+    return Obx(() {
+      final isLoading = doctorController.isLoading;
+      final doctors = isLoading ? _fakeDoctors : doctorController.doctors;
+
+      if (!isLoading && doctors.isEmpty) {
+        return Center(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 32),
+            child: Text(
+              'No doctors available in this department.'.tr,
+              textAlign: TextAlign.center,
+              style: const TextStyle(color: _kTextSecondary, fontSize: 14),
+            ),
+          ),
+        );
+      }
+
+      return Skeletonizer(
+        enabled: isLoading,
+        child: ListView.builder(
+          padding: const EdgeInsets.fromLTRB(20, 8, 20, 8),
+          itemCount: doctors.length,
+          itemBuilder: (context, index) {
+            final doctor = doctors[index];
+
+
+            return Obx(
+                  () => _DoctorCard(
+                doctor: doctor,
+                specialty: specialty,
+                isSelected: selectedDoctorId == doctor.id,
+                isFavorite: doctorController.favDoctorIds.contains(doctor.id),
+                onTap: isLoading ? () {} : () => _onDoctorTapped(doctor),
+                onFavoriteTap: isLoading
+                    ? () {}
+                    : () => doctorController.toggleFavorite(doctor.id),
+              ),
+            );
+          },
+        ),
+      );
+    });
+  }
+
+  Widget _buildNextButton() {
+    final enabled = selectedDoctorId != null;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
+      child: SizedBox(
+        width: double.infinity,
+        height: 54,
+        child: ElevatedButton(
+          style: ElevatedButton.styleFrom(
+            backgroundColor: _kPrimary,
+            disabledBackgroundColor: _kPrimary.withValues(alpha: 0.4),
+            elevation: 0,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
+          ),
+          onPressed: enabled ? _onNextPressed : null,
+          child: Text(
+            'Next'.tr,
+            style: const TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w700,
+              color: Colors.white,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 class _DoctorCard extends StatelessWidget {
@@ -161,12 +168,16 @@ class _DoctorCard extends StatelessWidget {
   final String specialty;
   final bool isSelected;
   final VoidCallback onTap;
+  final bool isFavorite;
+  final VoidCallback onFavoriteTap;
 
   const _DoctorCard({
     required this.doctor,
     required this.specialty,
     required this.isSelected,
     required this.onTap,
+    required this.isFavorite,
+    required this.onFavoriteTap,
   });
 
   @override
@@ -238,8 +249,8 @@ class _DoctorCard extends StatelessWidget {
                         ),
                         const SizedBox(width: 4),
                         Text(
-                          'rating',
-                          style: TextStyle(
+                          'rating'.tr,
+                          style: const TextStyle(
                             fontSize: 12,
                             color: _kTextSecondary,
                           ),
@@ -250,7 +261,19 @@ class _DoctorCard extends StatelessWidget {
                 ],
               ),
             ),
-            const SizedBox(width: 10),
+
+            GestureDetector(
+              onTap: onFavoriteTap,
+              child: Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: Icon(
+                  isFavorite ? Icons.favorite : Icons.favorite_border,
+                  color: isFavorite ? Colors.redAccent : Colors.grey.shade400,
+                  size: 24,
+                ),
+              ),
+            ),
+            const SizedBox(width: 4),
             _SelectionDot(selected: isSelected),
           ],
         ),
@@ -261,6 +284,7 @@ class _DoctorCard extends StatelessWidget {
 
 class _Avatar extends StatelessWidget {
   final String? url;
+
   const _Avatar({required this.url});
 
   @override
@@ -297,6 +321,7 @@ class _FallbackPersonIcon extends StatelessWidget {
 
 class _SelectionDot extends StatelessWidget {
   final bool selected;
+
   const _SelectionDot({required this.selected});
 
   @override
@@ -308,10 +333,7 @@ class _SelectionDot extends StatelessWidget {
       decoration: BoxDecoration(
         color: selected ? _kPrimary : Colors.transparent,
         shape: BoxShape.circle,
-        border: Border.all(
-          color: selected ? _kPrimary : _kBorder,
-          width: 1.5,
-        ),
+        border: Border.all(color: selected ? _kPrimary : _kBorder, width: 1.5),
       ),
       child: selected
           ? const Icon(Icons.check_rounded, color: Colors.white, size: 16)

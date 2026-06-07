@@ -3,11 +3,15 @@ import 'dart:convert';
 import 'package:get/get.dart';
 import 'package:flutter/material.dart';
 
+import '../core/helper/secure_storage_service.dart';
+
 class BaseController extends GetxController {
   final _isLoading = false.obs;
+
   bool get isLoading => _isLoading.value;
 
   void showLoading() => _isLoading.value = true;
+
   void hideLoading() => _isLoading.value = false;
 
   void handleError(dynamic e) {
@@ -18,8 +22,12 @@ class BaseController extends GetxController {
 
     try {
       if (errorString.contains("401")) {
-
         message = "Incorrect phone number or password.".tr;
+        SecureStorage.removeToken();
+        if (Get.currentRoute != '/login') {
+          Get.offAllNamed('/login');
+          return;
+        }
       } else if (errorString.contains('{') && errorString.contains('}')) {
         final startIndex = errorString.indexOf('{');
         final endIndex = errorString.lastIndexOf('}') + 1;

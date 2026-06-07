@@ -1,16 +1,15 @@
 import 'package:get/get.dart';
 import '../../core/repos/home/appointments_repo.dart';
-
 import '../../models/home/appointments_model.dart';
 import '../base_controller.dart';
-
 
 class AppointmentsController extends BaseController {
   final AppointmentsRepo appointmentsRepo;
 
   AppointmentsController({required this.appointmentsRepo});
 
-  late final int childId;
+  // جعلناه Nullable، فإذا كان null، فهذا يعني أننا طلبنا كل المواعيد
+  int? childId;
 
   final RxList<AppointmentsModel> upcoming = <AppointmentsModel>[].obs;
   final RxList<AppointmentsModel> past = <AppointmentsModel>[].obs;
@@ -19,7 +18,10 @@ class AppointmentsController extends BaseController {
   @override
   void onInit() {
     super.onInit();
-    childId =Get.arguments != null ? Get.arguments as int : 0;
+    // التقاط الـ ID إذا أتينا من شاشة الطفل، وإلا سيبقى null
+    if (Get.arguments is int) {
+      childId = Get.arguments as int;
+    }
     fetchUpcoming();
   }
 
@@ -35,7 +37,10 @@ class AppointmentsController extends BaseController {
   Future<void> fetchUpcoming() async {
     showLoading();
     try {
-      final result = await appointmentsRepo.getUpcoming(childId);
+      // توجيه ذكي للطلب
+      final result = childId != null
+          ? await appointmentsRepo.getUpcomingForChild(childId!)
+          : await appointmentsRepo.getAllUpcoming();
       upcoming.assignAll(result);
     } catch (e) {
       handleError(e);
@@ -47,7 +52,10 @@ class AppointmentsController extends BaseController {
   Future<void> fetchPast() async {
     showLoading();
     try {
-      final result = await appointmentsRepo.getPast(childId);
+      // توجيه ذكي للطلب
+      final result = childId != null
+          ? await appointmentsRepo.getPastForChild(childId!)
+          : await appointmentsRepo.getAllPast();
       past.assignAll(result);
     } catch (e) {
       handleError(e);

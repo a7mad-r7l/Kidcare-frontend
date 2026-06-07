@@ -6,7 +6,6 @@ import '../../core/repos/home/add_child_repo.dart';
 import '../base_controller.dart';
 import 'home_controller.dart';
 
-
 class AddChildController extends BaseController {
   final AddChildRepo addChildRepo;
 
@@ -21,7 +20,6 @@ class AddChildController extends BaseController {
   final RxString selectedBloodType = ''.obs;
   final RxString selectedBirthDate = ''.obs;
 
-  // ✅ الصورة المختارة
   final Rx<File?> selectedImage = Rx<File?>(null);
 
   final List<String> bloodTypes = [
@@ -29,6 +27,7 @@ class AddChildController extends BaseController {
   ];
 
   void selectGender(String gender) => selectedGender.value = gender;
+
   Future<void> deleteChild(int childId) async {
     showLoading();
     try {
@@ -44,7 +43,7 @@ class AddChildController extends BaseController {
       );
 
       await Future.delayed(const Duration(seconds: 1));
-      Get.offAllNamed('/home'); // ✅ العودة للـ home بعد الحذف
+      Get.offAllNamed('/home');
     } catch (e) {
       handleError(e);
     } finally {
@@ -52,7 +51,6 @@ class AddChildController extends BaseController {
     }
   }
 
-  // ✅ فتح الـ Gallery
   Future<void> pickImage() async {
     final ImagePicker picker = ImagePicker();
     final XFile? image = await picker.pickImage(
@@ -65,11 +63,14 @@ class AddChildController extends BaseController {
   }
 
   Future<void> pickBirthDate(BuildContext context) async {
+    final now = DateTime.now();
+    final earliestAllowedDate = DateTime(now.year - 6, now.month, now.day);
+
     final DateTime? picked = await showDatePicker(
       context: context,
-      initialDate: DateTime(2020),
-      firstDate: DateTime(2000),
-      lastDate: DateTime.now(),
+      initialDate: now,
+      firstDate: earliestAllowedDate,
+      lastDate: now,
     );
     if (picked != null) {
       selectedBirthDate.value =
@@ -78,6 +79,7 @@ class AddChildController extends BaseController {
   }
 
   Future<void> addChild() async {
+    // التحقق من الحقول الإلزامية فقط (Mandatory Fields)
     if (firstNameController.text.isEmpty || lastNameController.text.isEmpty) {
       Get.snackbar(
         'Required Fields'.tr,
@@ -104,6 +106,24 @@ class AddChildController extends BaseController {
       return;
     }
 
+    final birthDate = DateTime.tryParse(selectedBirthDate.value);
+    if (birthDate != null) {
+      final now = DateTime.now();
+      final ageLimitDate = DateTime(now.year - 6, now.month, now.day);
+      if (birthDate.isBefore(ageLimitDate)) {
+        Get.snackbar(
+          'Invalid Age',
+          'Child age cannot exceed 6 years.',
+          backgroundColor: Colors.grey.shade700,
+          colorText: Colors.white,
+          snackPosition: SnackPosition.TOP,
+          margin: const EdgeInsets.all(15),
+          duration: const Duration(seconds: 2),
+        );
+        return;
+      }
+    }
+
     if (selectedBloodType.value.isEmpty) {
       Get.snackbar(
         'Required Fields'.tr,
@@ -117,6 +137,16 @@ class AddChildController extends BaseController {
       return;
     }
 
+    // ─── منطق معالجة الحقول الاختيارية (Optional Fields Sanitization) ───
+    // إذا قام المستخدم بترك الحقل فارغاً، نقوم بتمرير نص افتراضي نظيف للسيرفر
+    final String medicalHistory = medicalHistoryController.text.trim().isEmpty
+        ? 'No medical history'
+        : medicalHistoryController.text.trim();
+
+    final String allergies = allergiesController.text.trim().isEmpty
+        ? 'No allergies'
+        : allergiesController.text.trim();
+
     showLoading();
     try {
       await addChildRepo.addChild(
@@ -125,9 +155,9 @@ class AddChildController extends BaseController {
         gender: selectedGender.value,
         birthDate: selectedBirthDate.value,
         bloodType: selectedBloodType.value,
-        medicalHistory: medicalHistoryController.text.trim(),
-        allergies: allergiesController.text.trim(),
-        image: selectedImage.value, // ✅
+        medicalHistory: medicalHistory, // تمرير القيمة المعالجة
+        allergies: allergies,           // تمرير القيمة المعالجة
+        image: selectedImage.value,
       );
 
       Get.snackbar(

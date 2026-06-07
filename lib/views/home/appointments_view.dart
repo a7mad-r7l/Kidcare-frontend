@@ -3,8 +3,6 @@ import 'package:get/get.dart';
 import '../../controllers/home/appointments_controller.dart';
 import '../../models/home/appointments_model.dart';
 
-
-
 class AppointmentsView extends GetView<AppointmentsController> {
   const AppointmentsView({super.key});
 
@@ -16,9 +14,10 @@ class AppointmentsView extends GetView<AppointmentsController> {
         backgroundColor: const Color(0xFFF0F4FF),
         elevation: 0,
         centerTitle: true,
-        title:  Text(
-          'My Appointments'.tr,
-          style: TextStyle(
+        title: Text(
+          // تغيير العنوان ديناميكياً
+          controller.childId == null ? 'My Appointments' : 'Child Appointments',
+          style: const TextStyle(
             fontSize: 20,
             fontWeight: FontWeight.bold,
             color: Color(0xFF1A2E5A),
@@ -34,7 +33,7 @@ class AppointmentsView extends GetView<AppointmentsController> {
         children: [
           const SizedBox(height: 16),
 
-          //  Tabs
+          // ─── Tabs (Slider) ───
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20),
             child: Obx(() => Container(
@@ -128,7 +127,7 @@ class AppointmentsView extends GetView<AppointmentsController> {
           ),
           const SizedBox(height: 16),
 
-          //  List
+          // ─── List ───
           Expanded(
             child: Obx(() {
               if (controller.isLoading) {
@@ -176,8 +175,7 @@ class AppointmentsView extends GetView<AppointmentsController> {
   }
 }
 
-// Appointment Card
-
+// ─── Appointment Card ───
 class _AppointmentCard extends StatelessWidget {
   final AppointmentsModel appointment;
 
@@ -204,12 +202,11 @@ class _AppointmentCard extends StatelessWidget {
           CircleAvatar(
             radius: 30,
             backgroundColor: Colors.grey.shade200,
-            backgroundImage: appointment.doctorImage != null
+            backgroundImage: (appointment.doctorImage != null && appointment.doctorImage!.isNotEmpty)
                 ? NetworkImage(appointment.doctorImage!)
                 : null,
-            child: appointment.doctorImage == null
-                ? Icon(Icons.person,
-                color: Colors.grey.shade400, size: 30)
+            child: (appointment.doctorImage == null || appointment.doctorImage!.isEmpty)
+                ? Icon(Icons.person, color: Colors.grey.shade400, size: 30)
                 : null,
           ),
           const SizedBox(width: 14),
@@ -249,8 +246,7 @@ class _AppointmentCard extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(width: 12),
-                    const Text('|',
-                        style: TextStyle(color: Colors.grey)),
+                    const Text('|', style: TextStyle(color: Colors.grey)),
                     const SizedBox(width: 12),
                     Icon(Icons.access_time_outlined,
                         size: 14, color: Colors.blue.shade400),

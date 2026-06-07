@@ -3,37 +3,49 @@ import '../../constants.dart';
 import '../../helper/secure_storage_service.dart';
 import 'package:get/get.dart';
 
-
-
 class AppointmentsApi {
   final http.Client client = http.Client();
 
-  Future<String> getUpcoming(int childId) async {
+  // 1- Upcoming (لجميع مواعيد المستخدم)
+  Future<String> getAllUpcoming() async {
     final token = await SecureStorage.getToken();
     if (token.isEmpty) throw Exception('Session expired. Please login again.');
-
     final response = await client.get(
-      Uri.parse('$baseUrl/appointments/upcoming/$childId'),
-      headers: {
-        'Accept': 'application/json',
-        'Authorization': 'Bearer $token',
-        'Accept-Language': Get.locale?.languageCode ?? 'en',
-      },
+      Uri.parse('$baseUrl/appointments/upcoming'),
+      headers: {'Accept': 'application/json', 'Authorization': 'Bearer $token'},
     );
     return response.body;
   }
 
-  Future<String> getPast(int childId) async {
+  // 2- Past (لجميع مواعيد المستخدم)
+  Future<String> getAllPast() async {
     final token = await SecureStorage.getToken();
     if (token.isEmpty) throw Exception('Session expired. Please login again.');
+    final response = await client.get(
+      Uri.parse('$baseUrl/appointments/past'),
+      headers: {'Accept': 'application/json', 'Authorization': 'Bearer $token'},
+    );
+    return response.body;
+  }
 
+  // 3- Upcoming by Child (لمواعيد طفل محدد)
+  Future<String> getUpcomingForChild(int childId) async {
+    final token = await SecureStorage.getToken();
+    if (token.isEmpty) throw Exception('Session expired. Please login again.');
+    final response = await client.get(
+      Uri.parse('$baseUrl/appointments/upcoming/$childId'),
+      headers: {'Accept': 'application/json', 'Authorization': 'Bearer $token'},
+    );
+    return response.body;
+  }
+
+  // 4- Past by Child (لمواعيد طفل محدد)
+  Future<String> getPastForChild(int childId) async {
+    final token = await SecureStorage.getToken();
+    if (token.isEmpty) throw Exception('Session expired. Please login again.');
     final response = await client.get(
       Uri.parse('$baseUrl/appointments/past/$childId'),
-      headers: {
-        'Accept': 'application/json',
-        'Authorization': 'Bearer $token',
-        'Accept-Language': Get.locale?.languageCode ?? 'en',
-      },
+      headers: {'Accept': 'application/json', 'Authorization': 'Bearer $token'},
     );
     return response.body;
   }

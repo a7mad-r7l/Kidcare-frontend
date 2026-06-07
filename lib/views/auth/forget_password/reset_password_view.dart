@@ -21,13 +21,13 @@ class ResetPasswordView extends StatelessWidget {
           children: [
             Image.asset('assets/images/logo.jpg', height: 100),
             const SizedBox(height: 20),
-            const Text(
-              "Create New Password",
+            Text(
+              "Create New Password".tr,
               style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 10),
-            const Text(
-              "Your new password must be different",
+            Text(
+              "Your new password must be different".tr,
               style: TextStyle(color: Colors.grey),
             ),
             const SizedBox(height: 30),
@@ -37,7 +37,7 @@ class ResetPasswordView extends StatelessWidget {
                 controller: controller.passwordController,
                 obscureText: !controller.isPasswordVisible.value,
                 decoration: InputDecoration(
-                  hintText: "Password",
+                  hintText: "Password".tr,
                   prefixIcon: const Icon(Icons.lock_outline),
                   suffixIcon: IconButton(
                     icon: Icon(
@@ -61,7 +61,7 @@ class ResetPasswordView extends StatelessWidget {
                 controller: controller.confirmPasswordController,
                 obscureText: !controller.isConfirmVisible.value,
                 decoration: InputDecoration(
-                  hintText: "Confirm Password",
+                  hintText: "Confirm Password".tr,
                   prefixIcon: const Icon(Icons.lock_outline),
                   suffixIcon: IconButton(
                     icon: Icon(
@@ -96,8 +96,8 @@ class ResetPasswordView extends StatelessWidget {
                   ),
                   child: controller.isLoading
                       ? const CircularProgressIndicator(color: Colors.white)
-                      : const Text(
-                          "Update Password",
+                      : Text(
+                          "Update Password".tr,
                           style: TextStyle(color: Colors.white, fontSize: 18),
                         ),
                 ),

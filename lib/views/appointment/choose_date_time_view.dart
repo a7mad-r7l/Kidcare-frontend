@@ -43,9 +43,7 @@ class _ChooseDateTimeViewState extends State<ChooseDateTimeView> {
     if (controller.selectedDate.value == null) {
       controller.selectDate(DateTime.now());
     }
-    // Always re-fetch slots on entry â€” the user may have returned to this
-    // screen after changing the doctor, or just been away long enough for
-    // another user to book one of the slots we previously cached.
+
     controller.loadSlots();
   }
 
@@ -53,7 +51,7 @@ class _ChooseDateTimeViewState extends State<ChooseDateTimeView> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: _kBackground,
-      appBar: bookingAppBar(subtitle: 'Pick Date & Time'),
+      appBar: bookingAppBar(subtitle: 'Pick Date & Time'.tr),
       body: SafeArea(
         child: Column(
           children: [
@@ -75,8 +73,8 @@ class _ChooseDateTimeViewState extends State<ChooseDateTimeView> {
                       );
                     }),
                     const SizedBox(height: 20),
-                    const Text(
-                      'Available Times',
+                     Text(
+                      'Available Times'.tr,
                       style: TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.w700,
@@ -104,18 +102,18 @@ class _SlotsGrid extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Obx(() {
-      // Read all observables up-front so the Obx subscribes to every signal
-      // it depends on (itemBuilder fires lazily, outside the Obx scope).
+
+
       final selectedDate = controller.selectedDate.value;
       final isLoadingSlots = controller.isLoadingSlots.value;
       final times = controller.availableTimes.toList();
       final selectedTime = controller.selectedTime.value;
 
       if (selectedDate == null) {
-        return const _EmptyHint(text: 'Pick a date to see available times.');
+        return  _EmptyHint(text: 'Pick a date to see available times.'.tr);
       }
       if (!isLoadingSlots && times.isEmpty) {
-        return const _EmptyHint(text: 'No times available for this date.');
+        return  _EmptyHint(text: 'No times available for this date.'.tr);
       }
 
       final shown = isLoadingSlots ? _fakeSlots : times;
@@ -219,15 +217,7 @@ class _BookButton extends StatelessWidget {
 
     Get.offNamed('/payment-method', arguments: appointmentId);
 
-    // await showDialog<void>(
-    //   context: context,
-    //   barrierDismissible: false,
-    //   builder: (_) => _BookingSuccessDialog(
-    //     appointment: appointment,
-    //     doctorName: doctorName,
-    //     childName: childName,
-    //   ),
-    // );
+
   }
 
   @override
@@ -259,8 +249,8 @@ class _BookButton extends StatelessWidget {
                       strokeWidth: 2.4,
                     ),
                   )
-                : const Text(
-                    'Book Appointment',
+                :  Text(
+                    'Book Appointment'.tr,
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w700,
@@ -274,189 +264,9 @@ class _BookButton extends StatelessWidget {
   }
 }
 
-class _BookingSuccessDialog extends StatelessWidget {
-  final AppointmentModel appointment;
-  final String? doctorName;
-  final String? childName;
 
-  const _BookingSuccessDialog({
-    required this.appointment,
-    this.doctorName,
-    this.childName,
-  });
 
-  String _formatDate(String raw) {
-    final dt = DateTime.tryParse(raw);
-    if (dt == null) return raw;
-    const months = [
-      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
-    ];
-    return '${months[dt.month - 1]} ${dt.day}, ${dt.year}';
-  }
 
-  String _formatTime(String raw) {
-    final parts = raw.split(':');
-    if (parts.length < 2) return raw;
-    final h = int.tryParse(parts[0]) ?? 0;
-    final m = parts[1].padLeft(2, '0');
-    final suffix = h >= 12 ? 'PM' : 'AM';
-    final hour = h % 12 == 0 ? 12 : h % 12;
-    return '$hour:$m $suffix';
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Dialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-      insetPadding: const EdgeInsets.symmetric(horizontal: 28),
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(24, 32, 24, 24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // Success icon
-            Container(
-              width: 80,
-              height: 80,
-              decoration: BoxDecoration(
-                color: const Color(0xFFECFDF5),
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(
-                Icons.check_rounded,
-                size: 44,
-                color: Color(0xFF059669),
-              ),
-            ),
-            const SizedBox(height: 20),
-            const Text(
-              'Appointment Booked!',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.w800,
-                color: Color(0xFF1F2937),
-              ),
-            ),
-            const SizedBox(height: 8),
-            const Text(
-              'Your appointment has been confirmed.\nSee you soon!',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 13.5,
-                color: Color(0xFF6B7280),
-                height: 1.5,
-              ),
-            ),
-            const SizedBox(height: 24),
-            // Details card
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: const Color(0xFFF5F7FB),
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: Column(
-                children: [
-                  _DetailRow(
-                    icon: Icons.person_rounded,
-                    label: 'Doctor',
-                    value: doctorName ?? 'Doctor #${appointment.doctorId}',
-                  ),
-                  const SizedBox(height: 10),
-                  _DetailRow(
-                    icon: Icons.child_care_rounded,
-                    label: 'Child',
-                    value: childName ?? 'Child #${appointment.childId}',
-                  ),
-                  const SizedBox(height: 10),
-                  _DetailRow(
-                    icon: Icons.calendar_today_rounded,
-                    label: 'Date',
-                    value: _formatDate(appointment.date),
-                  ),
-                  const SizedBox(height: 10),
-                  _DetailRow(
-                    icon: Icons.access_time_rounded,
-                    label: 'Time',
-                    value: _formatTime(appointment.time),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 24),
-            SizedBox(
-              width: double.infinity,
-              height: 50,
-              child: ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: _kPrimary,
-                  elevation: 0,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                ),
-                onPressed: () {
-                  Navigator.of(context).pop();
-                  Get.offAllNamed('/home');
-                },
-                child: const Text(
-                  'Done',
-                  style: TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w700,
-                    color: Colors.white,
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _DetailRow extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final String value;
-
-  const _DetailRow({
-    required this.icon,
-    required this.label,
-    required this.value,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Icon(icon, size: 16, color: _kPrimary),
-        const SizedBox(width: 8),
-        Text(
-          '$label: ',
-          style: const TextStyle(
-            fontSize: 13,
-            color: Color(0xFF6B7280),
-          ),
-        ),
-        Expanded(
-          child: Text(
-            value,
-            style: const TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
-              color: Color(0xFF1F2937),
-            ),
-            overflow: TextOverflow.ellipsis,
-          ),
-        ),
-      ],
-    );
-  }
-}
 
 String _formatTime12h(String hhmm) {
   final parts = hhmm.split(':');

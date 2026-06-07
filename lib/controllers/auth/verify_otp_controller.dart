@@ -89,8 +89,8 @@ class VerifyOtpController extends BaseController {
     // Client-Side Validation
     if (_fullOtp.isEmpty) {
       Get.snackbar(
-        'Required',
-        'Please enter the verification code',
+        'Required'.tr,
+        'Please enter the verification code'.tr,
         backgroundColor: Colors.grey.shade700,
         colorText: Colors.white,
         snackPosition: SnackPosition.TOP,
@@ -102,8 +102,8 @@ class VerifyOtpController extends BaseController {
 
     if (_fullOtp.length < 4) {
       Get.snackbar(
-        'Invalid Code',
-        'Please enter the complete 4-digit code',
+        'Invalid Code'.tr,
+        'Please enter the complete 4-digit code'.tr,
         backgroundColor: Colors.grey.shade700,
         colorText: Colors.white,
         snackPosition: SnackPosition.TOP,
@@ -118,8 +118,8 @@ class VerifyOtpController extends BaseController {
       await verifyOtpRepo.verify(phone: phoneNumber, otp: _fullOtp);
 
       Get.snackbar(
-        'Success',
-        'Phone verified successfully!',
+        'Success'.tr,
+        'Phone verified successfully!'.tr,
         backgroundColor: Colors.green,
         colorText: Colors.white,
         snackPosition: SnackPosition.TOP,
@@ -142,8 +142,8 @@ class VerifyOtpController extends BaseController {
       await verifyOtpRepo.resend(phone: phoneNumber);
 
       Get.snackbar(
-        'Success',
-        'Code resent successfully!',
+        'Success'.tr,
+        'Code resent successfully!'.tr,
         backgroundColor: Colors.green,
         colorText: Colors.white,
         snackPosition: SnackPosition.TOP,

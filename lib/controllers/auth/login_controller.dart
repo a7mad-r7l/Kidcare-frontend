@@ -22,8 +22,8 @@ class LoginController extends BaseController {
     String phone = phoneController.text.trim();
     if (phoneController.text.isEmpty || passwordController.text.isEmpty) {
       Get.snackbar(
-        "Required Fields",
-        "Please fill in all fields",
+        "Required Fields".tr,
+        "Please fill in all fields".tr,
         backgroundColor: Colors.grey.shade700,
         colorText: Colors.white,
         snackPosition: SnackPosition.TOP,
@@ -33,8 +33,8 @@ class LoginController extends BaseController {
     // 2. التحقق من طول رقم الهاتف
     if (phone.length != 12) {
       Get.snackbar(
-        "Invalid Phone Number",
-        "Phone number must be exactly 12 numbers (e.g., 9639XXXXXXXX)",
+        "Invalid Phone Number".tr,
+        "Phone number must be exactly 12 numbers (e.g., 9639XXXXXXXX)".tr,
         backgroundColor: Colors.grey.shade700,
         colorText: Colors.white,
         snackPosition: SnackPosition.TOP,
@@ -50,8 +50,8 @@ class LoginController extends BaseController {
       );
 
       Get.snackbar(
-        "Success",
-        "Welcome Back, ${user.firstName}!",
+        "Success".tr,
+        "${"Welcome Back,".tr} ${user.firstName}" "!" ,
         backgroundColor: Colors.green,
         colorText: Colors.white,
       );

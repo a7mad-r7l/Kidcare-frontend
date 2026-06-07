@@ -5,7 +5,7 @@ import '../core/helper/secure_storage_service.dart';
 
 class PediatricClinicScreen extends StatefulWidget {
   final bool hasToken;
-  const PediatricClinicScreen({Key? key,  this.hasToken=false}) : super(key: key);
+  const PediatricClinicScreen({super.key,  this.hasToken=false});
 
   @override
   State<PediatricClinicScreen> createState() => _PediatricClinicScreenState();
@@ -231,7 +231,7 @@ class _PediatricClinicScreenState extends State<PediatricClinicScreen>
                             ),
                             const SizedBox(height: 8),
                             Text(
-                              'Premium Pediatric Care',
+                              'Premium Pediatric Care'.tr,
                               style: TextStyle(
                                 fontSize: 16,
                                 color: Colors.blue.shade400,

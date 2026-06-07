@@ -1,3 +1,4 @@
+import 'package:get/get.dart';
 import 'package:http/http.dart' as http;
 import '../../constants.dart';
 
@@ -10,6 +11,7 @@ class DepartmentApi {
       headers: {
         'Accept': 'application/json',
         'Authorization': 'Bearer $token',
+        'Accept-Language': Get.locale?.languageCode ?? 'en',
       },
     );
     return response.body;

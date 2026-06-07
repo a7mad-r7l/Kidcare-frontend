@@ -1,6 +1,7 @@
 import 'package:http/http.dart' as http;
 import '../../constants.dart';
 import '../../helper/secure_storage_service.dart';
+import 'package:get/get.dart';
 
 class AppointmentsApi {
   final http.Client client = http.Client();

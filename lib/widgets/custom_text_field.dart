@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:get/get.dart';
 
 class CustomTextField extends StatelessWidget {
   final TextEditingController controller;
@@ -32,12 +33,14 @@ class CustomTextField extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final bool hasLabel = label != null;
+    final isRtl = Get.locale?.languageCode == 'ar';
 
     return TextField(
       controller: controller,
       obscureText: isPassword,
       keyboardType: keyboardType,
-      textAlign: TextAlign.left,
+      textAlign: isRtl ? TextAlign.right : TextAlign.left,
+      textDirection: isRtl ? TextDirection.rtl : TextDirection.ltr,
       decoration: InputDecoration(
         hintText: hintText,
         hintStyle: TextStyle(
@@ -55,7 +58,7 @@ class CustomTextField extends StatelessWidget {
           padding: const EdgeInsets.only(left: 14, right: 10),
           child: Row(
             mainAxisSize: MainAxisSize.min,
-            textDirection: TextDirection.ltr,
+            textDirection: isRtl ? TextDirection.rtl : TextDirection.ltr,
             children: [
               if (labelIcon != null) ...[
                 Icon(

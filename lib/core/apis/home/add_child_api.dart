@@ -1,7 +1,7 @@
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
-
+import 'package:get/get.dart';
 import '../../constants.dart';
 import '../../helper/secure_storage_service.dart';
 
@@ -20,6 +20,7 @@ class AddChildApi {
       headers: {
         'Accept': 'application/json',
         'Authorization': 'Bearer $token',
+        'Accept-Language': Get.locale?.languageCode ?? 'en',
       },
     );
 
@@ -54,6 +55,7 @@ class AddChildApi {
     request.headers.addAll({
       'Authorization': 'Bearer $token',
       'Accept': 'application/json',
+      'Accept-Language': Get.locale?.languageCode ?? 'en',
     });
 
     request.fields['first_name'] = firstName;

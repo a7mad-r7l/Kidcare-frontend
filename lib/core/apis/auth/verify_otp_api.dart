@@ -1,22 +1,22 @@
-
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import '../../constants.dart';
+import 'package:get/get.dart';
 
 class VerifyOtpApi {
   final http.Client client = http.Client();
 
   // مهمة الدالة فقط إرسال البيانات وإرجاع الرد كـ String
-  Future<String> verify({
-    required String phone,
-    required String otp,
-  }) async {
+  Future<String> verify({required String phone, required String otp}) async {
     debugPrint('── VerifyOtpApi.verify ─────────────────');
     debugPrint('phone=$phone | otp=$otp');
 
     final response = await client.post(
       Uri.parse('$baseUrl/verifyOtp'),
-      headers: {'Accept': 'application/json'},
+      headers: {
+        'Accept': 'application/json',
+        'Accept-Language': Get.locale?.languageCode ?? 'en',
+      },
       body: {'phone_number': phone, 'otp': otp},
     );
 
@@ -29,7 +29,10 @@ class VerifyOtpApi {
 
     final response = await client.post(
       Uri.parse('$baseUrl/sendOtp'),
-      headers: {'Accept': 'application/json'},
+      headers: {
+        'Accept': 'application/json',
+        'Accept-Language': Get.locale?.languageCode ?? 'en',
+      },
       body: {'phone_number': phone},
     );
 

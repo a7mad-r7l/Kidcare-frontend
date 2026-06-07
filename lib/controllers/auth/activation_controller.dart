@@ -47,10 +47,10 @@ class ActivationController extends BaseController {
     String phone = phoneController.text.trim();
     if (phone.isEmpty || phone.length != 12) {
       Get.snackbar(
-        "Notice",
+        "Notice".tr,
         phone.isEmpty
-            ? "Please enter phone number"
-            : "Phone number must be 12 numbers (e.g., 9639XXXXXXXX)",
+            ? "Please enter phone number".tr
+            : "Phone number must be 12 numbers (e.g., 9639XXXXXXXX)".tr,
         backgroundColor: Colors.grey.shade700,
         colorText: Colors.white,
         snackPosition: SnackPosition.TOP,
@@ -78,8 +78,8 @@ class ActivationController extends BaseController {
       await repo.requestOtp(phoneController.text.trim());
       startTimer();
       Get.snackbar(
-        "Success",
-        "Verification code resent successfully",
+        "Success".tr,
+        "Verification code resent successfully".tr,
         backgroundColor: Colors.green,
         colorText: Colors.white,
         snackPosition: SnackPosition.TOP,
@@ -96,10 +96,10 @@ class ActivationController extends BaseController {
     String otp = otpController.text.trim();
     if (otp.isEmpty || otp.length != 4) {
       Get.snackbar(
-        "Check Code",
+        "Check Code".tr,
         otp.isEmpty
-            ? "Please enter OTP"
-            : "Please enter the 4-digit code correctly",
+            ? "Please enter OTP".tr
+            : "Please enter the 4-digit code correctly".tr,
         backgroundColor: Colors.grey.shade700,
         colorText: Colors.white,
         snackPosition: SnackPosition.TOP,
@@ -131,8 +131,8 @@ class ActivationController extends BaseController {
     // 1. التحقق من الحقول الفارغة
     if (password.isEmpty || confirmPassword.isEmpty) {
       Get.snackbar(
-        "Required Fields",
-        "Please fill in all fields",
+        "Required Fields".tr,
+        "Please fill in all fields".tr,
         backgroundColor: Colors.grey.shade700,
         colorText: Colors.white,
         snackPosition: SnackPosition.TOP,
@@ -144,8 +144,8 @@ class ActivationController extends BaseController {
     // 2. التحقق من تطابق كلمتي المرور
     if (password != confirmPassword) {
       Get.snackbar(
-        "Error",
-        "Passwords do not match",
+        "Error".tr,
+        "Passwords do not match".tr,
         backgroundColor: Colors.redAccent,
         colorText: Colors.white,
       );
@@ -155,8 +155,8 @@ class ActivationController extends BaseController {
     // 3. التحقق من طول كلمة المرور
     if (password.length < 8) {
       Get.snackbar(
-        "Weak Password",
-        "Password must be at least 8 characters long",
+        "Weak Password".tr,
+        "Password must be at least 8 characters long".tr,
         backgroundColor: Colors.orange,
         colorText: Colors.white,
         icon: const Icon(Icons.lock_outline, color: Colors.white),
@@ -171,14 +171,14 @@ class ActivationController extends BaseController {
       );
 
       Get.snackbar(
-        "Success",
-        "Account activated successfully",
+        "Success".tr,
+        "Account activated successfully".tr,
         backgroundColor: Colors.green,
         colorText: Colors.white,
       );
 
-      // التوجه للصفحة الرئيسية بعد التفعيل
-      // Get.offAllNamed('/home');
+
+      Get.offAllNamed('/home');
     } catch (e) {
       handleError(e);
     } finally {

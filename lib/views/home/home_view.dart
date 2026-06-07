@@ -75,7 +75,7 @@ class HomeView extends GetView<HomeController> {
                               size: 48, color: Colors.grey.shade300),
                           const SizedBox(height: 8),
                           Text(
-                            'No children added yet',
+                            'No children added yet'.tr,
                             style: TextStyle(color: Colors.grey.shade400),
                           ),
                         ],
@@ -130,7 +130,7 @@ class _HeaderSection extends GetView<HomeController> {
                 children: [
                   Obx(() => Text(
                     controller.parentName.value.isEmpty
-                        ? 'Welcome!'
+                        ? 'Welcome!'.tr
                         : controller.parentName.value,
                     style: const TextStyle(
                       fontSize: 17,
@@ -139,7 +139,7 @@ class _HeaderSection extends GetView<HomeController> {
                     ),
                   )),
                   Text(
-                    'Welcome back!',
+                    'Welcome back!'.tr,
                     style: TextStyle(
                         fontSize: 13, color: Colors.grey.shade500),
                   ),
@@ -282,7 +282,7 @@ class _ChildCard extends StatelessWidget {
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    '${child.age} years',
+                    '${child.age} ${'years'.tr}',
                     style: TextStyle(
                       fontSize: 12,
                       color: Colors.grey.shade600,
@@ -314,8 +314,8 @@ class _BookButton extends StatelessWidget {
         },
         icon: const Icon(Icons.add_circle_outline,
             color: Colors.white, size: 22),
-        label: const Text(
-          'Book New Appointment',
+        label:  Text(
+          'Book New Appointment'.tr,
           style: TextStyle(
             fontSize: 17,
             fontWeight: FontWeight.bold,
@@ -346,8 +346,8 @@ class _DepartmentsSection extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'Departments',
+        Text(
+          'Departments'.tr,
           style: TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.bold,
@@ -401,7 +401,7 @@ class _DepartmentItem extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           Text(
-            department['label'],
+            department['label'].toString().tr,
             style: const TextStyle(fontSize: 12, color: Colors.black87),
             textAlign: TextAlign.center,
           ),
@@ -441,8 +441,8 @@ class _ClinicInfoSection extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  'About the Clinic',
+                 Text(
+                  'About the Clinic'.tr,
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
@@ -451,7 +451,7 @@ class _ClinicInfoSection extends StatelessWidget {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'We provide comprehensive healthcare for your children with the highest quality standards.',
+                  'We provide comprehensive healthcare for your children with the highest quality standards.'.tr,
                   style: TextStyle(
                     fontSize: 12,
                     color: Colors.grey.shade600,
@@ -468,7 +468,7 @@ class _ClinicInfoSection extends StatelessWidget {
                     mainAxisAlignment: MainAxisAlignment.start,
                     children: [
                       Text(
-                        'Read More',
+                        'Read More'.tr,
                         style: TextStyle(
                           fontSize: 13,
                           color: Colors.blue.shade600,
@@ -496,6 +496,7 @@ class _BottomNav extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -520,7 +521,7 @@ class _BottomNav extends StatelessWidget {
               // ─── Home ─────────────────────────────
               _NavItem(
                 icon: Icons.home_rounded,
-                label: 'Home',
+                label: 'Home'.tr,
                 isSelected: true,
                 onTap: () {},
               ),
@@ -528,7 +529,7 @@ class _BottomNav extends StatelessWidget {
               // ─── Appointments ──────────────────────
               _NavItem(
                 icon: Icons.calendar_month_outlined,
-                label: 'Appointments',
+                label: 'Appointments'.tr,
                 isSelected: false,
                 onTap: () => Get.toNamed('/appointments'),
               ),
@@ -561,7 +562,7 @@ class _BottomNav extends StatelessWidget {
               // ─── Vaccinations ──────────────────────
               _NavItem(
                 icon: Icons.vaccines_outlined,
-                label: 'Vaccinations',
+                label: 'Vaccinations'.tr,
                 isSelected: false,
                 onTap: () => Get.toNamed('/vaccinations'),
               ),
@@ -569,7 +570,7 @@ class _BottomNav extends StatelessWidget {
               // ─── More ──────────────────────────────
               _NavItem(
                 icon: Icons.more_horiz,
-                label: 'More',
+                label: 'More'.tr,
                 isSelected: false,
                 onTap: () => Get.toNamed('/settings'),
               ),

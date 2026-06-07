@@ -31,8 +31,9 @@ class SuccessResetView extends StatelessWidget {
               const SizedBox(height: 15),
 
               // الوصف
-              const Text(
-                "Your password has been updated successfully. You can now log in with your new password.",
+              Text(
+                "Your password has been updated successfully. You can now log in with your new password."
+                    .tr,
                 textAlign: TextAlign.center,
                 style: TextStyle(fontSize: 16, color: Colors.grey, height: 1.5),
               ),
@@ -54,8 +55,8 @@ class SuccessResetView extends StatelessWidget {
                       borderRadius: BorderRadius.circular(15),
                     ),
                   ),
-                  child: const Text(
-                    "Back to Login",
+                  child: Text(
+                    "Back to Login".tr,
                     style: TextStyle(
                       color: Colors.white,
                       fontSize: 18,

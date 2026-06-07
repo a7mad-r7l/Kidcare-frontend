@@ -3,7 +3,6 @@ import 'package:get/get.dart';
 import '../../controllers/auth/verify_otp_controller.dart';
 import '../../widgets/custom_text_field.dart';
 
-
 class VerifyOtpView extends GetView<VerifyOtpController> {
   const VerifyOtpView({super.key});
 
@@ -37,8 +36,8 @@ class VerifyOtpView extends GetView<VerifyOtpController> {
             ),
             const SizedBox(height: 28),
 
-            const Text(
-              'Verify Your Phone Number',
+            Text(
+              'Verify Your Phone Number'.tr,
               style: TextStyle(
                 fontSize: 24,
                 fontWeight: FontWeight.bold,
@@ -49,7 +48,7 @@ class VerifyOtpView extends GetView<VerifyOtpController> {
             const SizedBox(height: 10),
 
             Text(
-              'We sent a 4-digit verification code to',
+              'We sent a 4-digit verification code to'.tr,
               style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
               textAlign: TextAlign.center,
             ),
@@ -101,11 +100,11 @@ class VerifyOtpView extends GetView<VerifyOtpController> {
 
             // Validity timer
             Obx(
-                  () => RichText(
+              () => RichText(
                 text: TextSpan(
                   style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
                   children: [
-                    const TextSpan(text: 'The code is valid for '),
+                    TextSpan(text: 'The code is valid for '.tr),
                     TextSpan(
                       text: controller.validityFormatted,
                       style: TextStyle(
@@ -113,7 +112,7 @@ class VerifyOtpView extends GetView<VerifyOtpController> {
                         fontWeight: FontWeight.bold,
                       ),
                     ),
-                    const TextSpan(text: ' minutes'),
+                    TextSpan(text: ' minutes'.tr),
                   ],
                 ),
               ),
@@ -135,8 +134,8 @@ class VerifyOtpView extends GetView<VerifyOtpController> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text(
-                          "Didn't receive the code?",
+                        Text(
+                          "Didn't receive the code?".tr,
                           style: TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.bold,
@@ -145,7 +144,7 @@ class VerifyOtpView extends GetView<VerifyOtpController> {
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          'You can resend the code after the countdown ends',
+                          'You can resend the code after the countdown ends'.tr,
                           style: TextStyle(
                             fontSize: 12,
                             color: Colors.grey.shade500,
@@ -153,26 +152,26 @@ class VerifyOtpView extends GetView<VerifyOtpController> {
                         ),
                         const SizedBox(height: 10),
                         Obx(
-                              () => controller.canResend.value
+                          () => controller.canResend.value
                               ? GestureDetector(
-                            onTap: controller.resendOtp,
-                            child: Text(
-                              'Resend Code',
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.blue.shade600,
-                              ),
-                            ),
-                          )
+                                  onTap: controller.resendOtp,
+                                  child: Text(
+                                    'Resend Code'.tr,
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.blue.shade600,
+                                    ),
+                                  ),
+                                )
                               : Text(
-                            controller.resendFormatted,
-                            style: TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.blue.shade600,
-                            ),
-                          ),
+                                  controller.resendFormatted,
+                                  style: TextStyle(
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.blue.shade600,
+                                  ),
+                                ),
                         ),
                       ],
                     ),
@@ -197,20 +196,20 @@ class VerifyOtpView extends GetView<VerifyOtpController> {
 
             // Verify button
             Obx(
-                  () => controller.isLoading
+              () => controller.isLoading
                   ? const Center(
-                child: CircularProgressIndicator(color: Colors.blue),
-              )
+                      child: CircularProgressIndicator(color: Colors.blue),
+                    )
                   : PrimaryButton(
-                text: 'Verify',
-                onPressed: controller.verifyOtp,
-              ),
+                      text: 'Verify'.tr,
+                      onPressed: controller.verifyOtp,
+                    ),
             ),
             const SizedBox(height: 14),
 
             // Change phone number
             OutlinedPrimaryButton(
-              text: 'Change Phone Number',
+              text: 'Change Phone Number'.tr,
               onPressed: () => Get.back(),
             ),
             const SizedBox(height: 36),

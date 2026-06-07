@@ -211,7 +211,7 @@ class _DoctorCard extends StatelessWidget {
                   if (specialty.isNotEmpty) ...[
                     const SizedBox(height: 3),
                     Text(
-                      '$specialty Specialist',
+                      '$specialty ${'Specialist'.tr}',
                       style: const TextStyle(
                         fontSize: 12.5,
                         color: _kTextSecondary,

@@ -11,8 +11,8 @@ class CheckoutSummaryView extends GetView<PaymentController> {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        title: const Text(
-          'Review & Pay',
+        title:  Text(
+          'Review & Pay'.tr,
           style: TextStyle(
             color: Colors.black87,
             fontWeight: FontWeight.bold,
@@ -32,7 +32,7 @@ class CheckoutSummaryView extends GetView<PaymentController> {
 
         final summary = controller.appointmentSummary.value;
         if (summary == null) {
-          return const Center(child: Text("Failed to load appointment data."));
+          return  Center(child: Text("Failed to load appointment data.".tr));
         }
 
         return Padding(
@@ -135,12 +135,12 @@ class CheckoutSummaryView extends GetView<PaymentController> {
                       thickness: 1,
                     ),
                     PaymentSummaryRow(
-                      label: 'Date & Time',
+                      label: 'Date & Time'.tr,
                       value: summary.dateTime, // التاريخ و الوقت
                     ),
                     const SizedBox(height: 12),
                     PaymentSummaryRow(
-                      label: 'Consultation Fee',
+                      label: 'Consultation Fee'.tr,
                       value:
                           '${summary.price} ${summary.currency}', // السعر و العملة
                     ),
@@ -150,7 +150,7 @@ class CheckoutSummaryView extends GetView<PaymentController> {
                       thickness: 1,
                     ),
                     PaymentSummaryRow(
-                      label: 'Total',
+                      label: 'Total'.tr,
                       value: '${summary.price} ${summary.currency}', // الإجمالي
 
                       isTotal: true,
@@ -160,8 +160,8 @@ class CheckoutSummaryView extends GetView<PaymentController> {
               ),
 
               const SizedBox(height: 30),
-              const Text(
-                'Choose how to pay',
+               Text(
+                'Choose how to pay'.tr,
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
@@ -174,7 +174,7 @@ class CheckoutSummaryView extends GetView<PaymentController> {
               Column(
                 children: [
                   PaymentOptionCard(
-                    title: 'Mada',
+                    title: 'Mada'.tr,
                     value: 1,
                     groupValue: controller.selectedCardMethod.value,
                     onTap: () => controller.setCardMethod(1),
@@ -185,7 +185,7 @@ class CheckoutSummaryView extends GetView<PaymentController> {
                   ),
                   const SizedBox(height: 12),
                   PaymentOptionCard(
-                    title: 'Credit Card (Visa/Mastercard)',
+                    title: 'Credit Card (Visa/Mastercard)'.tr,
                     value: 2,
                     groupValue: controller.selectedCardMethod.value,
                     onTap: () => controller.setCardMethod(2),
@@ -203,7 +203,7 @@ class CheckoutSummaryView extends GetView<PaymentController> {
                   ),
                   const SizedBox(height: 12),
                   PaymentOptionCard(
-                    title: 'Apple Pay',
+                    title: 'Apple Pay'.tr,
                     value: 3,
                     groupValue: controller.selectedCardMethod.value,
                     onTap: () => controller.setCardMethod(3),
@@ -214,7 +214,7 @@ class CheckoutSummaryView extends GetView<PaymentController> {
                   ),
                   const SizedBox(height: 12),
                   PaymentOptionCard(
-                    title: 'STC Pay',
+                    title: 'STC Pay'.tr,
                     value: 4,
                     groupValue: controller.selectedCardMethod.value,
                     onTap: () => controller.setCardMethod(4),
@@ -246,7 +246,7 @@ class CheckoutSummaryView extends GetView<PaymentController> {
                   child: controller.isLoading.value
                       ? const CircularProgressIndicator(color: Colors.white)
                       : Text(
-                          'Pay ${summary.price} ${summary.currency}',
+                    'Pay'.tr + ' ${summary.price} ${summary.currency}',
                           // النص مع الفاتورة القادمة من السيرفر
                           style: const TextStyle(
                             fontSize: 18,

@@ -36,8 +36,8 @@ PreferredSizeWidget bookingAppBar({required String subtitle}) {
     title: Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        const Text(
-          'Book New Appointment',
+         Text(
+          'Book New Appointment'.tr,
           style: TextStyle(
             color: kBookingTextPrimary,
             fontSize: 16,

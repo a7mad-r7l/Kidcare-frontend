@@ -26,23 +26,23 @@ class PhoneActivationView extends GetView<ActivationController> {
           child: Column(
             children: [
               const StepProgressIndicator(currentStep: 1),
-              const ActivationHeader(
+               ActivationHeader(
                 imagePath: 'assets/images/shield_blue_logo.png',
-                title: 'Activate Account',
-                subtitle: 'Enter your phone number registered at the clinic',
+                title: 'Activate Account'.tr,
+                subtitle: 'Enter your phone number registered at the clinic'.tr,
               ),
 
               CustomTextField(
                 controller: controller.phoneController,
-                hintText: 'phone number',
+                hintText: 'phone number'.tr,
                 keyboardType: TextInputType.phone,
               ),
 
               const SizedBox(height: 12),
-              const Align(
-                alignment: Alignment.centerLeft,
+               Align(
+                 alignment:AlignmentDirectional.topStart,
                 child: Text(
-                  'Please enter your registered phone number',
+                  " ${'Please enter your registered phone number'.tr}",
                   style: TextStyle(fontSize: 12, color: Colors.grey),
                 ),
               ),
@@ -52,7 +52,7 @@ class PhoneActivationView extends GetView<ActivationController> {
                 () => controller.isLoading
                     ? const CircularProgressIndicator()
                     : PrimaryButton(
-                        text: 'Send Verification Code',
+                        text: 'Send Verification Code'.tr,
                         onPressed: controller.startActivation,
                       ),
               ),

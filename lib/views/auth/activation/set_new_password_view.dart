@@ -26,16 +26,16 @@ class SetNewPasswordView extends GetView<ActivationController> {
           child: Column(
             children: [
               const StepProgressIndicator(currentStep: 3),
-              const ActivationHeader(
+               ActivationHeader(
                 imagePath: 'assets/images/lock_blue_logo.png',
-                title: 'Create New Password',
-                subtitle: 'Create a strong password to protect your account',
+                title: 'Create New Password'.tr,
+                subtitle: 'Create a strong password to protect your account'.tr,
               ),
 
               Obx(
                 () => CustomTextField(
                   controller: controller.passwordController,
-                  hintText: 'New Password',
+                  hintText: 'New Password'.tr,
                   isPassword: controller.isPasswordHidden.value,
                   suffixIcon: IconButton(
                     icon: Icon(
@@ -54,7 +54,7 @@ class SetNewPasswordView extends GetView<ActivationController> {
               Obx(
                 () => CustomTextField(
                   controller: controller.confirmPasswordController,
-                  hintText: 'Confirm Password',
+                  hintText: 'Confirm Password'.tr,
                   isPassword: controller.isPasswordHidden.value,
                 ),
               ),
@@ -67,15 +67,15 @@ class SetNewPasswordView extends GetView<ActivationController> {
                   color: Colors.grey.shade50,
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: const Column(
+                child:  Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Password must contain:',
+                      'Password must contain:'.tr,
                       style: TextStyle(color: Colors.grey, fontSize: 14),
                     ),
                     SizedBox(height: 12),
-                    PasswordRequirementRow(text: 'At least 8 characters'),
+                    PasswordRequirementRow(text: 'At least 8 characters'.tr),
                   ],
                 ),
               ),
@@ -85,7 +85,7 @@ class SetNewPasswordView extends GetView<ActivationController> {
                 () => controller.isLoading
                     ? const CircularProgressIndicator()
                     : PrimaryButton(
-                        text: 'Set Password and Login',
+                        text: 'Set Password and Login'.tr,
                         onPressed: controller.completeActivation,
                       ),
               ),

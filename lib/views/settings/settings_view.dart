@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../controllers/settings_controller.dart';
 
-import '../../widgets/settings/profile_card.dart';
+
 import '../../widgets/settings/settings_section.dart';
 import '../../widgets/settings/settings_tile.dart';
 
@@ -36,44 +36,6 @@ class SettingsView extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // // 1.  البروفايل
-            // ProfileCard(
-            //   name: 'أحمد الرحال',
-            //   email: 'ahmed.mohamed@email.com',
-            //   imageUrl: 'https://i.pravatar.cc/150?img=11',
-            //   onViewProfile: () {
-            //     // Get.toNamed('/profile');
-            //   },
-            // ),
-            // const SizedBox(height: 25),
-
-            // 2. قسم الحساب
-            // SettingsSection(
-            //   title: 'account'.tr,
-            //   children: [
-            //     // SettingsTile(
-            //     //   icon: Icons.person_outline,
-            //     //   title: 'profile'.tr,
-            //     //   subtitle: 'edit_personal_info'.tr,
-            //     //   onTap: () {},
-            //     // ),
-            //     // SettingsTile(
-            //     //   icon: Icons.face,
-            //     //   title: 'your_children'.tr,
-            //     //   subtitle: 'manage_children_info'.tr,
-            //     //   onTap: () {},
-            //     // ),
-            //     // SettingsTile(
-            //     //   icon: Icons.account_balance_wallet_outlined,
-            //     //   title: 'payment_data'.tr,
-            //     //   subtitle: 'manage_payment_methods'.tr,
-            //     //   showDivider: false,
-            //     //   onTap: () {},
-            //     // ),
-            //   ],
-            // ),
-            // const SizedBox(height: 25),
-
             // 3. قسم التفضيلات
             SettingsSection(
               title: 'preferences'.tr,
@@ -94,19 +56,6 @@ class SettingsView extends StatelessWidget {
                   subtitle: 'light_mode'.tr,
                   onTap: () {},
                 ),
-                // SettingsTile(
-                //   icon: Icons.text_fields,
-                //   title: 'font_size'.tr,
-                //   subtitle: 'medium'.tr,
-                //   onTap: () {},
-                // ),
-                // SettingsTile(
-                //   icon: Icons.notifications_none,
-                //   title: 'notifications'.tr,
-                //   subtitle: 'manage_notifications'.tr,
-                //   showDivider: false,
-                //   onTap: () {},
-                // ),
               ],
             ),
             const SizedBox(height: 25),
@@ -167,10 +116,13 @@ class SettingsView extends StatelessWidget {
           children: [
             Text(
               'change_language'.tr,
-              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              style: const TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF1D2755),
+              ),
             ),
             const SizedBox(height: 20),
-
 
             Obx(
               () => RadioGroup<String>(
@@ -178,14 +130,13 @@ class SettingsView extends StatelessWidget {
                 onChanged: (value) {
                   if (value != null) {
                     controller.changeLanguage(value);
-                    Get.back(); // إغلاق النافذة
+                    Get.back();
                   }
                 },
-                child: const Column(
+                child: Column(
                   children: [
-
                     RadioListTile<String>(
-                      title: Text(
+                      title: const Text(
                         'English',
                         style: TextStyle(fontWeight: FontWeight.w600),
                       ),
@@ -193,11 +144,19 @@ class SettingsView extends StatelessWidget {
                       activeColor: Colors.blue,
                     ),
                     RadioListTile<String>(
-                      title: Text(
+                      title: const Text(
                         'العربية',
                         style: TextStyle(fontWeight: FontWeight.w600),
                       ),
                       value: 'ar',
+                      activeColor: Colors.blue,
+                    ),
+                    RadioListTile<String>(
+                      title: const Text(
+                        'System Default (لغة النظام)',
+                        style: TextStyle(fontWeight: FontWeight.w600),
+                      ),
+                      value: 'system',
                       activeColor: Colors.blue,
                     ),
                   ],

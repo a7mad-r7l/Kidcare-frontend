@@ -1,6 +1,6 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-
+import 'package:get/get.dart';
 import '../constants.dart';
 
 class PaymentApi {
@@ -15,6 +15,7 @@ class PaymentApi {
         headers: {
           'Accept': 'application/json',
           'Authorization': 'Bearer $token',
+          'Accept-Language': Get.locale?.languageCode ?? 'en',
         },
       );
       if (response.statusCode == 200) {
@@ -47,6 +48,7 @@ class PaymentApi {
       request.headers.addAll({
         'Accept': 'application/json',
         'Authorization': 'Bearer $token',
+        'Accept-Language': Get.locale?.languageCode ?? 'en',
       });
 
       request.fields['appointment_id'] = appointmentId;

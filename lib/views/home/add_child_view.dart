@@ -34,7 +34,7 @@ class AddChildView extends GetView<AddChildController> {
                     CircleAvatar(
                       radius: 55,
                       backgroundColor: Colors.white,
-                      // ✅ يعرض الصورة المختارة أو الـ placeholder
+
                       backgroundImage: controller.selectedImage.value != null
                           ? FileImage(controller.selectedImage.value!)
                           : null,
@@ -62,9 +62,9 @@ class AddChildView extends GetView<AddChildController> {
             ),
 
             // ─── Title ────────────────────────────────
-            const Center(
+             Center(
               child: Text(
-                'Add New Child',
+                'Add New Child'.tr,
                 style: TextStyle(
                   fontSize: 22,
                   fontWeight: FontWeight.bold,
@@ -92,7 +92,7 @@ class AddChildView extends GetView<AddChildController> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Text('First Name',
+                             Text('First Name'.tr,
                                 style: TextStyle(
                                     fontSize: 14,
                                     fontWeight: FontWeight.bold,
@@ -100,7 +100,7 @@ class AddChildView extends GetView<AddChildController> {
                             const SizedBox(height: 8),
                             CustomTextField(
                               controller: controller.firstNameController,
-                              hintText: 'Enter first name',
+                              hintText: 'Enter first name'.tr,
                             ),
                           ],
                         ),
@@ -110,7 +110,7 @@ class AddChildView extends GetView<AddChildController> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Text('Last Name',
+                             Text('Last Name'.tr,
                                 style: TextStyle(
                                     fontSize: 14,
                                     fontWeight: FontWeight.bold,
@@ -118,7 +118,7 @@ class AddChildView extends GetView<AddChildController> {
                             const SizedBox(height: 8),
                             CustomTextField(
                               controller: controller.lastNameController,
-                              hintText: 'Enter last name',
+                              hintText: 'Enter last name'.tr,
                             ),
                           ],
                         ),
@@ -128,7 +128,7 @@ class AddChildView extends GetView<AddChildController> {
                   const SizedBox(height: 20),
 
                   // Gender
-                  const Text('Gender',
+                   Text('Gender'.tr,
                       style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.bold,
@@ -163,7 +163,7 @@ class AddChildView extends GetView<AddChildController> {
                                         : Colors.grey,
                                     size: 22),
                                 const SizedBox(width: 8),
-                                Text('Female',
+                                Text('Female'.tr,
                                     style: TextStyle(
                                       fontWeight: FontWeight.bold,
                                       color: controller.selectedGender.value == 'female'
@@ -203,7 +203,7 @@ class AddChildView extends GetView<AddChildController> {
                                         : Colors.grey,
                                     size: 22),
                                 const SizedBox(width: 8),
-                                Text('Male',
+                                Text('Male'.tr,
                                     style: TextStyle(
                                       fontWeight: FontWeight.bold,
                                       color: controller.selectedGender.value == 'male'
@@ -220,7 +220,7 @@ class AddChildView extends GetView<AddChildController> {
                   const SizedBox(height: 20),
 
                   // Birth Date
-                  const Text('Birth Date',
+                   Text('Birth Date'.tr,
                       style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.bold,
@@ -244,7 +244,7 @@ class AddChildView extends GetView<AddChildController> {
                               color: Colors.blue, size: 20),
                           Text(
                             controller.selectedBirthDate.value.isEmpty
-                                ? 'Select birth date'
+                                ? 'Select birth date'.tr
                                 : controller.selectedBirthDate.value,
                             style: TextStyle(
                               fontSize: 13,
@@ -260,7 +260,7 @@ class AddChildView extends GetView<AddChildController> {
                   const SizedBox(height: 20),
 
                   // Blood Type
-                  const Text('Blood Type',
+                   Text('Blood Type'.tr,
                       style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.bold,
@@ -282,7 +282,7 @@ class AddChildView extends GetView<AddChildController> {
                             const Icon(Icons.water_drop_outlined,
                                 color: Colors.blue, size: 18),
                             const SizedBox(width: 8),
-                            Text('Select blood type',
+                            Text('Select blood type'.tr,
                                 style: TextStyle(
                                     color: Colors.grey.shade400,
                                     fontSize: 13)),
@@ -309,7 +309,7 @@ class AddChildView extends GetView<AddChildController> {
                   const SizedBox(height: 20),
 
                   // Medical History
-                  const Text('Medical History',
+                   Text('Medical History'.tr,
                       style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.bold,
@@ -320,7 +320,7 @@ class AddChildView extends GetView<AddChildController> {
                     maxLines: 3,
                     textAlign: TextAlign.left,
                     decoration: InputDecoration(
-                      hintText: "Enter child's medical history",
+                      hintText: "Enter child's medical history".tr,
                       hintStyle: TextStyle(
                           color: Colors.grey.shade400, fontSize: 13),
                       suffixIcon: const Icon(Icons.calendar_month_outlined,
@@ -348,7 +348,7 @@ class AddChildView extends GetView<AddChildController> {
                   const SizedBox(height: 20),
 
                   // Allergies
-                  const Text('Allergies',
+                   Text('Allergies'.tr,
                       style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.bold,
@@ -359,7 +359,7 @@ class AddChildView extends GetView<AddChildController> {
                     maxLines: 3,
                     textAlign: TextAlign.left,
                     decoration: InputDecoration(
-                      hintText: 'Enter any allergies the child has',
+                      hintText: 'Enter any allergies the child has'.tr,
                       hintStyle: TextStyle(
                           color: Colors.grey.shade400, fontSize: 13),
                       suffixIcon: const Icon(Icons.shield_outlined,
@@ -392,7 +392,7 @@ class AddChildView extends GetView<AddChildController> {
                       child: CircularProgressIndicator(
                           color: Colors.blue))
                       : PrimaryButton(
-                    text: 'Save',
+                    text: 'Save'.tr,
                     onPressed: controller.addChild,
                   )),
                   const SizedBox(height: 20),

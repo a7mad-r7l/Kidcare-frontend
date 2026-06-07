@@ -14,8 +14,8 @@ class ChildProfileView extends GetView<ChildProfileController> {
         backgroundColor: const Color(0xFFF4F6FA),
         elevation: 0,
         centerTitle: true,
-        title: const Text(
-          'Child Profile',
+        title:  Text(
+          'Child Profile'.tr,
           style: TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.bold,

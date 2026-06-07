@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 
 const _kPrimary = Color(0xFF3B82F6);
 const _kUnavailable = Color(0xFFEF4444);
@@ -7,20 +8,14 @@ const _kTextSecondary = Color(0xFF6B7280);
 const _kTextDisabled = Color(0xFFD1D5DB);
 const _kNavButtonBg = Color(0xFFF3F4F6);
 
-/// Inline month-view calendar used in the booking flow.
-///
-/// Past dates (before [minDate]) are non-tappable. Selected date is a filled
-/// blue circle with a soft glow; today shows a subtle dot under the number
-/// when not selected. Switching months animates with a small slide+fade.
+
 class BookingCalendar extends StatefulWidget {
   final DateTime? selectedDate;
   final DateTime minDate;
   final DateTime? maxDate;
   final ValueChanged<DateTime> onDateSelected;
 
-  /// Dart weekdays (Mon=1..Sun=7) the doctor works on.
-  /// Empty = unknown / not loaded — calendar shows no red marks.
-  /// Any weekday NOT in this set is rendered as unavailable (red line, untappable).
+
   final Set<int> workingWeekdays;
 
   const BookingCalendar({
@@ -431,8 +426,8 @@ class _TodayPill extends StatelessWidget {
             color: _kPrimary.withOpacity(0.12),
             borderRadius: BorderRadius.circular(20),
           ),
-          child: const Text(
-            'Today',
+          child:  Text(
+            'Today'.tr,
             style: TextStyle(
               fontSize: 11.5,
               fontWeight: FontWeight.w700,

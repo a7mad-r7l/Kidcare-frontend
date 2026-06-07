@@ -34,8 +34,8 @@ class AddChildController extends BaseController {
       await addChildRepo.deleteChild(childId);
 
       Get.snackbar(
-        'Success',
-        'Child deleted successfully!',
+        'Success'.tr,
+        'Child deleted successfully!'.tr,
         backgroundColor: Colors.green,
         colorText: Colors.white,
         snackPosition: SnackPosition.TOP,
@@ -82,8 +82,8 @@ class AddChildController extends BaseController {
     // التحقق من الحقول الإلزامية فقط (Mandatory Fields)
     if (firstNameController.text.isEmpty || lastNameController.text.isEmpty) {
       Get.snackbar(
-        'Required Fields',
-        'Please enter first and last name',
+        'Required Fields'.tr,
+        'Please enter first and last name'.tr,
         backgroundColor: Colors.grey.shade700,
         colorText: Colors.white,
         snackPosition: SnackPosition.TOP,
@@ -95,8 +95,8 @@ class AddChildController extends BaseController {
 
     if (selectedBirthDate.value.isEmpty) {
       Get.snackbar(
-        'Required Fields',
-        'Please select birth date',
+        'Required Fields'.tr,
+        'Please select birth date'.tr,
         backgroundColor: Colors.grey.shade700,
         colorText: Colors.white,
         snackPosition: SnackPosition.TOP,
@@ -126,8 +126,8 @@ class AddChildController extends BaseController {
 
     if (selectedBloodType.value.isEmpty) {
       Get.snackbar(
-        'Required Fields',
-        'Please select blood type',
+        'Required Fields'.tr,
+        'Please select blood type'.tr,
         backgroundColor: Colors.grey.shade700,
         colorText: Colors.white,
         snackPosition: SnackPosition.TOP,
@@ -161,8 +161,8 @@ class AddChildController extends BaseController {
       );
 
       Get.snackbar(
-        'Success',
-        'Child added successfully!',
+        'Success'.tr,
+        'Child added successfully!'.tr,
         backgroundColor: Colors.green,
         colorText: Colors.white,
         snackPosition: SnackPosition.TOP,

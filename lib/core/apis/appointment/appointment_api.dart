@@ -1,5 +1,6 @@
 import 'package:http/http.dart' as http;
 import '../../constants.dart';
+import 'package:get/get.dart';
 
 class AppointmentApi {
   final http.Client client = http.Client();
@@ -10,6 +11,7 @@ class AppointmentApi {
       headers: {
         'Accept': 'application/json',
         'Authorization': 'Bearer $token',
+        'Accept-Language': Get.locale?.languageCode ?? 'en',
       },
       body: body.map((k, v) => MapEntry(k, v.toString())),
     );
@@ -22,6 +24,7 @@ class AppointmentApi {
       headers: {
         'Accept': 'application/json',
         'Authorization': 'Bearer $token',
+        'Accept-Language': Get.locale?.languageCode ?? 'en',
       },
     );
     return response.body;
@@ -33,6 +36,7 @@ class AppointmentApi {
       headers: {
         'Accept': 'application/json',
         'Authorization': 'Bearer $token',
+        'Accept-Language': Get.locale?.languageCode ?? 'en',
       },
     );
     return response.body;
@@ -44,6 +48,7 @@ class AppointmentApi {
       headers: {
         'Accept': 'application/json',
         'Authorization': 'Bearer $token',
+        'Accept-Language': Get.locale?.languageCode ?? 'en',
       },
     );
     return response.body;
@@ -55,6 +60,7 @@ class AppointmentApi {
       headers: {
         'Accept': 'application/json',
         'Authorization': 'Bearer $token',
+        'Accept-Language': Get.locale?.languageCode ?? 'en',
       },
     );
     return response.body;
@@ -66,6 +72,7 @@ class AppointmentApi {
       headers: {
         'Accept': 'application/json',
         'Authorization': 'Bearer $token',
+        'Accept-Language': Get.locale?.languageCode ?? 'en',
       },
     );
     return response.body;
@@ -77,6 +84,7 @@ class AppointmentApi {
       headers: {
         'Accept': 'application/json',
         'Authorization': 'Bearer $token',
+        'Accept-Language': Get.locale?.languageCode ?? 'en',
       },
     );
     return response.body;
@@ -92,6 +100,7 @@ class AppointmentApi {
       headers: {
         'Accept': 'application/json',
         'Authorization': 'Bearer $token',
+        'Accept-Language': Get.locale?.languageCode ?? 'en',
       },
       body: body.map((k, v) => MapEntry(k, v.toString())),
     );
@@ -104,6 +113,7 @@ class AppointmentApi {
       headers: {
         'Accept': 'application/json',
         'Authorization': 'Bearer $token',
+        'Accept-Language': Get.locale?.languageCode ?? 'en',
       },
     );
     return response.body;

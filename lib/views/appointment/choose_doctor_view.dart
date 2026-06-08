@@ -8,16 +8,15 @@ import '../../core/booking_theme.dart';
 import '../../models/appointment/doctor_model.dart';
 import '../../widgets/booking_app_bar.dart';
 
+// 🌟 تم تحديث المعطيات المزيفة لتتطابق 100% مع البناء الجديد للـ DoctorModel
 final _fakeDoctors = List<DoctorModel>.generate(
   5,
       (i) => DoctorModel(
     id: -i - 1,
-    departmentId: -1,
     firstName: 'Doctor',
     lastName: 'Loading',
-    email: '',
-    address: '',
-    rating: 4.5,
+    departmentName: 'Loading...', // تعديل الحقل المباشر الجديد
+    isFavorite: false,
   ),
 );
 
@@ -41,7 +40,6 @@ class _ChooseDoctorViewState extends State<ChooseDoctorView> {
 
   int? selectedDoctorId;
 
-
   late final int departmentId;
   late final String specialty;
 
@@ -49,11 +47,9 @@ class _ChooseDoctorViewState extends State<ChooseDoctorView> {
   void initState() {
     super.initState();
 
-
     final args = Get.arguments as Map<String, dynamic>?;
     departmentId = args?['departmentId'] ?? 1;
     specialty = args?['specialty'] ?? 'General Pediatrics';
-
 
     doctorController.loadDoctors(departmentId);
   }
@@ -72,12 +68,10 @@ class _ChooseDoctorViewState extends State<ChooseDoctorView> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: _kBackground,
-
       appBar: bookingAppBar(subtitle: '${'Choose Doctor'.tr} - $specialty'),
       body: SafeArea(
         child: Column(
           children: [
-
             const SizedBox(height: 16),
             Expanded(child: _buildDoctorList()),
             _buildNextButton(),
@@ -112,7 +106,6 @@ class _ChooseDoctorViewState extends State<ChooseDoctorView> {
           itemCount: doctors.length,
           itemBuilder: (context, index) {
             final doctor = doctors[index];
-
 
             return Obx(
                   () => _DoctorCard(
@@ -219,49 +212,21 @@ class _DoctorCard extends StatelessWidget {
                       color: _kTextPrimary,
                     ),
                   ),
-                  if (specialty.isNotEmpty) ...[
-                    const SizedBox(height: 3),
-                    Text(
-                      '$specialty ${'Specialist'.tr}',
-                      style: const TextStyle(
-                        fontSize: 12.5,
-                        color: _kTextSecondary,
-                      ),
+                  // 🌟 عرض اسم التخصص المباشر المحدث أو القادم ديناميكياً من السيرفر بمرونة
+                  const SizedBox(height: 3),
+                  Text(
+                    doctor.departmentName.isNotEmpty
+                        ? doctor.departmentName.tr
+                        : '$specialty ${'Specialist'.tr}',
+                    style: const TextStyle(
+                      fontSize: 12.5,
+                      color: _kTextSecondary,
                     ),
-                  ],
-                  if (doctor.rating != null) ...[
-                    const SizedBox(height: 8),
-                    Row(
-                      children: [
-                        const Icon(
-                          Icons.star_rounded,
-                          color: Color(0xFFFBBF24),
-                          size: 16,
-                        ),
-                        const SizedBox(width: 3),
-                        Text(
-                          doctor.rating!.toStringAsFixed(1),
-                          style: const TextStyle(
-                            fontSize: 12.5,
-                            fontWeight: FontWeight.w700,
-                            color: _kTextPrimary,
-                          ),
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          'rating'.tr,
-                          style: const TextStyle(
-                            fontSize: 12,
-                            color: _kTextSecondary,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
+                  ),
+                  // 🌟 تم إزالة صفوف وأكواد الـ Rating بالكامل هندسياً لمنع الأخطاء والتطابق مع السيرفر
                 ],
               ),
             ),
-
             GestureDetector(
               onTap: onFavoriteTap,
               child: Padding(
@@ -284,7 +249,6 @@ class _DoctorCard extends StatelessWidget {
 
 class _Avatar extends StatelessWidget {
   final String? url;
-
   const _Avatar({required this.url});
 
   @override
@@ -297,7 +261,7 @@ class _Avatar extends StatelessWidget {
         shape: BoxShape.circle,
       ),
       clipBehavior: Clip.antiAlias,
-      child: url != null
+      child: url != null && url!.isNotEmpty
           ? Image.network(
         url!,
         fit: BoxFit.cover,
@@ -321,7 +285,6 @@ class _FallbackPersonIcon extends StatelessWidget {
 
 class _SelectionDot extends StatelessWidget {
   final bool selected;
-
   const _SelectionDot({required this.selected});
 
   @override
@@ -335,9 +298,7 @@ class _SelectionDot extends StatelessWidget {
         shape: BoxShape.circle,
         border: Border.all(color: selected ? _kPrimary : _kBorder, width: 1.5),
       ),
-      child: selected
-          ? const Icon(Icons.check_rounded, color: Colors.white, size: 16)
-          : null,
+      child: selected ? const Icon(Icons.check_rounded, color: Colors.white, size: 16) : null,
     );
   }
 }

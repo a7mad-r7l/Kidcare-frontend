@@ -1,3 +1,4 @@
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:flutter_stripe/flutter_stripe.dart';
@@ -67,6 +68,7 @@ import 'controllers/home/child_profile_controller.dart';
 import 'controllers/home/home_controller.dart';
 import 'controllers/home/profile_controller.dart';
 import 'controllers/payment_controller.dart';
+import 'core/helper/notification_service.dart';
 import 'core/repos/home/appointments_repo.dart';
 import 'core/repos/home/child_profile_repo.dart';
 import 'core/repos/home/home_children_repo.dart';
@@ -78,7 +80,8 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   Stripe.publishableKey =
       'pk_test_51TVx1BA9J421R1e0fArsBqsC3bNgwlcmhH407ymZp4Ncu9aVgwtEMgXg6lWcswqESufx6ZL7arNccQCdJCHA3QUG00GUsDRB6Q';
-
+  await Firebase.initializeApp();
+  await NotificationService.initialize();
   String? savedLang = await SecureStorage.getLanguage();
   Locale initialLocale;
   if (savedLang == null || savedLang == 'system') {

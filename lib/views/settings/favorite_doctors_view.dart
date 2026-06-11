@@ -10,8 +10,7 @@ class FavoriteDoctorsView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final DoctorController doctorController = Get.find<DoctorController>();
-    final AppointmentController appointmentController =
-        Get.find<AppointmentController>();
+    final AppointmentController appointmentController = Get.find<AppointmentController>();
 
     doctorController.loadFavoriteDoctorIds();
 
@@ -51,7 +50,6 @@ class FavoriteDoctorsView extends StatelessWidget {
                   const SizedBox(height: 16),
                   Text(
                     'No doctors available in this department.'.tr,
-
                     style: TextStyle(color: Colors.grey.shade400, fontSize: 14),
                   ),
                 ],
@@ -66,13 +64,10 @@ class FavoriteDoctorsView extends StatelessWidget {
               final doctor = favorites[index];
               return _FavoriteDoctorCard(
                 doctor: doctor,
-
                 onCardTap: () {
                   appointmentController.selectDoctor(doctor);
-
                   Get.toNamed('/choose-child');
                 },
-
                 onFavoriteTap: () => doctorController.toggleFavorite(doctor.id),
               );
             },
@@ -122,24 +117,23 @@ class _FavoriteDoctorCard extends StatelessWidget {
                 shape: BoxShape.circle,
               ),
               clipBehavior: Clip.antiAlias,
-              child: doctor.profilePicture != null
+              child: doctor.profilePicture != null && doctor.profilePicture!.isNotEmpty
                   ? Image.network(
-                      doctor.profilePicture!,
-                      fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => const Icon(
-                        Icons.person_rounded,
-                        color: Colors.blue,
-                        size: 30,
-                      ),
-                    )
+                doctor.profilePicture!,
+                fit: BoxFit.cover,
+                errorBuilder: (_, __, ___) => const Icon(
+                  Icons.person_rounded,
+                  color: Colors.blue,
+                  size: 30,
+                ),
+              )
                   : const Icon(
-                      Icons.person_rounded,
-                      color: Colors.blue,
-                      size: 30,
-                    ),
+                Icons.person_rounded,
+                color: Colors.blue,
+                size: 30,
+              ),
             ),
             const SizedBox(width: 14),
-            // بيانات الطبيب
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -153,34 +147,15 @@ class _FavoriteDoctorCard extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 3),
+                  // 🌟 الإصلاح: قراءة النص المباشر والآمن للقسم المرتجع من البوستمان وترجمته ديناميكياً
                   Text(
-                    'Specialist'.tr,
+                    doctor.departmentName.isNotEmpty ? doctor.departmentName.tr : 'Specialist'.tr,
                     style: const TextStyle(fontSize: 12.5, color: Colors.grey),
                   ),
-                  if (doctor.rating != null) ...[
-                    const SizedBox(height: 6),
-                    Row(
-                      children: [
-                        const Icon(
-                          Icons.star_rounded,
-                          color: Color(0xFFFBBF24),
-                          size: 16,
-                        ),
-                        const SizedBox(width: 3),
-                        Text(
-                          doctor.rating!.toStringAsFixed(1),
-                          style: const TextStyle(
-                            fontSize: 12.5,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
+                  // 🌟 تم حذف كود شرط الـ Rating بالكامل ليتناسق هندسياً مع الـ Model المحدث
                 ],
               ),
             ),
-
             GestureDetector(
               onTap: onFavoriteTap,
               child: const Padding(

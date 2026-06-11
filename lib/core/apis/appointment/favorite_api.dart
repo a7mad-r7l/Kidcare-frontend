@@ -8,7 +8,7 @@ class FavoriteApi {
 
   Future<String> getFavorites(String token) async {
     final response = await client.get(
-      Uri.parse('$baseUrl/favorites'),
+      Uri.parse('$baseUrl/favorite-doctors'),
       headers: {
         'Accept': 'application/json',
         'Authorization': 'Bearer $token',

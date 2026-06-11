@@ -1180,11 +1180,15 @@ import 'dart:convert';
 import 'package:get/get.dart';
 import 'package:flutter/material.dart';
 
+import '../core/helper/secure_storage_service.dart';
+
 class BaseController extends GetxController {
   final _isLoading = false.obs;
+
   bool get isLoading => _isLoading.value;
 
   void showLoading() => _isLoading.value = true;
+
   void hideLoading() => _isLoading.value = false;
 
   void handleError(dynamic e) {
@@ -1195,8 +1199,12 @@ class BaseController extends GetxController {
 
     try {
       if (errorString.contains("401")) {
-
         message = "Incorrect phone number or password.".tr;
+        SecureStorage.removeToken();
+        if (Get.currentRoute != '/login') {
+          Get.offAllNamed('/login');
+          return;
+        }
       } else if (errorString.contains('{') && errorString.contains('}')) {
         final startIndex = errorString.indexOf('{');
         final endIndex = errorString.lastIndexOf('}') + 1;
@@ -1253,6 +1261,142 @@ class BaseController extends GetxController {
     );
   }
 }
+
+```
+
+### File: lib\controllers\growth\child_growth_controller.dart
+```dart
+import 'package:flutter/material.dart';
+import 'package:get/get.dart';
+import '../../core/repos/growth/child_growth_repo.dart';
+import '../../models/growth/child_growth_response_model.dart';
+import '../base_controller.dart';
+
+class ChildGrowthController extends BaseController {
+  final ChildGrowthRepo repo;
+
+  ChildGrowthController({required this.repo});
+
+  late int childId;
+  final Rxn<ChildGrowthResponseModel> growthData =
+      Rxn<ChildGrowthResponseModel>();
+
+  final weightController = TextEditingController();
+  final heightController = TextEditingController();
+  final RxString selectedDate = ''.obs;
+
+  @override
+  void onInit() {
+    super.onInit();
+
+    if (Get.arguments is int) {
+      childId = Get.arguments as int;
+    } else {
+      childId = 0; // Fallback
+    }
+
+    if (childId != 0) {
+      getGrowthDashboard();
+    }
+  }
+
+  /// 1. جلب بيانات النمو والمخطط من السيرفر (GET)
+  Future<void> getGrowthDashboard() async {
+    showLoading();
+    try {
+      final result = await repo.fetchChildGrowthData(childId);
+      growthData.value = result;
+    } catch (e) {
+      handleError(e);
+    } finally {
+      hideLoading();
+    }
+  }
+
+  /// 2. إضافة سجل قياس وزني وطولي جديد (POST)
+  Future<void> addMeasurement() async {
+    final String weightText = weightController.text.trim();
+    final String heightText = heightController.text.trim();
+    final String recordDate = selectedDate.value;
+
+    final double? weight = double.tryParse(weightText);
+    final double? height = double.tryParse(heightText);
+
+    if (weight == null ||
+        height == null ||
+        weight <= 0 ||
+        height <= 0 ||
+        recordDate.isEmpty) {
+      showInfo('Please enter valid weight and height'.tr);
+      return;
+    }
+
+    showLoading();
+    try {
+      final statusResult = await repo.addNewGrowthRecord(
+        childId: childId,
+        height: height,
+        weight: weight,
+        recordDate: recordDate,
+      );
+
+      Get.back();
+      _clearForm();
+
+      showSuccess(
+        '${'Measurement saved successfully'.tr} (${statusResult.tr})',
+      );
+
+      await getGrowthDashboard();
+    } catch (e) {
+      handleError(e);
+    } finally {
+      hideLoading();
+    }
+  }
+
+  /// 3. حذف سجل قياس سابق  (DELETE)
+  Future<void> deleteMeasurement(int growthId) async {
+    showLoading();
+    try {
+      await repo.removeGrowthRecord(growthId);
+
+      await getGrowthDashboard();
+    } catch (e) {
+      handleError(e);
+    } finally {
+      hideLoading();
+    }
+  }
+
+  Future<void> pickRecordDate(BuildContext context) async {
+    final now = DateTime.now();
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: now,
+      firstDate: DateTime(now.year - 6),
+      lastDate: now,
+    );
+    if (picked != null) {
+      selectedDate.value =
+          '${picked.year}-${picked.month.toString().padLeft(2, '0')}-${picked.day.toString().padLeft(2, '0')}';
+    }
+  }
+
+  void _clearForm() {
+    weightController.clear();
+    heightController.clear();
+    selectedDate.value = '';
+  }
+
+  @override
+  void onClose() {
+    weightController.dispose();
+    heightController.dispose();
+    super.onClose();
+  }
+}
+
 ```
 
 ### File: lib\controllers\home\add_child_controller.dart
@@ -2295,6 +2439,86 @@ class VerifyOtpApi {
 
 ```
 
+### File: lib\core\apis\growth\child_growth_api.dart
+```dart
+import 'package:get/get.dart';
+import 'package:http/http.dart' as http;
+import '../../../core/constants.dart';
+import '../../helper/secure_storage_service.dart';
+
+class ChildGrowthApi {
+  final http.Client client;
+
+  ChildGrowthApi({http.Client? client}) : client = client ?? http.Client();
+
+  /// 1. show child growth (GET)
+  Future<http.Response> getGrowthData(int childId) async {
+    final token = await SecureStorage.getToken();
+    if (token.isEmpty) {
+      throw Exception('Session expired. Please login again.'.tr);
+    }
+
+    final response = await client.get(
+      Uri.parse('$baseUrl/children/$childId/growth'),
+      headers: {
+        'Accept': 'application/json',
+        'Authorization': 'Bearer $token',
+        'Accept-Language': Get.locale?.languageCode ?? 'en',
+      },
+    );
+    return response;
+  }
+
+  /// 2. store growth (Post)
+  Future<http.Response> storeGrowthRecord({
+    required int childId,
+    required double height,
+    required double weight,
+    required String recordDate,
+  }) async {
+    final token = await SecureStorage.getToken();
+    if (token.isEmpty) {
+      throw Exception('Session expired. Please login again.'.tr);
+    }
+
+    final response = await client.post(
+      Uri.parse('$baseUrl/growth'),
+      headers: {
+        'Accept': 'application/json',
+        'Authorization': 'Bearer $token',
+        'Accept-Language': Get.locale?.languageCode ?? 'en',
+      },
+      body: {
+        'child_id': childId.toString(),
+        'height': height.toString(),
+        'weight': weight.toString(),
+        'date': recordDate,
+      },
+    );
+    return response;
+  }
+
+  /// 3. delete growth (Delete)
+  Future<http.Response> deleteGrowthRecord(int growthId) async {
+    final token = await SecureStorage.getToken();
+    if (token.isEmpty) {
+      throw Exception('Session expired. Please login again.'.tr);
+    }
+
+    final response = await client.delete(
+      Uri.parse('$baseUrl/growth/$growthId'),
+      headers: {
+        'Accept': 'application/json',
+        'Authorization': 'Bearer $token',
+        'Accept-Language': Get.locale?.languageCode ?? 'en',
+      },
+    );
+    return response;
+  }
+}
+
+```
+
 ### File: lib\core\apis\home\add_child_api.dart
 ```dart
 import 'dart:io';
@@ -2972,6 +3196,7 @@ class AppTranslations extends Translations {
       'About the Clinic': 'About the Clinic',
       'We provide comprehensive healthcare for your children with the highest quality standards.': 'We provide comprehensive healthcare for your children with the highest quality standards.',
       'Read More': 'Read More',
+      'Vaccinations' : 'Vaccinations',
 
       // --- Add Child & Child Profile ---
       'Child Profile': 'Child Profile',
@@ -3115,6 +3340,26 @@ class AppTranslations extends Translations {
       'An unexpected error occurred': 'An unexpected error occurred',
       'favorite_doctors': 'Favorite Doctors',
       'view_favorite_doctors': 'View your favorite doctors',
+      'Session expired. Please login again.': 'Session expired. Please login again.',
+      'Weight (kg)': 'Weight (kg)',
+      'Height (cm)': 'Height (cm)',
+      'Record Date': 'Record Date',
+      'Save Measurement': 'Save Measurement',
+      'Please enter valid weight and height': 'Please enter valid weight and height',
+      'Measurement saved successfully': 'Measurement saved successfully',
+      'Are you sure you want to delete this record?': 'Are you sure you want to delete this record?',
+      'Growth History': 'Growth History',
+      'Age (Months)': 'Age (Months)',
+      'Ideal Weight (WHO)': 'Ideal Weight (WHO)',
+      'Max Limit (WHO)': 'Max Limit (WHO)',
+      'Min Limit (WHO)': 'Min Limit (WHO)',
+      'Child Growth Chart': 'Child Growth Chart',
+      'Status: ': 'Status: ',
+      'Current Weight': 'Current Weight',
+      'Current Height': 'Current Height',
+      'Months': 'Months',
+      'Growth Chart & Weight': 'Growth Chart & Weight',
+      'Appointments & Files': 'Appointments & Files',
     },
 
     // ==========================================================
@@ -3126,7 +3371,7 @@ class AppTranslations extends Translations {
       'Records': 'الملفات',
       'More': 'المزيد',
       'Next': 'التالي',
-      'Or': 'أأو',
+      'Or': 'أو',
       'Cancel': 'إلغاء',
       'Delete': 'حذف',
       'Save': 'حفظ',
@@ -3210,6 +3455,7 @@ class AppTranslations extends Translations {
       'About the Clinic': 'عن العيادة',
       'We provide comprehensive healthcare for your children with the highest quality standards.': 'نقدم رعاية صحية شاملة لأطفالك بأعلى معايير الجودة.',
       'Read More': 'اقرأ المزيد',
+      'Vaccinations' : 'اللقاحات',
 
       // --- Add Child & Child Profile ---
       'Child Profile': 'ملف الطفل',
@@ -3355,6 +3601,26 @@ class AppTranslations extends Translations {
       'An unexpected error occurred': 'حدث خطأ غير متوقع',
       'favorite_doctors': 'الأطباء المفضلون',
       'view_favorite_doctors': 'عرض قائمة أطبائك المفضلين',
+      'Session expired. Please login again.': 'انتهت صلاحية الجلسة. يرجى تسجيل الدخول مجدداً.',
+      'Weight (kg)': 'الوزن (كجم)',
+      'Height (cm)': 'الطول (سم)',
+      'Record Date': 'تاريخ القياس',
+      'Save Measurement': 'حفظ القياس',
+      'Please enter valid weight and height': 'يرجى إدخال وزن وطول صحيحين',
+      'Measurement saved successfully': 'تم حفظ القياس بنجاح',
+      'Are you sure you want to delete this record?': 'هل أنت متأكد من حذف هذا السجل؟',
+      'Growth History': 'سجلات النمو',
+      'Age (Months)': 'العمر (شهر)',
+      'Ideal Weight (WHO)': 'المعدل المثالي (WHO)',
+      'Max Limit (WHO)': 'الحد الأقصى للوزن',
+      'Min Limit (WHO)': 'الحد الأدنى للوزن',
+      'Child Growth Chart': 'منحنى النمو والوزن',
+      'Status: ': 'الحالة: ',
+      'Current Weight': 'الوزن الحالي',
+      'Current Height': 'الطول الحالي',
+      'Months': 'شهر',
+      'Growth Chart & Weight': 'منحنى النمو والوزن',
+      'Appointments & Files': 'المواعيد والملفات',
     },
   };
 }
@@ -3876,6 +4142,87 @@ class VerifyOtpRepo {
 }
 ```
 
+### File: lib\core\repos\growth\child_growth_repo.dart
+```dart
+import 'dart:convert';
+import '../../../models/growth/child_growth_response_model.dart';
+import '../../apis/growth/child_growth_api.dart';
+
+class ChildGrowthRepo {
+  final ChildGrowthApi api;
+
+  ChildGrowthRepo({ChildGrowthApi? api}) : api = api ?? ChildGrowthApi();
+
+  /// 1. معالجة  بيانات مخطط النمو (GET)
+
+  Future<ChildGrowthResponseModel> fetchChildGrowthData(int childId) async {
+    final response = await api.getGrowthData(childId);
+
+    if (response.statusCode == 200) {
+      final Map<String, dynamic> decodedData = json.decode(response.body);
+      return ChildGrowthResponseModel.fromJson(decodedData);
+    } else if (response.statusCode == 401) {
+      throw Exception('401');
+    } else {
+      throw _parseError(response.body);
+    }
+  }
+
+  /// 2. معالجة  إضافة سجل قياس جديد (POST)
+
+  Future<String> addNewGrowthRecord({
+    required int childId,
+    required double height,
+    required double weight,
+    required String recordDate,
+  }) async {
+    final response = await api.storeGrowthRecord(
+      childId: childId,
+      height: height,
+      weight: weight,
+      recordDate: recordDate,
+    );
+
+    if (response.statusCode == 200 || response.statusCode == 201) {
+      final Map<String, dynamic> decodedData = json.decode(response.body);
+
+      return decodedData['status']?.toString() ??
+          decodedData['message']?.toString() ??
+          'Success';
+    } else if (response.statusCode == 401) {
+      throw Exception('401');
+    } else {
+      throw _parseError(response.body);
+    }
+  }
+
+  /// 3. معالجة حذف سجل قياس سابق (DELETE)
+  Future<void> removeGrowthRecord(int growthId) async {
+    final response = await api.deleteGrowthRecord(growthId);
+
+    if (response.statusCode == 200) {
+      return;
+    } else if (response.statusCode == 401) {
+      throw Exception('401');
+    } else {
+      throw _parseError(response.body);
+    }
+  }
+
+  ///  مساعدة لقراءة تفاصيل الخطأ  من الـ API
+  dynamic _parseError(String responseBody) {
+    try {
+      final decoded = json.decode(responseBody);
+      if (decoded is Map && decoded.containsKey('message')) {
+        return decoded['message'];
+      }
+    } catch (_) {}
+    return 'Something went wrong. Please try again.';
+  }
+}
+
+```
+
 ### File: lib\core\repos\home\add_child_repo.dart
 ```dart
 import 'dart:convert';
@@ -4212,6 +4559,7 @@ void main() async {
 
 ### File: lib\main.dart
 ```dart
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:flutter_stripe/flutter_stripe.dart';
@@ -4232,6 +4580,7 @@ import 'package:kidcare/views/auth/login_view.dart';
 // Sign Up
 import 'package:kidcare/views/auth/sign_up_view.dart';
 import 'package:kidcare/core/repos/auth/sign_up_repo.dart';
+import 'package:kidcare/views/settings/favorite_doctors_view.dart';
 import 'controllers/appointment/appointment_controller.dart';
 import 'controllers/auth/sign_up_controller.dart';
 
@@ -4276,10 +4625,13 @@ import 'package:kidcare/views/settings/settings_view.dart';
 
 import 'controllers/home/add_child_controller.dart';
 import 'controllers/home/appointments_controller.dart';
+import 'controllers/home/child_profile_controller.dart';
 import 'controllers/home/home_controller.dart';
 import 'controllers/home/profile_controller.dart';
 import 'controllers/payment_controller.dart';
+import 'core/helper/notification_service.dart';
 import 'core/repos/home/appointments_repo.dart';
+import 'core/repos/home/child_profile_repo.dart';
 import 'core/repos/home/home_children_repo.dart';
 import 'core/repos/home/parent_name_repo.dart';
 import 'core/repos/home/profile_repo.dart';
@@ -4289,7 +4641,8 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   Stripe.publishableKey =
       'pk_test_51TVx1BA9J421R1e0fArsBqsC3bNgwlcmhH407ymZp4Ncu9aVgwtEMgXg6lWcswqESufx6ZL7arNccQCdJCHA3QUG00GUsDRB6Q';
-
+  await Firebase.initializeApp();
+  await NotificationService.initialize();
   String? savedLang = await SecureStorage.getLanguage();
   Locale initialLocale;
   if (savedLang == null || savedLang == 'system') {
@@ -4486,7 +4839,15 @@ class MyApp extends StatelessWidget {
           }),
         ),
 
-        GetPage(name: '/child-profile', page: () => const ChildProfileView()),
+        GetPage(
+          name: '/child-profile',
+          page: () => const ChildProfileView(),
+          binding: BindingsBuilder(() {
+            Get.lazyPut<ChildProfileController>(
+                  () => ChildProfileController(repo: ChildProfileRepo()),
+            );
+          }),
+        ),
         GetPage(
           name: '/profile',
           page: () => const ProfileView(),
@@ -4499,6 +4860,20 @@ class MyApp extends StatelessWidget {
           page: () => const AddChildView(),
           binding: BindingsBuilder(() {
             Get.lazyPut(() => AddChildController(addChildRepo: AddChildRepo()));
+          }),
+        ),
+
+        GetPage(
+          name: '/favorites',
+          page: () => const FavoriteDoctorsView(),
+          binding: BindingsBuilder(() {
+
+            if (!Get.isRegistered<DoctorController>()) {
+              Get.lazyPut(() => DoctorController(repo: DoctorRepo()));
+            }
+            if (!Get.isRegistered<AppointmentController>()) {
+              Get.lazyPut(() => AppointmentController(repo: AppointmentRepo(), doctorRepo: DoctorRepo()));
+            }
           }),
         ),
       ],
@@ -4838,6 +5213,121 @@ class UserModel {
 
       phoneNumber: json['phone_number'].toString(),
       token: token,
+    );
+  }
+}
+
+```
+
+### File: lib\models\growth\child_growth_response_model.dart
+```dart
+import '../../core/helper/json_utils.dart';
+import 'growth_record_model.dart';
+import 'who_standard_model.dart';
+
+class ChildGrowthResponseModel {
+  final String childName;
+  final String childGender;
+  final double currentAgeMonths;
+  final List<GrowthRecordModel> growthHistory;
+  final List<WhoStandardModel> whoStandards;
+
+  const ChildGrowthResponseModel({
+    required this.childName,
+    required this.childGender,
+    required this.currentAgeMonths,
+    required this.growthHistory,
+    required this.whoStandards,
+  });
+
+  factory ChildGrowthResponseModel.fromJson(Map<String, dynamic> json) {
+    return ChildGrowthResponseModel(
+      childName: json['child_name']?.toString() ?? '',
+      childGender: json['child_gender']?.toString() ?? 'male',
+      currentAgeMonths: toDoubleOrNull(json['current_age_months']) ?? 0.0,
+      growthHistory:
+          (json['growth_history'] as List?)
+              ?.map(
+                (e) => GrowthRecordModel.fromJson(e as Map<String, dynamic>),
+              )
+              .toList() ??
+          [],
+      whoStandards:
+          (json['who_standards'] as List?)
+              ?.map((e) => WhoStandardModel.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          [],
+    );
+  }
+}
+
+```
+
+### File: lib\models\growth\growth_record_model.dart
+```dart
+import '../../core/helper/json_utils.dart';
+
+class GrowthRecordModel {
+  final int id;
+  final double height;
+  final double weight;
+  final String date;
+  final int ageInMonths; // الباك إند يعيدها كـ double في حقل القياس
+  final double bmi;
+  final String statusText;
+  final String statusColor;
+
+  const GrowthRecordModel({
+    required this.id,
+    required this.height,
+    required this.weight,
+    required this.date,
+    required this.ageInMonths,
+    required this.bmi,
+    required this.statusText,
+    required this.statusColor,
+  });
+
+  factory GrowthRecordModel.fromJson(Map<String, dynamic> json) {
+    return GrowthRecordModel(
+      id: toIntSafe(json['id']),
+      height: toDoubleOrNull(json['height']) ?? 0.0,
+      weight: toDoubleOrNull(json['weight']) ?? 0.0,
+      date: json['date']?.toString() ?? json['record_date']?.toString() ?? '',
+
+      ageInMonths: toIntSafe(json['age_in_months'] ?? json['age']),
+      bmi: toDoubleOrNull(json['bmi']) ?? 0.0,
+      statusText: json['status_text']?.toString() ?? 'Normal',
+      statusColor: json['status_color']?.toString() ?? '#4CAF50',
+    );
+  }
+}
+
+```
+
+### File: lib\models\growth\who_standard_model.dart
+```dart
+import '../../core/helper/json_utils.dart';
+
+class WhoStandardModel {
+  final int ageInMonths;
+  final double whoMinWeight;
+  final double whoIdeal;
+  final double whoMaxWeight;
+
+  const WhoStandardModel({
+    required this.ageInMonths,
+    required this.whoMinWeight,
+    required this.whoIdeal,
+    required this.whoMaxWeight,
+  });
+
+  factory WhoStandardModel.fromJson(Map<String, dynamic> json) {
+    return WhoStandardModel(
+      ageInMonths: toIntSafe(json['age_in_months']),
+      whoMinWeight: toDoubleOrNull(json['who_min_weight']) ?? 0.0,
+      whoIdeal: toDoubleOrNull(json['who_ideal']) ?? 0.0,
+      whoMaxWeight: toDoubleOrNull(json['who_max_weight']) ?? 0.0,
     );
   }
 }
@@ -7224,6 +7714,175 @@ class VerifyOtpView extends GetView<VerifyOtpController> {
 
 ```
 
+### File: lib\views\growth\child_growth_tab_view.dart
+```dart
+import 'package:flutter/material.dart';
+import 'package:get/get.dart';
+import '../../../controllers/growth/child_growth_controller.dart';
+import '../../../core/repos/growth/child_growth_repo.dart';
+import '../../widgets/growth/add_growth_sheet.dart';
+import '../../widgets/growth/growth_chart_widget.dart';
+import '../../widgets/growth/growth_history_list.dart';
+
+class ChildGrowthTabView extends StatelessWidget {
+  final int childId;
+
+  const ChildGrowthTabView({super.key, required this.childId});
+
+  @override
+  Widget build(BuildContext context) {
+    // حقن وتأمين وجود الـ Controller الخاص بهذه الميزة الفرعية ديناميكياً
+    final controller = Get.put(
+      ChildGrowthController(repo: ChildGrowthRepo()),
+
+    );
+
+    // ربط المعطيات والتأكد من جلب البيانات النظيفة من السيرفر
+    controller.childId = childId;
+
+    return Scaffold(
+      backgroundColor: const Color(0xFFF4F6FA), // تطابق لون خلفية ملف الطفل الحالي
+
+      // الزر العائم الأزرق الذكي لإضافة القياسات الجديدة
+      floatingActionButton: FloatingActionButton(
+        onPressed: () {
+          // فتح الورقة السفلية التي بنيناها مع تصفير الحقول للجاهزية
+          controller.selectedDate.value = '';
+          Get.bottomSheet(
+            const AddGrowthSheet(),
+            isScrollControlled: true, // للسماح للكيبورد بالصعود بحرية
+          );
+        },
+        backgroundColor: const Color(0xFF3B9EFF), // اللون الأزرق البراند للمشروع
+        shape: const CircleBorder(),
+        child: const Icon(Icons.add, color: Colors.white, size: 28),
+      ),
+
+      body: Obx(() {
+        // 1. حالة التحميل الصامتة والأنيقة للمؤشر الموحد
+        if (controller.isLoading && controller.growthData.value == null) {
+          return const Center(child: CircularProgressIndicator(color: Colors.blue));
+        }
+
+        final data = controller.growthData.value;
+        if (data == null) {
+          return Center(
+            child: Text('Failed to load profile'.tr, style: const TextStyle(color: Colors.grey)),
+          );
+        }
+
+        return RefreshIndicator(
+          onRefresh: () => controller.getGrowthDashboard(),
+          color: Colors.blue,
+          child: SingleChildScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // ─── كروت القياسات العلوية السريعة (الوزن الحالي وطول الطفل)
+                _buildQuickStatsSection(data.growthHistory, data.currentAgeMonths),
+                const SizedBox(height: 16),
+
+                // ─── ويدجت المخطط البياني التفاعلي المتكامل من الخطوة الخامسة
+                GrowthChartWidget(data: data),
+                const SizedBox(height: 20),
+
+                // ─── ترويسة سجلات النمو السفلية
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Growth History'.tr,
+                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF1A2E5A)),
+                    ),
+                    Icon(Icons.sort_rounded, color: Colors.grey.shade600, size: 20),
+                  ],
+                ),
+                const SizedBox(height: 12),
+
+                // ─── ويدجت قائمة القياسات التاريخية المفصلة من الخطوة السادسة
+                GrowthHistoryList(data: data),
+                const SizedBox(height: 60), // حماية الفراغ للزر العائم السفلّي
+              ],
+            ),
+          ),
+        );
+      }),
+    );
+  }
+
+  /// بناء اللوحة العلوية التفاعلية للقياسات الفورية للطفل
+  Widget _buildQuickStatsSection(List<dynamic> history, double rawAge) {
+    // استخراج أحدث قراءة مُدخلة بشكل آمن
+    final latestRecord = history.isNotEmpty ? history.first : null;
+    final displayWeight = latestRecord != null ? '${latestRecord.weight} ${'kg'.tr}' : '--';
+    final displayHeight = latestRecord != null ? '${latestRecord.height} ${'cm'.tr}' : '--';
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.grey.shade100),
+      ),
+      child: Row(
+        children: [
+          // كارت الوزن
+          Expanded(
+            child: _QuickStatCard(
+              icon: Icons.scale_outlined,
+              label: 'Current Weight'.tr,
+              value: displayWeight,
+            ),
+          ),
+          Container(width: 1, height: 40, color: Colors.grey.shade100),
+          // كارت الطول
+          Expanded(
+            child: _QuickStatCard(
+              icon: Icons.straighten_outlined,
+              label: 'Current Height'.tr,
+              value: displayHeight,
+            ),
+          ),
+          Container(width: 1, height: 40, color: Colors.grey.shade100),
+          // كارت العمر بالأشهر الصريح
+          Expanded(
+            child: _QuickStatCard(
+              icon: Icons.calendar_month_outlined,
+              label: 'Age'.tr,
+              value: '${rawAge.toInt()} ${'Months'.tr}', // تحويل وعرض كرقم صحيح
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _QuickStatCard extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final String value;
+
+  const _QuickStatCard({required this.icon, required this.label, required this.value});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Icon(icon, color: const Color(0xFF3B9EFF), size: 22),
+        const SizedBox(height: 6),
+        Text(label, style: TextStyle(fontSize: 11, color: Colors.grey.shade500, fontWeight: FontWeight.w500)),
+        const SizedBox(height: 4),
+        Text(value, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Color(0xFF1A2E5A))),
+      ],
+    );
+  }
+}
+```
+
 ### File: lib\views\home\add_child_view.dart
 ```dart
 import 'package:flutter/material.dart';
@@ -7916,21 +8575,25 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../controllers/home/child_profile_controller.dart';
 import '../../models/appointment/child_model.dart';
+import '../growth/child_growth_tab_view.dart'; // استدعاء واجهة المنحنى الشاملة
 
 class ChildProfileView extends GetView<ChildProfileController> {
   const ChildProfileView({super.key});
 
   @override
   Widget build(BuildContext context) {
+    // متغير Rx محلي للتحكم بالتنقل بين التبويبات (True = منحنى النمو، False = المواعيد والبيانات)
+    final RxBool isGrowthTab = true.obs;
+
     return Scaffold(
       backgroundColor: const Color(0xFFF4F6FA),
       appBar: AppBar(
         backgroundColor: const Color(0xFFF4F6FA),
         elevation: 0,
         centerTitle: true,
-        title:  Text(
+        title: Text(
           'Child Profile'.tr,
-          style: TextStyle(
+          style: const TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.bold,
             color: Color(0xFF1A2E5A),
@@ -7948,101 +8611,196 @@ class ChildProfileView extends GetView<ChildProfileController> {
 
         final child = controller.child.value;
         if (child == null) {
-          return  Center(child: Text('Failed to load profile'.tr));
+          return Center(child: Text('Failed to load profile'.tr));
         }
 
-        return SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-          child: Column(
-            children: [
-              _InfoCard(child: child),
-              const SizedBox(height: 16),
-              _StatsCard(child: child),
-              const SizedBox(height: 16),
+        return Column(
+          children: [
+            // ─── القسم العلوي الثابت: كارت معلومات الطفل الأساسية ───
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
+              child: _InfoCard(child: child),
+            ),
+            const SizedBox(height: 16),
 
-              // كارت التاريخ الطبي
-              if (child.medicalHistory != null && child.medicalHistory!.isNotEmpty) ...[
-                _DataCard(title: 'Medical History'.tr, content: child.medicalHistory!),
-                const SizedBox(height: 16),
-              ],
-
-              // كارت الحساسية
-              if (child.allergies != null && child.allergies!.isNotEmpty) ...[
-                _DataCard(title: 'Allergies'.tr, content: child.allergies!),
-                const SizedBox(height: 16),
-              ],
-
-              _ActionButton(
-                icon: Icons.vaccines_outlined,
-                label: 'Vaccination Record'.tr,
-                color: Colors.blue,
-                onTap: () => Get.toNamed('/vaccinations', arguments: child.id),
-              ),
-              const SizedBox(height: 10),
-              _ActionButton(
-                icon: Icons.calendar_today_outlined,
-                label: 'Appointments'.tr,
-                color: Colors.blue,
-                onTap: () => Get.toNamed('/appointments', arguments: child.id),
-              ),
-              const SizedBox(height: 16),
-
-              // Delete Button
-              SizedBox(
-                width: double.infinity,
-                height: 54,
-                child: ElevatedButton.icon(
-                  onPressed: () {
-                    Get.dialog(
-                      AlertDialog(
-                        title:  Text('Delete Child'.tr),
-                        content:  Text(
-                          'Are you sure you want to delete this child profile? This action cannot be undone.'.tr,
-                        ),
-                        actions: [
-                          TextButton(
-                            onPressed: () => Get.back(),
-                            child:  Text('Cancel'.tr),
+            // ─── نظام التبويبات المخصص (Custom Tabs Switcher) المطابق للصورة ───
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Container(
+                padding: const EdgeInsets.all(4),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFEFF2F8),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: Row(
+                  children: [
+                    // تبويب منحنى النمو والوزن
+                    Expanded(
+                      child: GestureDetector(
+                        onTap: () => isGrowthTab.value = true,
+                        child: Obx(() => AnimatedContainer(
+                          duration: const Duration(milliseconds: 200),
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          decoration: BoxDecoration(
+                            color: isGrowthTab.value ? const Color(0xFF2ecc71) : Colors.transparent, // اللون الأخضر المطابق للصورة
+                            borderRadius: BorderRadius.circular(12),
                           ),
-                          TextButton(
-                            onPressed: () {
-                              Get.back();
-                              controller.deleteCurrentChild();
-                            },
-                            child:  Text('Delete'.tr, style: TextStyle(color: Colors.red)),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.show_chart_rounded,
+                                color: isGrowthTab.value ? Colors.white : Colors.grey.shade600,
+                                size: 18,
+                              ),
+                              const SizedBox(width: 6),
+                              Text(
+                                'Growth Chart & Weight'.tr,
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 13,
+                                  color: isGrowthTab.value ? Colors.white : Colors.grey.shade700,
+                                ),
+                              ),
+                            ],
                           ),
-                        ],
+                        )),
                       ),
-                    );
-                  },
-                  icon: const Icon(Icons.delete_outline, color: Colors.white),
-                  label:  Text(
-                    'Delete Child Profile'.tr,
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
                     ),
-                  ),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.red.shade400,
-                    elevation: 0,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
+
+                    // تبويب المواعيد والبيانات الطبية
+                    Expanded(
+                      child: GestureDetector(
+                        onTap: () => isGrowthTab.value = false,
+                        child: Obx(() => AnimatedContainer(
+                          duration: const Duration(milliseconds: 200),
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          decoration: BoxDecoration(
+                            color: !isGrowthTab.value ? const Color(0xFF3B9EFF) : Colors.transparent, // اللون الأزرق للمشروع عند النشاط
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.assignment_outlined,
+                                color: !isGrowthTab.value ? Colors.white : Colors.grey.shade600,
+                                size: 18,
+                              ),
+                              const SizedBox(width: 6),
+                              Text(
+                                'Appointments & Files'.tr,
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 13,
+                                  color: !isGrowthTab.value ? Colors.white : Colors.grey.shade700,
+                                ),
+                              ),
+                            ],
+                          ),
+                        )),
+                      ),
                     ),
-                  ),
+                  ],
                 ),
               ),
-              const SizedBox(height: 30),
-            ],
-          ),
+            ),
+            const SizedBox(height: 10),
+
+            // ─── العرض الديناميكي لمحتوى التبويبات بناءً على الاختيار ───
+            Expanded(
+              child: Obx(() {
+                if (isGrowthTab.value) {
+                  // عرض ميزتك الجديدة المتكاملة وتمرير الـ ID المباشر لها
+                  return ChildGrowthTabView(childId: controller.childId);
+                } else {
+                  // عرض كود زميلك القديم بالكامل دون تعديل أو تخريب
+                  return SingleChildScrollView(
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
+                    child: Column(
+                      children: [
+                        _StatsCard(child: child),
+                        const SizedBox(height: 16),
+
+                        if (child.medicalHistory != null && child.medicalHistory!.isNotEmpty) ...[
+                          _DataCard(title: 'Medical History'.tr, content: child.medicalHistory!),
+                          const SizedBox(height: 16),
+                        ],
+
+                        if (child.allergies != null && child.allergies!.isNotEmpty) ...[
+                          _DataCard(title: 'Allergies'.tr, content: child.allergies!),
+                          const SizedBox(height: 16),
+                        ],
+
+                        _ActionButton(
+                          icon: Icons.vaccines_outlined,
+                          label: 'Vaccination Record'.tr,
+                          color: Colors.blue,
+                          onTap: () => Get.toNamed('/vaccinations', arguments: child.id),
+                        ),
+                        const SizedBox(height: 10),
+                        _ActionButton(
+                          icon: Icons.calendar_today_outlined,
+                          label: 'Appointments'.tr,
+                          color: Colors.blue,
+                          onTap: () => Get.toNamed('/appointments', arguments: child.id),
+                        ),
+                        const SizedBox(height: 16),
+
+                        // زر الحذف الأصلي الخاص بزميلك
+                        SizedBox(
+                          width: double.infinity,
+                          height: 54,
+                          child: ElevatedButton.icon(
+                            onPressed: () {
+                              Get.dialog(
+                                AlertDialog(
+                                  title: Text('Delete Child'.tr),
+                                  content: Text('Are you sure you want to delete this child profile? This action cannot be undone.'.tr),
+                                  actions: [
+                                    TextButton(
+                                      onPressed: () => Get.back(),
+                                      child: Text('Cancel'.tr),
+                                    ),
+                                    TextButton(
+                                      onPressed: () {
+                                        Get.back();
+                                        controller.deleteCurrentChild();
+                                      },
+                                      child: Text('Delete'.tr, style: const TextStyle(color: Colors.red)),
+                                    ),
+                                  ],
+                                ),
+                              );
+                            },
+                            icon: const Icon(Icons.delete_outline, color: Colors.white),
+                            label: Text(
+                              'Delete Child Profile'.tr,
+                              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
+                            ),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.red.shade400,
+                              elevation: 0,
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 30),
+                      ],
+                    ),
+                  );
+                }
+              }),
+            ),
+          ],
         );
       }),
     );
   }
 }
 
-// ─── Info Card ───
+// ─── الأكواد الفرعية لـ زميلك كما هي 100% دون أي تعديل يذكر ───
+
 class _InfoCard extends StatelessWidget {
   final ChildModel child;
 
@@ -8072,10 +8830,10 @@ class _InfoCard extends StatelessWidget {
           const SizedBox(width: 20),
           Expanded(
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start, // تم التعديل لتتناسق الواجهة
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  child.fullName,
+                 child.fullName,
                   style: const TextStyle(
                     fontSize: 22,
                     fontWeight: FontWeight.bold,
@@ -8113,7 +8871,6 @@ class _InfoCard extends StatelessWidget {
   }
 }
 
-// ─── Stats Card ───
 class _StatsCard extends StatelessWidget {
   final ChildModel child;
   const _StatsCard({required this.child});
@@ -8128,7 +8885,7 @@ class _StatsCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
+            color: Colors.black.withOpacity(0.04),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -8203,7 +8960,6 @@ class _VerticalDivider extends StatelessWidget {
   }
 }
 
-// ─── Data Card (للحساسية والتاريخ الطبي) ───
 class _DataCard extends StatelessWidget {
   final String title;
   final String content;
@@ -8220,7 +8976,7 @@ class _DataCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
+            color: Colors.black.withOpacity(0.04),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -8257,7 +9013,6 @@ class _DataCard extends StatelessWidget {
   }
 }
 
-// ─── Action Button ───
 class _ActionButton extends StatelessWidget {
   final IconData icon;
   final String label;
@@ -8280,7 +9035,7 @@ class _ActionButton extends StatelessWidget {
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.04),
+              color: Colors.black.withOpacity(0.04),
               blurRadius: 10,
               offset: const Offset(0, 4),
             ),
@@ -11243,6 +11998,740 @@ class _OtpBoxState extends State<OtpBox> {
     );
   }
 }
+```
+
+### File: lib\widgets\growth\add_growth_sheet.dart
+```dart
+import 'package:flutter/material.dart';
+import 'package:get/get.dart';
+import '../../../controllers/growth/child_growth_controller.dart';
+
+class AddGrowthSheet extends StatelessWidget {
+  const AddGrowthSheet({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final controller = Get.find<ChildGrowthController>();
+
+    return Container(
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      padding: EdgeInsets.only(
+        top: 20,
+        left: 20,
+        right: 20,
+        // تأمين حقول الإدخال عند صعود لوحة المفاتيح (Keyboard Avoidance)
+        bottom: MediaQuery.of(context).viewInsets.bottom + 20,
+      ),
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // شريط السحب العلوي للتصميم الأنيق
+            Center(
+              child: Container(
+                width: 45,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade300,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+            ),
+            const SizedBox(height: 20),
+
+            // عنوان النافذة المنبثقة
+            Text(
+              'Save Measurement'.tr,
+              style: const TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF1A2E5A),
+              ),
+            ),
+            const SizedBox(height: 20),
+
+            // 1. حقل إدخال الوزن (كيلوجرام)
+            Text(
+              'Weight (kg)'.tr,
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: Colors.grey.shade700,
+              ),
+            ),
+            const SizedBox(height: 8),
+            TextField(
+              controller: controller.weightController,
+              keyboardType: const TextInputType.numberWithOptions(
+                decimal: true,
+              ),
+              decoration: InputDecoration(
+                hintText: '0.0',
+                prefixIcon: const Icon(Icons.scale_outlined, size: 20),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 14,
+                ),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(14),
+                  borderSide: BorderSide(color: Colors.grey.shade200),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(14),
+                  borderSide: BorderSide(color: Colors.grey.shade200),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(14),
+                  borderSide: const BorderSide(color: Colors.blue),
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+
+            // 2. حقل إدخال الطول (سنتيمتر)
+            Text(
+              'Height (cm)'.tr,
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: Colors.grey.shade700,
+              ),
+            ),
+            const SizedBox(height: 8),
+            TextField(
+              controller: controller.heightController,
+              keyboardType: const TextInputType.numberWithOptions(
+                decimal: true,
+              ),
+              decoration: InputDecoration(
+                hintText: '0.0',
+                prefixIcon: const Icon(Icons.straighten_outlined, size: 20),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 14,
+                ),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(14),
+                  borderSide: BorderSide(color: Colors.grey.shade200),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(14),
+                  borderSide: BorderSide(color: Colors.grey.shade200),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(14),
+                  borderSide: const BorderSide(color: Colors.blue),
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+
+            // 3. حقل اختيار تاريخ القياس (Date Picker Trigger)
+            Text(
+              'Record Date'.tr,
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: Colors.grey.shade700,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Obx(
+              () => GestureDetector(
+                onTap: () => controller.pickRecordDate(context),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 14,
+                  ),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(color: Colors.grey.shade200),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        controller.selectedDate.value.isEmpty
+                            ? 'YYYY-MM-DD'
+                            : controller.selectedDate.value,
+                        style: TextStyle(
+                          color: controller.selectedDate.value.isEmpty
+                              ? Colors.grey.shade400
+                              : Colors.black,
+                          fontSize: 14,
+                        ),
+                      ),
+                      Icon(
+                        Icons.calendar_month_outlined,
+                        color: Colors.grey.shade500,
+                        size: 20,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 28),
+
+            // 4. زر حفظ القياس النهائي المتصل بالـ API
+            SizedBox(
+              width: double.infinity,
+              height: 52,
+              child: ElevatedButton(
+                onPressed: () => controller.addMeasurement(),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF1A2E5A),
+                  // لون المشروع الداكن الموحد
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  elevation: 0,
+                ),
+                child: Text(
+                  'Save Measurement'.tr,
+                  style: const TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+```
+
+### File: lib\widgets\growth\growth_chart_widget.dart
+```dart
+import 'package:flutter/material.dart';
+import 'package:fl_chart/fl_chart.dart';
+import 'package:get/get.dart';
+import '../../../models/growth/child_growth_response_model.dart';
+import '../../../models/growth/growth_record_model.dart';
+import 'dart:math' as math;
+
+class GrowthChartWidget extends StatelessWidget {
+  final ChildGrowthResponseModel data;
+
+  const GrowthChartWidget({super.key, required this.data});
+
+  @override
+  Widget build(BuildContext context) {
+    final isRtl = Get.locale?.languageCode == 'ar';
+
+    return Container(
+      height: 320,
+      padding: const EdgeInsets.fromLTRB(12, 20, 20, 12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.grey.shade100),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildLegend(),
+          const SizedBox(height: 16),
+          Expanded(child: LineChart(_buildChartData(context, isRtl))),
+        ],
+      ),
+    );
+  }
+
+  /// بناء دليل الألوان والخطوط أعلى المخطط (Legend)
+  Widget _buildLegend() {
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.start,
+        children: [
+          _LegendItem(
+            color: Colors.blue,
+            label: '${'weight'.tr} ${data.childName}',
+            isDot: false,
+          ),
+          const SizedBox(width: 12),
+          _LegendItem(
+            color: Colors.green,
+            label: 'Ideal Weight (WHO)'.tr,
+            isDot: true,
+          ),
+          const SizedBox(width: 12),
+          _LegendItem(
+            color: Colors.redAccent,
+            label: 'Max Limit (WHO)'.tr,
+            isDot: true,
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// إعداد وهيكلة البيانات الرياضية للمخطط البياني
+  LineChartData _buildChartData(BuildContext context, bool isRtl) {
+    // 1. إنشاء نقاط خط منظمة الصحة العالمية (المثالي)
+    final List<FlSpot> idealSpots = data.whoStandards
+        .map((e) => FlSpot(e.ageInMonths.toDouble(), e.whoIdeal))
+        .toList();
+
+    // 2. إنشاء نقاط خط منظمة الصحة العالمية (الأقصى)
+    final List<FlSpot> maxSpots = data.whoStandards
+        .map((e) => FlSpot(e.ageInMonths.toDouble(), e.whoMaxWeight))
+        .toList();
+
+    // 3. إنشاء نقاط خط منظمة الصحة العالمية (الأدنى)
+    final List<FlSpot> minSpots = data.whoStandards
+        .map((e) => FlSpot(e.ageInMonths.toDouble(), e.whoMinWeight))
+        .toList();
+
+    // 4. إنشاء نقاط خط نمو الطفل الفعلي (المرتب تصاعدياً حسب الأشهر)
+    final List<GrowthRecordModel> sortedHistory = List.from(data.growthHistory)
+      ..sort((a, b) => a.ageInMonths.compareTo(b.ageInMonths));
+
+    final List<FlSpot> childSpots = sortedHistory
+        .map((e) => FlSpot(e.ageInMonths.toDouble(), e.weight))
+        .toList();
+    // 🌟 حساب الحد الأقصى للعمر والوزن ديناميكياً لكي يتمدد المخطط مع الأطفال الأكبر سناً
+    final double maxAgeInData = sortedHistory.isNotEmpty ? sortedHistory.last.ageInMonths.toDouble() : 0;
+    final double maxWeightInData = sortedHistory.isNotEmpty ? sortedHistory.map((e) => e.weight).reduce(math.max) : 0;
+
+    final double calculatedMaxX = math.max(36.0, maxAgeInData + 2); // إضافة هامش أمامي
+    final double calculatedMaxY = math.max(20.0, maxWeightInData + 5);
+
+    return LineChartData(
+      clipData: const FlClipData.all(),
+      gridData: FlGridData(
+        show: true,
+        drawVerticalLine: true,
+        horizontalInterval: 5,
+        verticalInterval: 6,
+        getDrawingHorizontalLine: (value) =>
+            FlLine(color: Colors.grey.shade100, strokeWidth: 1),
+        getDrawingVerticalLine: (value) =>
+            FlLine(color: Colors.grey.shade100, strokeWidth: 1),
+      ),
+      titlesData: FlTitlesData(
+        show: true,
+        rightTitles: const AxisTitles(
+          sideTitles: SideTitles(showTitles: false),
+        ),
+        topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+        bottomTitles: AxisTitles(
+          axisNameWidget: Text(
+            'Age (Months)'.tr,
+            style: TextStyle(
+              fontSize: 11,
+              color: Colors.grey.shade600,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          axisNameSize: 20,
+          sideTitles: SideTitles(
+            showTitles: true,
+            interval: 6,
+            getTitlesWidget: (value, meta) => Padding(
+              padding: const EdgeInsets.only(top: 6),
+              child: Text(
+                value.toInt().toString(),
+                style: TextStyle(color: Colors.grey.shade500, fontSize: 11),
+              ),
+            ),
+          ),
+        ),
+        leftTitles: AxisTitles(
+          axisNameWidget: Text(
+            'Weight (kg)'.tr,
+            style: TextStyle(
+              fontSize: 11,
+              color: Colors.grey.shade600,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          axisNameSize: 20,
+          sideTitles: SideTitles(
+            showTitles: true,
+            interval: 5,
+            getTitlesWidget: (value, meta) => Text(
+              value.toInt().toString(),
+              style: TextStyle(color: Colors.grey.shade500, fontSize: 11),
+            ),
+          ),
+        ),
+      ),
+      borderData: FlBorderData(show: false),
+      minX: 0,
+      maxX: calculatedMaxX,
+      // تمثيل المخطط حتى عمر 3 سنوات (36 شهراً) كمعيار مرجعي
+      minY: 0,
+      maxY: calculatedMaxY,
+      // أقصى وزن متوقع للأطفال في هذا السن
+      lineBarsData: [
+        // خط الحد الأدنى (منقط باللون الأحمر الخفيف)
+        LineChartBarData(
+          spots: minSpots,
+          isCurved: true,
+          color: Colors.redAccent.withOpacity(0.4),
+          barWidth: 1.5,
+          isStrokeCapRound: true,
+          dotData: const FlDotData(show: false),
+          dashArray: [4, 4],
+        ),
+        // خط الحد الأقصى (منقط باللون الأحمر الخفيف)
+        LineChartBarData(
+          spots: maxSpots,
+          isCurved: true,
+          color: Colors.redAccent.withOpacity(0.6),
+          barWidth: 1.5,
+          isStrokeCapRound: true,
+          dotData: const FlDotData(show: false),
+          dashArray: [4, 4],
+        ),
+        // خط المعدل المثالي لمنظمة الصحة العالمية (منقط باللون الأخضر)
+        LineChartBarData(
+          spots: idealSpots,
+          isCurved: true,
+          color: Colors.green.withOpacity(0.7),
+          barWidth: 2,
+          isStrokeCapRound: true,
+          dotData: const FlDotData(show: false),
+          dashArray: [4, 4],
+        ),
+        // خط وزن الطفل الفعلي (بارز، سميك، بلون أزرق متصل مع نقاط ارتكاز دائرية)
+        LineChartBarData(
+          spots: childSpots,
+          isCurved: false,
+          color: Colors.blue.shade700,
+          barWidth: 3.5,
+          isStrokeCapRound: true,
+          dotData: FlDotData(
+            show: true,
+            getDotPainter: (spot, percent, barData, index) =>
+                FlDotCirclePainter(
+                  radius: 5,
+                  color: Colors.blue.shade800,
+                  strokeWidth: 2,
+                  strokeColor: Colors.white,
+                ),
+          ),
+        ),
+      ],
+      // تخصيص نافذة الـ Tooltip المنبثقة عند لمس النقاط بشكل مطابق تماماً للصورة
+      lineTouchData: LineTouchData(
+        touchTooltipData: LineTouchTooltipData(
+          getTooltipColor: (touchedSpot) => const Color(0xFF212121),
+          getTooltipItems: (List<LineBarSpot> touchedSpots) {
+            return touchedSpots.map((barSpot) {
+              if (barSpot.barIndex == 3) {
+                // التفاعل مع خط الطفل الفعلي فقط
+                final index = barSpot.spotIndex;
+                if (index < sortedHistory.length) {
+                  final record = sortedHistory[index];
+                  return LineTooltipItem(
+                    '${record.date}\n${'Weight (kg)'.tr}: ${record.weight}\n${'Status: '.tr}${record.statusText.tr}',
+                    const TextStyle(
+                      color: Colors.white,
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                      height: 1.4,
+                    ),
+                  );
+                }
+              }
+              return null;
+            }).toList();
+          },
+        ),
+      ),
+    );
+  }
+}
+
+class _LegendItem extends StatelessWidget {
+  final Color color;
+  final String label;
+  final bool isDot;
+
+  const _LegendItem({
+    required this.color,
+    required this.label,
+    required this.isDot,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        if (isDot)
+          Row(
+            children: List.generate(
+              3,
+              (index) => Container(
+                width: 5,
+                height: 2,
+                margin: const EdgeInsets.symmetric(horizontal: 1),
+                color: color,
+              ),
+            ),
+          )
+        else
+          Container(width: 14, height: 3, color: color),
+        const SizedBox(width: 6),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 12,
+            color: Colors.grey.shade700,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+```
+
+### File: lib\widgets\growth\growth_history_list.dart
+```dart
+import 'package:flutter/material.dart';
+import 'package:get/get.dart';
+import '../../../controllers/growth/child_growth_controller.dart';
+import '../../../models/growth/child_growth_response_model.dart';
+import '../../../models/growth/growth_record_model.dart';
+
+class GrowthHistoryList extends StatelessWidget {
+  final ChildGrowthResponseModel data;
+
+  const GrowthHistoryList({super.key, required this.data});
+
+  @override
+  Widget build(BuildContext context) {
+    final controller = Get.find<ChildGrowthController>();
+
+    // 1. ترتيب السجلات تنازلياً (الأحدث أولاً) وفقاً للتصميم
+    final List<GrowthRecordModel> sortedHistory = List.from(data.growthHistory)
+      ..sort((a, b) => b.ageInMonths.compareTo(a.ageInMonths));
+
+    if (sortedHistory.isEmpty) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 32),
+          child: Text(
+            'No appointments found'.tr,
+            // إعادة استخدام حقل المفتاح الفارغ الموحد
+            style: TextStyle(color: Colors.grey.shade400, fontSize: 14),
+          ),
+        ),
+      );
+    }
+
+    return ListView.separated(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      // لتعمل بسلاسة داخل شاشة التمرير الأساسية
+      itemCount: sortedHistory.length,
+      separatorBuilder: (context, index) => const SizedBox(height: 12),
+      itemBuilder: (context, index) {
+        final record = sortedHistory[index];
+        return _HistoryCard(record: record, controller: controller);
+      },
+    );
+  }
+}
+
+class _HistoryCard extends StatelessWidget {
+  final GrowthRecordModel record;
+  final ChildGrowthController controller;
+
+  const _HistoryCard({required this.record, required this.controller});
+
+  @override
+  Widget build(BuildContext context) {
+    // تحويل لون الـ Hex النصي القادم من السيرفر إلى كائن Color مع تأمين الافتراضي
+    Color badgeColor;
+    try {
+      badgeColor = Color(int.parse(record.statusColor.replaceAll('#', '0xFF')));
+    } catch (_) {
+      badgeColor = const Color(0xFF4CAF50); // الافتراضي الأخضر
+    }
+
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.02),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+        border: Border.all(color: Colors.grey.shade100),
+      ),
+      child: Row(
+        children: [
+          // أيقونة الميزان/القياس الجانبية المطابقة للتصميم
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF0F4FF),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: const Icon(
+              Icons.assignment_outlined,
+              color: Colors.blue,
+              size: 24,
+            ),
+          ),
+          const SizedBox(width: 12),
+
+          // تفاصيل القياسات (وزن | طول | عمر دقيق)
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Text(
+                      '${'Weight'.tr}: ${record.weight} ${'kg'.tr}',
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                        color: Color(0xFF1A2E5A),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      '|  ${'Height'.tr}: ${record.height} ${'cm'.tr}',
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: Colors.grey.shade600,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 6),
+                Row(
+                  children: [
+                    Text(
+                      record.date,
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: Colors.grey.shade500,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Container(
+                      width: 4,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: Colors.grey.shade300,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      '${'Age'.tr} ${record.ageInMonths.toInt()} ${'months_old'.tr}', // تدوير الكسور لعمر صحيح
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: Colors.grey.shade500,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+
+          // شارة التقييم الطبي وزر الحذف
+          Expanded(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Expanded(
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 6,
+                    ),
+                    decoration: BoxDecoration(
+                      color: badgeColor.withOpacity(0.12),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Text(
+                      record.statusText.tr, // ترجمة التقييم الطبي ديناميكياً
+                      style: TextStyle(
+                        color: badgeColor,
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                      maxLines: 1,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                IconButton(icon: Icon(Icons.delete_outline_rounded, color: Colors.red.shade400, size: 22),
+                  onPressed: () => _confirmDelete(context, record.id),),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// مربع حوار GetX لتأكيد عملية الحذف القسري
+  void _confirmDelete(BuildContext context, int growthId) {
+    Get.dialog(
+      AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text(
+          'Delete'.tr,
+          style: const TextStyle(fontWeight: FontWeight.bold),
+        ),
+        content: Text('Are you sure you want to delete this record?'.tr),
+        actions: [
+          TextButton(
+            onPressed: () => Get.back(),
+            child: Text(
+              'Cancel'.tr,
+              style: TextStyle(color: Colors.grey.shade600),
+            ),
+          ),
+          TextButton(
+            onPressed: () {
+              Get.back();
+              controller.deleteMeasurement(growthId);
+            },
+            child: Text(
+              'Delete'.tr,
+              style: const TextStyle(
+                color: Colors.red,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 ```
 
 ### File: lib\widgets\main_bottom_nav.dart

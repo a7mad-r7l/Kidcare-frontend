@@ -10,18 +10,17 @@ class FavoriteDoctorsView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final DoctorController doctorController = Get.find<DoctorController>();
-    final AppointmentController appointmentController =
-        Get.find<AppointmentController>();
+    final AppointmentController appointmentController = Get.find<AppointmentController>();
 
     doctorController.loadFavoriteDoctorIds();
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F9FD),
+      // ❌ تم إزالة backgroundColor ليقرأ خلفية النظام تلقائياً
       appBar: AppBar(
         title: Text(
           'favorite_doctors'.tr,
-          style: const TextStyle(
-            color: Color(0xFF1D2755),
+          style: TextStyle(
+            color: context.textTheme.bodyLarge?.color, // ─── نص متكيف ───
             fontWeight: FontWeight.bold,
             fontSize: 20,
           ),
@@ -30,7 +29,7 @@ class FavoriteDoctorsView extends StatelessWidget {
         elevation: 0,
         centerTitle: true,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios, color: Colors.blue),
+          icon: Icon(Icons.arrow_back_ios, color: context.iconColor), // ─── أيقونة متكيفة ───
           onPressed: () => Get.back(),
         ),
       ),
@@ -46,13 +45,12 @@ class FavoriteDoctorsView extends StatelessWidget {
                   Icon(
                     Icons.favorite_border_rounded,
                     size: 64,
-                    color: Colors.grey.shade300,
+                    color: context.theme.dividerColor, // ─── أيقونة متكيفة ───
                   ),
                   const SizedBox(height: 16),
                   Text(
                     'No doctors available in this department.'.tr,
-
-                    style: TextStyle(color: Colors.grey.shade400, fontSize: 14),
+                    style: TextStyle(color: context.textTheme.bodyMedium?.color, fontSize: 14), // ─── نص متكيف ───
                   ),
                 ],
               ),
@@ -66,13 +64,10 @@ class FavoriteDoctorsView extends StatelessWidget {
               final doctor = favorites[index];
               return _FavoriteDoctorCard(
                 doctor: doctor,
-
                 onCardTap: () {
                   appointmentController.selectDoctor(doctor);
-
                   Get.toNamed('/choose-child');
                 },
-
                 onFavoriteTap: () => doctorController.toggleFavorite(doctor.id),
               );
             },
@@ -102,11 +97,11 @@ class _FavoriteDoctorCard extends StatelessWidget {
         margin: const EdgeInsets.only(bottom: 12),
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: context.theme.cardColor, // ─── خلفية البطاقة متكيفة ───
           borderRadius: BorderRadius.circular(18),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.04),
+              color: context.isDarkMode ? Colors.transparent : Colors.black.withValues(alpha: 0.04), // ─── إخفاء الظل في الوضع الليلي ───
               blurRadius: 12,
               offset: const Offset(0, 4),
             ),
@@ -117,70 +112,48 @@ class _FavoriteDoctorCard extends StatelessWidget {
             Container(
               width: 56,
               height: 56,
-              decoration: const BoxDecoration(
-                color: Color(0xFFF0F4FF),
+              decoration: BoxDecoration(
+                color: context.isDarkMode ? Colors.blue.withOpacity(0.15) : const Color(0xFFF0F4FF), // ─── خلفية الأفاتار متكيفة ───
                 shape: BoxShape.circle,
               ),
               clipBehavior: Clip.antiAlias,
-              child: doctor.profilePicture != null
+              child: doctor.profilePicture != null && doctor.profilePicture!.isNotEmpty
                   ? Image.network(
-                      doctor.profilePicture!,
-                      fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => const Icon(
-                        Icons.person_rounded,
-                        color: Colors.blue,
-                        size: 30,
-                      ),
-                    )
-                  : const Icon(
-                      Icons.person_rounded,
-                      color: Colors.blue,
-                      size: 30,
-                    ),
+                doctor.profilePicture!,
+                fit: BoxFit.cover,
+                errorBuilder: (_, __, ___) => Icon(
+                  Icons.person_rounded,
+                  color: context.theme.primaryColor, // ─── أيقونة متكيفة ───
+                  size: 30,
+                ),
+              )
+                  : Icon(
+                Icons.person_rounded,
+                color: context.theme.primaryColor, // ─── أيقونة متكيفة ───
+                size: 30,
+              ),
             ),
             const SizedBox(width: 14),
-            // بيانات الطبيب
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
                     doctor.fullName,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 15,
                       fontWeight: FontWeight.bold,
-                      color: Color(0xFF1D2755),
+                      color: context.textTheme.bodyLarge?.color, // ─── نص متكيف ───
                     ),
                   ),
                   const SizedBox(height: 3),
                   Text(
-                    'Specialist'.tr,
-                    style: const TextStyle(fontSize: 12.5, color: Colors.grey),
+                    doctor.departmentName.isNotEmpty ? doctor.departmentName.tr : 'Specialist'.tr,
+                    style: TextStyle(fontSize: 12.5, color: context.textTheme.bodyMedium?.color), // ─── نص متكيف ───
                   ),
-                  if (doctor.rating != null) ...[
-                    const SizedBox(height: 6),
-                    Row(
-                      children: [
-                        const Icon(
-                          Icons.star_rounded,
-                          color: Color(0xFFFBBF24),
-                          size: 16,
-                        ),
-                        const SizedBox(width: 3),
-                        Text(
-                          doctor.rating!.toStringAsFixed(1),
-                          style: const TextStyle(
-                            fontSize: 12.5,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
                 ],
               ),
             ),
-
             GestureDetector(
               onTap: onFavoriteTap,
               child: const Padding(

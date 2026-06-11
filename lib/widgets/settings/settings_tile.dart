@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart'; // ─── تمت إضافته للوصول إلى السمة ───
 
 class SettingsTile extends StatelessWidget {
   final IconData icon;
@@ -29,7 +30,10 @@ class SettingsTile extends StatelessWidget {
           ),
           leading: Icon(
             icon,
-            color: isLogout ? Colors.red : Colors.blue,
+            // ─── تكييف لون الأيقونة (أحمر مريح ليلاً لتسجيل الخروج، ولون أساسي للبقية) ───
+            color: isLogout
+                ? (context.isDarkMode ? Colors.redAccent : Colors.red)
+                : context.theme.primaryColor,
             size: 28,
           ),
           title: Text(
@@ -37,17 +41,22 @@ class SettingsTile extends StatelessWidget {
             style: TextStyle(
               fontWeight: FontWeight.bold,
               fontSize: 15,
-              color: isLogout ? Colors.red : const Color(0xFF1D2755),
+              // ─── تكييف لون العنوان ───
+              color: isLogout
+                  ? (context.isDarkMode ? Colors.redAccent : Colors.red)
+                  : context.textTheme.bodyLarge?.color,
             ),
           ),
           subtitle: Text(
             subtitle,
-            style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
+            // ─── تكييف لون النص الثانوي ───
+            style: TextStyle(fontSize: 12, color: context.textTheme.bodyMedium?.color),
           ),
-          trailing: const Icon(
+          trailing: Icon(
             Icons.arrow_forward_ios,
             size: 16,
-            color: Colors.grey,
+            // ─── تكييف لون السهم ───
+            color: context.theme.dividerColor,
           ),
           onTap: onTap,
         ),
@@ -55,7 +64,8 @@ class SettingsTile extends StatelessWidget {
           Divider(
             height: 1,
             thickness: 1,
-            color: Colors.grey.shade100,
+            // ─── تكييف لون الفاصل ───
+            color: context.theme.dividerColor,
             indent: 60,
             endIndent: 20,
           ),

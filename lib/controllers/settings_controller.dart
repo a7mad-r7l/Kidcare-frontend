@@ -5,11 +5,20 @@ import '../core/helper/secure_storage_service.dart';
 class SettingsController extends GetxController {
 
   var currentLanguage = 'system'.obs;
+  final RxBool isDarkMode = false.obs;
 
   @override
   void onInit() {
     super.onInit();
     _loadSavedLanguage();
+
+    isDarkMode.value = Get.isDarkMode;
+  }
+  void toggleTheme() {
+    isDarkMode.value = !isDarkMode.value;
+
+    // أمر GetX بتطبيق السمة الجديدة فوراً على كامل التطبيق
+    Get.changeThemeMode(isDarkMode.value ? ThemeMode.dark : ThemeMode.light);
   }
 
   Future<void> _loadSavedLanguage() async {
@@ -32,6 +41,7 @@ class SettingsController extends GetxController {
     await SecureStorage.storeLanguage(langCode);
     _applyLocale(langCode);
   }
+
 
   void _applyLocale(String langCode) {
     Locale targetLocale;

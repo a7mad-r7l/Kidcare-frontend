@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart'; // ─── تمت إضافته للوصول إلى السمة ───
 
 class SettingsSection extends StatelessWidget {
   final String title;
@@ -19,18 +20,21 @@ class SettingsSection extends StatelessWidget {
           padding: const EdgeInsets.only(bottom: 10, right: 10, left: 10),
           child: Text(
             title,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.bold,
-              color: Color(0xFF1D2755),
+              // ─── لون العنوان متكيف ───
+              color: context.textTheme.bodyLarge?.color,
             ),
           ),
         ),
         Container(
           decoration: BoxDecoration(
-            color: Colors.white,
+            // ─── خلفية القسم متكيفة ───
+            color: context.theme.cardColor,
             borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: Colors.grey.shade200),
+            // ─── إطار القسم متكيف ───
+            border: Border.all(color: context.theme.dividerColor),
           ),
           child: Column(children: children),
         ),

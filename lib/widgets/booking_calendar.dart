@@ -1,21 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
-const _kPrimary = Color(0xFF3B82F6);
-const _kUnavailable = Color(0xFFEF4444);
-const _kTextPrimary = Color(0xFF1F2937);
-const _kTextSecondary = Color(0xFF6B7280);
-const _kTextDisabled = Color(0xFFD1D5DB);
-const _kNavButtonBg = Color(0xFFF3F4F6);
-
-
 class BookingCalendar extends StatefulWidget {
   final DateTime? selectedDate;
   final DateTime minDate;
   final DateTime? maxDate;
   final ValueChanged<DateTime> onDateSelected;
-
-
   final Set<int> workingWeekdays;
 
   const BookingCalendar({
@@ -36,18 +26,8 @@ class _BookingCalendarState extends State<BookingCalendar> {
   bool _slideForward = true;
 
   static const _monthNames = [
-    'January',
-    'February',
-    'March',
-    'April',
-    'May',
-    'June',
-    'July',
-    'August',
-    'September',
-    'October',
-    'November',
-    'December',
+    'January', 'February', 'March', 'April', 'May', 'June',
+    'July', 'August', 'September', 'October', 'November', 'December',
   ];
 
   static const _weekdayLabels = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -90,10 +70,7 @@ class _BookingCalendarState extends State<BookingCalendar> {
   void _jumpToToday() {
     final now = DateTime.now();
     final target = DateTime(now.year, now.month);
-    if (target.year == _currentMonth.year &&
-        target.month == _currentMonth.month) {
-      return;
-    }
+    if (target.year == _currentMonth.year && target.month == _currentMonth.month) return;
     setState(() {
       _slideForward = target.isAfter(_currentMonth);
       _currentMonth = target;
@@ -108,21 +85,23 @@ class _BookingCalendarState extends State<BookingCalendar> {
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 18, 16, 12),
       decoration: BoxDecoration(
-        color: Colors.white,
+        // ─── خلفية متكيفة ───
+        color: context.theme.cardColor,
         borderRadius: BorderRadius.circular(22),
         boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 16,
-            offset: const Offset(0, 6),
-          ),
+          if (!context.isDarkMode) // إخفاء الظل ليلاً
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 16,
+              offset: const Offset(0, 6),
+            ),
         ],
       ),
       child: Column(
         children: [
-          _buildHeader(),
+          _buildHeader(context),
           const SizedBox(height: 16),
-          _buildWeekdayLabels(),
+          _buildWeekdayLabels(context),
           const SizedBox(height: 8),
           ClipRect(
             child: AnimatedSwitcher(
@@ -134,16 +113,11 @@ class _BookingCalendarState extends State<BookingCalendar> {
                   begin: Offset(_slideForward ? 0.12 : -0.12, 0),
                   end: Offset.zero,
                 ).animate(animation);
-                return SlideTransition(
-                  position: slide,
-                  child: FadeTransition(opacity: animation, child: child),
-                );
+                return SlideTransition(position: slide, child: FadeTransition(opacity: animation, child: child));
               },
               child: KeyedSubtree(
-                key: ValueKey(
-                  '${_currentMonth.year}-${_currentMonth.month}',
-                ),
-                child: _buildGrid(),
+                key: ValueKey('${_currentMonth.year}-${_currentMonth.month}'),
+                child: _buildGrid(context),
               ),
             ),
           ),
@@ -152,10 +126,9 @@ class _BookingCalendarState extends State<BookingCalendar> {
     );
   }
 
-  Widget _buildHeader() {
+  Widget _buildHeader(BuildContext context) {
     final now = DateTime.now();
-    final onCurrentMonth = _currentMonth.year == now.year &&
-        _currentMonth.month == now.month;
+    final onCurrentMonth = _currentMonth.year == now.year && _currentMonth.month == now.month;
 
     return Row(
       children: [
@@ -166,31 +139,22 @@ class _BookingCalendarState extends State<BookingCalendar> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  '${_monthNames[_currentMonth.month - 1]} ${_currentMonth.year}',
-                  style: const TextStyle(
+                  '${_monthNames[_currentMonth.month - 1].tr} ${_currentMonth.year}',
+                  style: TextStyle(
                     fontSize: 17,
                     fontWeight: FontWeight.w800,
-                    color: _kTextPrimary,
-                    letterSpacing: 0.1,
+                    color: context.textTheme.bodyLarge?.color, // ─── نص متكيف ───
                   ),
                 ),
                 AnimatedSwitcher(
                   duration: const Duration(milliseconds: 200),
-                  transitionBuilder: (child, animation) => FadeTransition(
-                    opacity: animation,
-                    child: SizeTransition(
-                      axis: Axis.horizontal,
-                      sizeFactor: animation,
-                      child: child,
-                    ),
-                  ),
                   child: onCurrentMonth
                       ? const SizedBox.shrink(key: ValueKey('no-pill'))
                       : Padding(
-                          key: const ValueKey('today-pill'),
-                          padding: const EdgeInsets.only(left: 8),
-                          child: _TodayPill(onTap: _jumpToToday),
-                        ),
+                    key: const ValueKey('today-pill'),
+                    padding: const EdgeInsets.only(left: 8),
+                    child: _TodayPill(onTap: _jumpToToday),
+                  ),
                 ),
               ],
             ),
@@ -201,43 +165,29 @@ class _BookingCalendarState extends State<BookingCalendar> {
     );
   }
 
-
-  Widget _buildWeekdayLabels() {
+  Widget _buildWeekdayLabels(BuildContext context) {
     return Row(
-      children: _weekdayLabels
-          .map(
-            (l) => Expanded(
-              child: Center(
-                child: Text(
-                  l,
-                  style: const TextStyle(
-                    fontSize: 11.5,
-                    fontWeight: FontWeight.w600,
-                    color: _kTextSecondary,
-                    letterSpacing: 0.4,
-                  ),
-                ),
-              ),
+      children: _weekdayLabels.map((l) => Expanded(
+        child: Center(
+          child: Text(
+            l.tr,
+            style: TextStyle(
+              fontSize: 11.5,
+              fontWeight: FontWeight.w600,
+              color: context.textTheme.bodyMedium?.color, // ─── نص متكيف ───
             ),
-          )
-          .toList(),
+          ),
+        ),
+      )).toList(),
     );
   }
 
-  Widget _buildGrid() {
+  Widget _buildGrid(BuildContext context) {
     final firstOfMonth = DateTime(_currentMonth.year, _currentMonth.month, 1);
     final firstWeekday = firstOfMonth.weekday % 7;
-    final daysInMonth = DateTime(
-      _currentMonth.year,
-      _currentMonth.month + 1,
-      0,
-    ).day;
+    final daysInMonth = DateTime(_currentMonth.year, _currentMonth.month + 1, 0).day;
     final today = DateTime.now();
-    final minNormalized = DateTime(
-      widget.minDate.year,
-      widget.minDate.month,
-      widget.minDate.day,
-    );
+    final minNormalized = DateTime(widget.minDate.year, widget.minDate.month, widget.minDate.day);
 
     final totalCells = firstWeekday + daysInMonth;
     final rows = (totalCells / 7).ceil();
@@ -253,18 +203,11 @@ class _BookingCalendarState extends State<BookingCalendar> {
                 return const Expanded(child: SizedBox(height: 44));
               }
               final day = cellIndex - firstWeekday + 1;
-              final date = DateTime(
-                _currentMonth.year,
-                _currentMonth.month,
-                day,
-              );
-              final isSelected = widget.selectedDate != null &&
-                  _sameDay(date, widget.selectedDate!);
+              final date = DateTime(_currentMonth.year, _currentMonth.month, day);
+              final isSelected = widget.selectedDate != null && _sameDay(date, widget.selectedDate!);
               final isToday = _sameDay(date, today);
               final isPast = date.isBefore(minNormalized);
-              final isUnavailable = !isPast &&
-                  widget.workingWeekdays.isNotEmpty &&
-                  !widget.workingWeekdays.contains(date.weekday);
+              final isUnavailable = !isPast && widget.workingWeekdays.isNotEmpty && !widget.workingWeekdays.contains(date.weekday);
 
               return Expanded(
                 child: _DayCell(
@@ -273,9 +216,7 @@ class _BookingCalendarState extends State<BookingCalendar> {
                   isToday: isToday,
                   isPast: isPast,
                   isUnavailable: isUnavailable,
-                  onTap: (isPast || isUnavailable)
-                      ? null
-                      : () => widget.onDateSelected(date),
+                  onTap: (isPast || isUnavailable) ? null : () => widget.onDateSelected(date),
                 ),
               );
             }),
@@ -294,86 +235,34 @@ class _DayCell extends StatelessWidget {
   final bool isUnavailable;
   final VoidCallback? onTap;
 
-  const _DayCell({
-    required this.day,
-    required this.isSelected,
-    required this.isToday,
-    required this.isPast,
-    required this.isUnavailable,
-    required this.onTap,
-  });
+  const _DayCell({required this.day, required this.isSelected, required this.isToday, required this.isPast, required this.isUnavailable, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
-    final Color textColor = isSelected
-        ? Colors.white
-        : isPast
-            ? _kTextDisabled
-            : isUnavailable
-                ? _kTextDisabled
-                : isToday
-                    ? _kPrimary
-                    : _kTextPrimary;
+    // الألوان هنا أصبحت تستخدم السمات مباشرة
+    final Color primary = context.theme.primaryColor;
+    final Color textColor = isSelected ? Colors.white : (isPast || isUnavailable) ? context.theme.dividerColor : context.textTheme.bodyLarge!.color!;
 
     return GestureDetector(
       onTap: onTap,
       behavior: HitTestBehavior.opaque,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 220),
-        curve: Curves.easeOut,
         height: 44,
         margin: const EdgeInsets.all(2),
         alignment: Alignment.center,
         decoration: BoxDecoration(
-          color: isSelected ? _kPrimary : Colors.transparent,
+          color: isSelected ? primary : Colors.transparent,
           shape: BoxShape.circle,
-          boxShadow: isSelected
-              ? [
-                  BoxShadow(
-                    color: _kPrimary.withOpacity(0.32),
-                    blurRadius: 12,
-                    offset: const Offset(0, 4),
-                  ),
-                ]
-              : null,
         ),
         child: Stack(
           alignment: Alignment.center,
           children: [
-            Text(
-              '$day',
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: isSelected || isToday
-                    ? FontWeight.w700
-                    : FontWeight.w500,
-                color: textColor,
-              ),
-            ),
+            Text('$day', style: TextStyle(fontSize: 14, fontWeight: isSelected || isToday ? FontWeight.w700 : FontWeight.w500, color: textColor)),
             if (isUnavailable && !isSelected)
-              Positioned(
-                bottom: 7,
-                child: Container(
-                  width: 14,
-                  height: 2.5,
-                  decoration: BoxDecoration(
-                    color: _kUnavailable,
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-              )
-            else if (isToday && !isSelected)
-              Positioned(
-                bottom: 7,
-                child: Container(
-                  width: 4,
-                  height: 4,
-                  decoration: const BoxDecoration(
-                    color: _kPrimary,
-                    shape: BoxShape.circle,
-                  ),
-                ),
-              ),
+              Positioned(bottom: 7, child: Container(width: 14, height: 2.5, decoration: BoxDecoration(color: Colors.redAccent, borderRadius: BorderRadius.circular(2)))),
+            if (isToday && !isSelected)
+              Positioned(bottom: 7, child: Container(width: 4, height: 4, decoration: BoxDecoration(color: primary, shape: BoxShape.circle))),
           ],
         ),
       ),
@@ -384,26 +273,17 @@ class _DayCell extends StatelessWidget {
 class _NavButton extends StatelessWidget {
   final IconData icon;
   final VoidCallback onTap;
-
   const _NavButton({required this.icon, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(10),
-        child: Container(
-          width: 36,
-          height: 36,
-          decoration: BoxDecoration(
-            color: _kNavButtonBg,
-            borderRadius: BorderRadius.circular(10),
-          ),
-          alignment: Alignment.center,
-          child: Icon(icon, color: _kTextPrimary, size: 22),
-        ),
+    return InkWell(
+      onTap: onTap,
+      child: Container(
+        width: 36, height: 36,
+        decoration: BoxDecoration(color: context.theme.scaffoldBackgroundColor, borderRadius: BorderRadius.circular(10)),
+        alignment: Alignment.center,
+        child: Icon(icon, color: context.textTheme.bodyLarge?.color, size: 22),
       ),
     );
   }
@@ -415,27 +295,12 @@ class _TodayPill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(20),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-          decoration: BoxDecoration(
-            color: _kPrimary.withOpacity(0.12),
-            borderRadius: BorderRadius.circular(20),
-          ),
-          child:  Text(
-            'Today'.tr,
-            style: TextStyle(
-              fontSize: 11.5,
-              fontWeight: FontWeight.w700,
-              color: _kPrimary,
-              letterSpacing: 0.2,
-            ),
-          ),
-        ),
+    return InkWell(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+        decoration: BoxDecoration(color: context.theme.primaryColor.withOpacity(0.12), borderRadius: BorderRadius.circular(20)),
+        child: Text('Today'.tr, style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w700, color: context.theme.primaryColor)),
       ),
     );
   }

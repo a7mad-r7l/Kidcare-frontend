@@ -3,7 +3,6 @@ import 'package:get/get.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 
 import '../../controllers/appointment/appointment_controller.dart';
-import '../../core/booking_theme.dart';
 import '../../models/appointment/appointment_model.dart';
 import '../../widgets/booking_app_bar.dart';
 import '../../widgets/booking_calendar.dart';
@@ -19,12 +18,6 @@ const _fakeSlots = <String>[
   '12:30',
   '13:00',
 ];
-
-const _kPrimary = kBookingPrimary;
-const _kBackground = kBookingBackground;
-const _kTextPrimary = kBookingTextPrimary;
-const _kTextSecondary = kBookingTextSecondary;
-const _kBorder = kBookingBorder;
 
 class ChooseDateTimeView extends StatefulWidget {
   const ChooseDateTimeView({super.key});
@@ -50,7 +43,7 @@ class _ChooseDateTimeViewState extends State<ChooseDateTimeView> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: _kBackground,
+      // ❌ تم إزالة backgroundColor ليقرأ خلفية النظام تلقائياً
       appBar: bookingAppBar(subtitle: 'Pick Date & Time'.tr),
       body: SafeArea(
         child: Column(
@@ -73,12 +66,12 @@ class _ChooseDateTimeViewState extends State<ChooseDateTimeView> {
                       );
                     }),
                     const SizedBox(height: 20),
-                     Text(
+                    Text(
                       'Available Times'.tr,
                       style: TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.w700,
-                        color: _kTextPrimary,
+                        color: context.textTheme.bodyLarge?.color, // ─── نص متكيف ───
                       ),
                     ),
                     const SizedBox(height: 12),
@@ -97,23 +90,22 @@ class _ChooseDateTimeViewState extends State<ChooseDateTimeView> {
 
 class _SlotsGrid extends StatelessWidget {
   final AppointmentController controller;
+
   const _SlotsGrid({required this.controller});
 
   @override
   Widget build(BuildContext context) {
     return Obx(() {
-
-
       final selectedDate = controller.selectedDate.value;
       final isLoadingSlots = controller.isLoadingSlots.value;
       final times = controller.availableTimes.toList();
       final selectedTime = controller.selectedTime.value;
 
       if (selectedDate == null) {
-        return  _EmptyHint(text: 'Pick a date to see available times.'.tr);
+        return _EmptyHint(text: 'Pick a date to see available times.'.tr);
       }
       if (!isLoadingSlots && times.isEmpty) {
-        return  _EmptyHint(text: 'No times available for this date.'.tr);
+        return _EmptyHint(text: 'No times available for this date.'.tr);
       }
 
       final shown = isLoadingSlots ? _fakeSlots : times;
@@ -136,8 +128,7 @@ class _SlotsGrid extends StatelessWidget {
             return _SlotChip(
               label: _formatTime12h(time),
               selected: isSelected,
-              onTap:
-                  isLoadingSlots ? () {} : () => controller.selectTime(time),
+              onTap: isLoadingSlots ? () {} : () => controller.selectTime(time),
             );
           },
         ),
@@ -165,10 +156,12 @@ class _SlotChip extends StatelessWidget {
         duration: const Duration(milliseconds: 180),
         alignment: Alignment.center,
         decoration: BoxDecoration(
-          color: selected ? _kPrimary : Colors.white,
+          // ─── خلفية الشريحة متكيفة (اللون الأساسي إذا حُددت، ولون البطاقة إذا لم تُحدد) ───
+          color: selected ? context.theme.primaryColor : context.theme.cardColor,
           borderRadius: BorderRadius.circular(14),
           border: Border.all(
-            color: selected ? _kPrimary : _kBorder,
+            // ─── إطار متكيف ───
+            color: selected ? context.theme.primaryColor : context.theme.dividerColor,
             width: 1.2,
           ),
         ),
@@ -177,7 +170,8 @@ class _SlotChip extends StatelessWidget {
           style: TextStyle(
             fontSize: 13,
             fontWeight: FontWeight.w700,
-            color: selected ? Colors.white : _kTextPrimary,
+            // ─── لون النص متكيف (أبيض إذا حُدد، ولون النص الأساسي إذا لم يُحدد) ───
+            color: selected ? Colors.white : context.textTheme.bodyLarge?.color,
           ),
         ),
       ),
@@ -187,6 +181,7 @@ class _SlotChip extends StatelessWidget {
 
 class _EmptyHint extends StatelessWidget {
   final String text;
+
   const _EmptyHint({required this.text});
 
   @override
@@ -196,7 +191,8 @@ class _EmptyHint extends StatelessWidget {
       child: Center(
         child: Text(
           text,
-          style: const TextStyle(color: _kTextSecondary, fontSize: 13.5),
+          // ─── لون نص ثانوي متكيف ───
+          style: TextStyle(color: context.textTheme.bodyMedium?.color, fontSize: 13.5),
         ),
       ),
     );
@@ -205,6 +201,7 @@ class _EmptyHint extends StatelessWidget {
 
 class _BookButton extends StatelessWidget {
   final AppointmentController controller;
+
   const _BookButton({required this.controller});
 
   Future<void> _handleBook(BuildContext context) async {
@@ -216,8 +213,6 @@ class _BookButton extends StatelessWidget {
     Get.delete<AppointmentController>(force: true);
 
     Get.offNamed('/payment-method', arguments: appointmentId);
-
-
   }
 
   @override
@@ -232,8 +227,9 @@ class _BookButton extends StatelessWidget {
               controller.selectedTime.value != null && !controller.isLoading;
           return ElevatedButton(
             style: ElevatedButton.styleFrom(
-              backgroundColor: _kPrimary,
-              disabledBackgroundColor: _kPrimary.withValues(alpha: 0.4),
+              // ─── اللون الأساسي للزر متكيف ───
+              backgroundColor: context.theme.primaryColor,
+              disabledBackgroundColor: context.theme.primaryColor.withValues(alpha: 0.4),
               elevation: 0,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(16),
@@ -242,31 +238,27 @@ class _BookButton extends StatelessWidget {
             onPressed: enabled ? () => _handleBook(context) : null,
             child: controller.isLoading
                 ? const SizedBox(
-                    width: 22,
-                    height: 22,
-                    child: CircularProgressIndicator(
-                      color: Colors.white,
-                      strokeWidth: 2.4,
-                    ),
-                  )
-                :  Text(
-                    'Book Appointment'.tr,
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w700,
-                      color: Colors.white,
-                    ),
-                  ),
+              width: 22,
+              height: 22,
+              child: CircularProgressIndicator(
+                color: Colors.white,
+                strokeWidth: 2.4,
+              ),
+            )
+                : Text(
+              'Book Appointment'.tr,
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w700,
+                color: Colors.white,
+              ),
+            ),
           );
         }),
       ),
     );
   }
 }
-
-
-
-
 
 String _formatTime12h(String hhmm) {
   final parts = hhmm.split(':');
@@ -278,4 +270,3 @@ String _formatTime12h(String hhmm) {
   final hh12 = h % 12 == 0 ? 12 : h % 12;
   return '${hh12.toString().padLeft(2, '0')}:$m $period';
 }
-

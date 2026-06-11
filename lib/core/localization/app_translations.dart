@@ -178,6 +178,25 @@ class AppTranslations extends Translations {
       'View My Appointments': 'View My Appointments',
       'Pay ': 'Pay ',
 
+      // --- New Additions (Add Child, Appointments, Session) ---
+      'Invalid Age': 'Invalid Age',
+      'No medical history': 'No medical history',
+      'No allergies': 'No allergies',
+      'Unknown Child': 'Unknown Child',
+      'Unknown Doctor': 'Unknown Doctor',
+      'Patient': 'Patient',
+      'General': 'General',
+      'Session Expired': 'Session Expired',
+      'Please login again to continue.': 'Please login again to continue.',
+      'Failed to load appointment data.': 'Failed to load appointment data.',
+
+      // --- Appointment Status ---
+      'Confirmed': 'Confirmed',
+      'Pending': 'Pending',
+      'Cancelled': 'Cancelled',
+      'Canceled': 'Canceled', // تحسباً لاختلاف الإملاء من الباك إند
+      'Completed': 'Completed',
+
       // --- Profile & Settings ---
       'Personal Profile': 'Personal Profile',
       'Number of Children': 'Number of Children',
@@ -240,25 +259,29 @@ class AppTranslations extends Translations {
       'An unexpected error occurred': 'An unexpected error occurred',
       'favorite_doctors': 'Favorite Doctors',
       'view_favorite_doctors': 'View your favorite doctors',
-
-      // --- New Additions (Add Child, Appointments, Session) ---
-      'Invalid Age': 'Invalid Age',
-      'No medical history': 'No medical history',
-      'No allergies': 'No allergies',
-      'Unknown Child': 'Unknown Child',
-      'Unknown Doctor': 'Unknown Doctor',
-      'Patient': 'Patient',
-      'General': 'General',
-      'Session Expired': 'Session Expired',
-      'Please login again to continue.': 'Please login again to continue.',
-      'Failed to load appointment data.': 'Failed to load appointment data.',
-
-      // --- Appointment Status ---
-      'Confirmed': 'Confirmed',
-      'Pending': 'Pending',
-      'Cancelled': 'Cancelled',
-      'Canceled': 'Canceled', // تحسباً لاختلاف الإملاء من الباك إند
-      'Completed': 'Completed',
+      'Session expired. Please login again.': 'Session expired. Please login again.',
+      'Weight (kg)': 'Weight (kg)',
+      'Height (cm)': 'Height (cm)',
+      'Record Date': 'Record Date',
+      'Save Measurement': 'Save Measurement',
+      'Please enter valid weight and height': 'Please enter valid weight and height',
+      'Measurement saved successfully': 'Measurement saved successfully',
+      'Are you sure you want to delete this record?': 'Are you sure you want to delete this record?',
+      'Growth History': 'Growth History',
+      'Age (Months)': 'Age (Months)',
+      'Ideal Weight (WHO)': 'Ideal Weight (WHO)',
+      'Max Limit (WHO)': 'Max Limit (WHO)',
+      'Min Limit (WHO)': 'Min Limit (WHO)',
+      'Child Growth Chart': 'Child Growth Chart',
+      'Status: ': 'Status: ',
+      'Current Weight': 'Current Weight',
+      'Current Height': 'Current Height',
+      'Months': 'Months',
+      'Growth Chart & Weight': 'Growth Chart & Weight',
+      'Appointments & Files': 'Appointments & Files',
+      'Medical Assessment': 'Medical Assessment',
+      'Needs Review': 'Needs Review',
+      'Add Measurement': 'Add Measurement',
     },
 
     // ==========================================================
@@ -453,7 +476,6 @@ class AppTranslations extends Translations {
       'Pending': 'قيد الانتظار',
       'Cancelled': 'ملغي',
       'Canceled': 'ملغي',
-      'Success': 'ناجح',
       'Completed': 'تم',
 
       // --- Profile & Settings ---
@@ -520,6 +542,29 @@ class AppTranslations extends Translations {
       'An unexpected error occurred': 'حدث خطأ غير متوقع',
       'favorite_doctors': 'الأطباء المفضلون',
       'view_favorite_doctors': 'عرض قائمة أطبائك المفضلين',
+      'Session expired. Please login again.': 'انتهت صلاحية الجلسة. يرجى تسجيل الدخول مجدداً.',
+      'Weight (kg)': 'الوزن (كجم)',
+      'Height (cm)': 'الطول (سم)',
+      'Record Date': 'تاريخ القياس',
+      'Save Measurement': 'حفظ القياس',
+      'Please enter valid weight and height': 'يرجى إدخال وزن وطول صحيحين',
+      'Measurement saved successfully': 'تم حفظ القياس بنجاح',
+      'Are you sure you want to delete this record?': 'هل أنت متأكد من حذف هذا السجل؟',
+      'Growth History': 'سجلات النمو',
+      'Age (Months)': 'العمر (شهر)',
+      'Ideal Weight (WHO)': 'المعدل المثالي (WHO)',
+      'Max Limit (WHO)': 'الحد الأقصى للوزن',
+      'Min Limit (WHO)': 'الحد الأدنى للوزن',
+      'Child Growth Chart': 'منحنى النمو والوزن',
+      'Status: ': 'الحالة: ',
+      'Current Weight': 'الوزن الحالي',
+      'Current Height': 'الطول الحالي',
+      'Months': 'شهر',
+      'Growth Chart & Weight': 'منحنى النمو والوزن',
+      'Appointments & Files': 'المواعيد والملفات',
+      'Medical Assessment': 'التقييم الطبي المفصل',
+      'Needs Review': 'يحتاج متابعة',
+      'Add Measurement': 'إضافة قياس',
     },
   };
 }

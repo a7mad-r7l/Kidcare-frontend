@@ -18,7 +18,7 @@ class ChildProfileView extends GetView<ChildProfileController> {
         centerTitle: true,
         title: Text(
           'Child Profile'.tr,
-          style: TextStyle(
+          style: const TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.bold,
             color: context.textTheme.bodyLarge?.color, // ─── نص متكيف ───
@@ -253,6 +253,7 @@ class _InfoCard extends StatelessWidget {
 
 class _StatsCard extends StatelessWidget {
   final ChildModel child;
+
   const _StatsCard({required this.child});
 
   @override

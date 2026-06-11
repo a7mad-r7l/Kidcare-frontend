@@ -147,6 +147,7 @@ class _FavoriteDoctorCard extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 3),
+                  // 🌟 الإصلاح: قراءة النص المباشر والآمن للقسم المرتجع من البوستمان وترجمته ديناميكياً
                   Text(
                     doctor.departmentName.isNotEmpty ? doctor.departmentName.tr : 'Specialist'.tr,
                     style: TextStyle(fontSize: 12.5, color: context.textTheme.bodyMedium?.color), // ─── نص متكيف ───

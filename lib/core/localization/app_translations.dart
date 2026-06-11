@@ -240,6 +240,25 @@ class AppTranslations extends Translations {
       'An unexpected error occurred': 'An unexpected error occurred',
       'favorite_doctors': 'Favorite Doctors',
       'view_favorite_doctors': 'View your favorite doctors',
+
+      // --- New Additions (Add Child, Appointments, Session) ---
+      'Invalid Age': 'Invalid Age',
+      'No medical history': 'No medical history',
+      'No allergies': 'No allergies',
+      'Unknown Child': 'Unknown Child',
+      'Unknown Doctor': 'Unknown Doctor',
+      'Patient': 'Patient',
+      'General': 'General',
+      'Session Expired': 'Session Expired',
+      'Please login again to continue.': 'Please login again to continue.',
+      'Failed to load appointment data.': 'Failed to load appointment data.',
+
+      // --- Appointment Status ---
+      'Confirmed': 'Confirmed',
+      'Pending': 'Pending',
+      'Cancelled': 'Cancelled',
+      'Canceled': 'Canceled', // تحسباً لاختلاف الإملاء من الباك إند
+      'Completed': 'Completed',
       'Session expired. Please login again.': 'Session expired. Please login again.',
       'Weight (kg)': 'Weight (kg)',
       'Height (cm)': 'Height (cm)',
@@ -439,6 +458,26 @@ class AppTranslations extends Translations {
       'Back to Home': 'العودة للرئيسية',
       'View My Appointments': 'عرض مواعيدي',
       'Pay ': 'دفع ',
+
+      // --- New Additions (Add Child, Appointments, Session) ---
+      'Invalid Age': 'عمر غير مقبول',
+      'No medical history': 'لا يوجد سجل طبي',
+      'No allergies': 'لا يعاني من حساسية',
+      'Unknown Child': 'طفل غير معروف',
+      'Unknown Doctor': 'طبيب غير معروف',
+      'Patient': 'المريض',
+      'General': 'عام',
+      'Session Expired': 'انتهت الجلسة',
+      'Please login again to continue.': 'يرجى تسجيل الدخول مرة أخرى للمتابعة.',
+      'Failed to load appointment data.': 'فشل في تحميل بيانات الموعد.',
+
+      // --- Appointment Status ---
+      'Confirmed': 'مؤكد',
+      'Pending': 'قيد الانتظار',
+      'Cancelled': 'ملغي',
+      'Canceled': 'ملغي',
+      'Success': 'ناجح',
+      'Completed': 'تم',
 
       // --- Profile & Settings ---
       'Personal Profile': 'الملف الشخصي',

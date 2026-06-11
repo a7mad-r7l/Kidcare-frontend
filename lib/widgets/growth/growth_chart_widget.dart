@@ -18,14 +18,16 @@ class GrowthChartWidget extends StatelessWidget {
       height: 320,
       padding: const EdgeInsets.fromLTRB(12, 20, 20, 12),
       decoration: BoxDecoration(
-        color: Colors.white,
+        // ─── لون خلفية البطاقة متكيف ───
+        color: context.theme.cardColor,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.grey.shade100),
+        // ─── لون إطار البطاقة متكيف ───
+        border: Border.all(color: context.theme.dividerColor),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildLegend(),
+          _buildLegend(context),
           const SizedBox(height: 16),
           Expanded(child: LineChart(_buildChartData(context, isRtl))),
         ],
@@ -34,7 +36,7 @@ class GrowthChartWidget extends StatelessWidget {
   }
 
   /// الألوان والخطوط أعلى المخطط (Legend)
-  Widget _buildLegend() {
+  Widget _buildLegend(BuildContext context) {
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       child: Row(
@@ -103,10 +105,11 @@ class GrowthChartWidget extends StatelessWidget {
         drawVerticalLine: true,
         horizontalInterval: 5,
         verticalInterval: 6,
+        // ─── ألوان خطوط الشبكة الأفقية والعمودية متكيفة ───
         getDrawingHorizontalLine: (value) =>
-            FlLine(color: Colors.grey.shade100, strokeWidth: 1),
+            FlLine(color: context.theme.dividerColor, strokeWidth: 1),
         getDrawingVerticalLine: (value) =>
-            FlLine(color: Colors.grey.shade100, strokeWidth: 1),
+            FlLine(color: context.theme.dividerColor, strokeWidth: 1),
       ),
       titlesData: FlTitlesData(
         show: true,
@@ -119,7 +122,8 @@ class GrowthChartWidget extends StatelessWidget {
             'Age (Months)'.tr,
             style: TextStyle(
               fontSize: 11,
-              color: Colors.grey.shade600,
+              // ─── لون عناوين المحاور متكيف ───
+              color: context.textTheme.bodyMedium?.color,
               fontWeight: FontWeight.bold,
             ),
           ),
@@ -131,7 +135,8 @@ class GrowthChartWidget extends StatelessWidget {
               padding: const EdgeInsets.only(top: 6),
               child: Text(
                 value.toInt().toString(),
-                style: TextStyle(color: Colors.grey.shade500, fontSize: 11),
+                // ─── أرقام المحاور متكيفة ───
+                style: TextStyle(color: context.textTheme.bodyMedium?.color, fontSize: 11),
               ),
             ),
           ),
@@ -141,7 +146,8 @@ class GrowthChartWidget extends StatelessWidget {
             'Weight (kg)'.tr,
             style: TextStyle(
               fontSize: 11,
-              color: Colors.grey.shade600,
+              // ─── لون عناوين المحاور متكيف ───
+              color: context.textTheme.bodyMedium?.color,
               fontWeight: FontWeight.bold,
             ),
           ),
@@ -151,7 +157,8 @@ class GrowthChartWidget extends StatelessWidget {
             interval: 5,
             getTitlesWidget: (value, meta) => Text(
               value.toInt().toString(),
-              style: TextStyle(color: Colors.grey.shade500, fontSize: 11),
+              // ─── أرقام المحاور متكيفة ───
+              style: TextStyle(color: context.textTheme.bodyMedium?.color, fontSize: 11),
             ),
           ),
         ),
@@ -159,10 +166,8 @@ class GrowthChartWidget extends StatelessWidget {
       borderData: FlBorderData(show: false),
       minX: 0,
       maxX: calculatedMaxX,
-
       minY: 0,
       maxY: calculatedMaxY,
-
       lineBarsData: [
         LineChartBarData(
           spots: minSpots,
@@ -173,7 +178,6 @@ class GrowthChartWidget extends StatelessWidget {
           dotData: const FlDotData(show: false),
           dashArray: [4, 4],
         ),
-        // خط الحد الأقصى ( باللون الأحمر)
         LineChartBarData(
           spots: maxSpots,
           isCurved: true,
@@ -183,7 +187,6 @@ class GrowthChartWidget extends StatelessWidget {
           dotData: const FlDotData(show: false),
           dashArray: [4, 4],
         ),
-        // خط المعدل المثالي لمنظمة الصحة العالمية ( باللون الأخضر)
         LineChartBarData(
           spots: idealSpots,
           isCurved: true,
@@ -193,7 +196,7 @@ class GrowthChartWidget extends StatelessWidget {
           dotData: const FlDotData(show: false),
           dashArray: [4, 4],
         ),
-        // خط وزن الطفل الفعلي ( بلون أزرق)
+        // خط نمو الطفل الفعلي
         LineChartBarData(
           spots: childSpots,
           isCurved: false,
@@ -207,15 +210,16 @@ class GrowthChartWidget extends StatelessWidget {
                   radius: 5,
                   color: Colors.blue.shade800,
                   strokeWidth: 2,
-                  strokeColor: Colors.white,
+                  // ─── لون الإطار الأبيض للنقطة يصبح متكيفاً ───
+                  strokeColor: context.theme.cardColor,
                 ),
           ),
         ),
       ],
-      //  نافذة الـ Tooltip  عند لمس النقاط
       lineTouchData: LineTouchData(
         touchTooltipData: LineTouchTooltipData(
-          getTooltipColor: (touchedSpot) => const Color(0xFF212121),
+          // ─── لون نافذة التلميح متكيف (أفتح قليلاً في الوضع الليلي) ───
+          getTooltipColor: (touchedSpot) => context.isDarkMode ? const Color(0xFF303030) : const Color(0xFF212121),
           getTooltipItems: (List<LineBarSpot> touchedSpots) {
             return touchedSpots.map((barSpot) {
               if (barSpot.barIndex == 3) {
@@ -262,7 +266,7 @@ class _LegendItem extends StatelessWidget {
           Row(
             children: List.generate(
               3,
-              (index) => Container(
+                  (index) => Container(
                 width: 5,
                 height: 2,
                 margin: const EdgeInsets.symmetric(horizontal: 1),
@@ -277,7 +281,8 @@ class _LegendItem extends StatelessWidget {
           label,
           style: TextStyle(
             fontSize: 12,
-            color: Colors.grey.shade700,
+            // ─── لون نص الدليل متكيف ───
+            color: context.textTheme.bodyMedium?.color,
             fontWeight: FontWeight.w600,
           ),
         ),

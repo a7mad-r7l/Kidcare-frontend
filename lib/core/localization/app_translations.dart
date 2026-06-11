@@ -178,6 +178,25 @@ class AppTranslations extends Translations {
       'View My Appointments': 'View My Appointments',
       'Pay ': 'Pay ',
 
+      // --- New Additions (Add Child, Appointments, Session) ---
+      'Invalid Age': 'Invalid Age',
+      'No medical history': 'No medical history',
+      'No allergies': 'No allergies',
+      'Unknown Child': 'Unknown Child',
+      'Unknown Doctor': 'Unknown Doctor',
+      'Patient': 'Patient',
+      'General': 'General',
+      'Session Expired': 'Session Expired',
+      'Please login again to continue.': 'Please login again to continue.',
+      'Failed to load appointment data.': 'Failed to load appointment data.',
+
+      // --- Appointment Status ---
+      'Confirmed': 'Confirmed',
+      'Pending': 'Pending',
+      'Cancelled': 'Cancelled',
+      'Canceled': 'Canceled', // تحسباً لاختلاف الإملاء من الباك إند
+      'Completed': 'Completed',
+
       // --- Profile & Settings ---
       'Personal Profile': 'Personal Profile',
       'Number of Children': 'Number of Children',
@@ -240,25 +259,6 @@ class AppTranslations extends Translations {
       'An unexpected error occurred': 'An unexpected error occurred',
       'favorite_doctors': 'Favorite Doctors',
       'view_favorite_doctors': 'View your favorite doctors',
-
-      // --- New Additions (Add Child, Appointments, Session) ---
-      'Invalid Age': 'Invalid Age',
-      'No medical history': 'No medical history',
-      'No allergies': 'No allergies',
-      'Unknown Child': 'Unknown Child',
-      'Unknown Doctor': 'Unknown Doctor',
-      'Patient': 'Patient',
-      'General': 'General',
-      'Session Expired': 'Session Expired',
-      'Please login again to continue.': 'Please login again to continue.',
-      'Failed to load appointment data.': 'Failed to load appointment data.',
-
-      // --- Appointment Status ---
-      'Confirmed': 'Confirmed',
-      'Pending': 'Pending',
-      'Cancelled': 'Cancelled',
-      'Canceled': 'Canceled', // تحسباً لاختلاف الإملاء من الباك إند
-      'Completed': 'Completed',
       'Session expired. Please login again.': 'Session expired. Please login again.',
       'Weight (kg)': 'Weight (kg)',
       'Height (cm)': 'Height (cm)',
@@ -476,7 +476,6 @@ class AppTranslations extends Translations {
       'Pending': 'قيد الانتظار',
       'Cancelled': 'ملغي',
       'Canceled': 'ملغي',
-      'Success': 'ناجح',
       'Completed': 'تم',
 
       // --- Profile & Settings ---

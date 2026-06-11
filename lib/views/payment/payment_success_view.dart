@@ -11,7 +11,7 @@ class PaymentSuccessView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      // ❌ تم إزالة backgroundColor ليقرأ خلفية النظام تلقائياً
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(24.0),
@@ -30,19 +30,21 @@ class PaymentSuccessView extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 24,
                   fontWeight: FontWeight.bold,
-                  color: Colors.black87,
+                  color: context.textTheme.bodyLarge?.color, // ─── نص أساسي متكيف ───
                 ),
               ),
               const SizedBox(height: 8),
               Text(
                 'Your appointment is confirmed'.tr,
-                style: TextStyle(fontSize: 16, color: Colors.grey.shade600),
+                style: TextStyle(
+                  fontSize: 16,
+                  color: context.textTheme.bodyMedium?.color, // ─── نص ثانوي متكيف ───
+                ),
               ),
 
               const SizedBox(height: 40),
 
-              //  ملخص الفاتورة
-              // 👈 استقبال البيانات من الـ arguments
+              // ملخص الفاتورة
               Builder(
                 builder: (context) {
                   final args = Get.arguments as Map<String, dynamic>?;
@@ -52,7 +54,8 @@ class PaymentSuccessView extends StatelessWidget {
                   return Container(
                     padding: const EdgeInsets.all(20),
                     decoration: BoxDecoration(
-                      border: Border.all(color: Colors.grey.shade200),
+                      // ─── لون إطار البطاقة متكيف ───
+                      border: Border.all(color: context.theme.dividerColor),
                       borderRadius: BorderRadius.circular(16),
                     ),
                     child: Column(
@@ -69,10 +72,12 @@ class PaymentSuccessView extends StatelessWidget {
                         const SizedBox(height: 12),
                         InvoiceRow(
                           label: 'Amount'.tr,
-                          value:
-                              '${summary?.price ?? 0} ${summary?.currency ?? ''}',
+                          value: '${summary?.price ?? 0} ${summary?.currency ?? ''}',
                         ),
-                        const Divider(height: 30),
+                        Divider(
+                          height: 30,
+                          color: context.theme.dividerColor, // ─── خط فاصل متكيف ───
+                        ),
                         InvoiceRow(
                           label: 'Transaction ID'.tr,
                           value: '#$transId',
@@ -91,7 +96,7 @@ class PaymentSuccessView extends StatelessWidget {
                 height: 55,
                 child: ElevatedButton(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.blue.shade700,
+                    backgroundColor: context.theme.primaryColor, // ─── لون الزر الأساسي متكيف ───
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
@@ -108,7 +113,7 @@ class PaymentSuccessView extends StatelessWidget {
                   },
                   child: Text(
                     'Back to Home'.tr,
-                    style: TextStyle(fontSize: 18, color: Colors.white),
+                    style: const TextStyle(fontSize: 18, color: Colors.white),
                   ),
                 ),
               ),
@@ -128,7 +133,7 @@ class PaymentSuccessView extends StatelessWidget {
                   'View My Appointments'.tr,
                   style: TextStyle(
                     fontSize: 16,
-                    color: Colors.blue.shade700,
+                    color: context.theme.primaryColor, // ─── لون النص متكيف ───
                     fontWeight: FontWeight.bold,
                   ),
                 ),

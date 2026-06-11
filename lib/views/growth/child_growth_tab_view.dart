@@ -21,14 +21,15 @@ class ChildGrowthTabView extends StatelessWidget {
     });
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF4F6FA),
+      // ❌ تم إزالة backgroundColor ليقرأ خلفية النظام تلقائياً
 
       floatingActionButton: FloatingActionButton(
         onPressed: () {
           controller.selectedDate.value = '';
           Get.bottomSheet(const AddGrowthSheet(), isScrollControlled: true);
         },
-        backgroundColor: const Color(0xFF3B9EFF),
+        // ─── لون الزر العائم متكيف مع السمة ───
+        backgroundColor: context.theme.primaryColor,
         shape: const CircleBorder(),
         child: const Icon(Icons.add, color: Colors.white, size: 28),
       ),
@@ -36,8 +37,9 @@ class ChildGrowthTabView extends StatelessWidget {
       body: Obx(() {
         // 1. حالة التحميل
         if (controller.isLoading && controller.growthData.value == null) {
-          return const Center(
-            child: CircularProgressIndicator(color: Colors.blue),
+          return Center(
+            // ─── مؤشر التحميل متكيف ───
+            child: CircularProgressIndicator(color: context.theme.primaryColor),
           );
         }
 
@@ -46,14 +48,16 @@ class ChildGrowthTabView extends StatelessWidget {
           return Center(
             child: Text(
               'Failed to load profile'.tr,
-              style: const TextStyle(color: Colors.grey),
+              // ─── نص متكيف ───
+              style: TextStyle(color: context.textTheme.bodyMedium?.color),
             ),
           );
         }
 
         return RefreshIndicator(
           onRefresh: () => controller.getGrowthDashboard(),
-          color: Colors.blue,
+          // ─── لون مؤشر التحديث متكيف ───
+          color: context.theme.primaryColor,
           child: SingleChildScrollView(
             physics: const AlwaysScrollableScrollPhysics(),
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -62,12 +66,13 @@ class ChildGrowthTabView extends StatelessWidget {
               children: [
                 //  كروت القياسات العلوية السريعة
                 _buildQuickStatsSection(
+                  context, // ─── نمرر الـ context لاستخدامه في تكييف الألوان ───
                   data.growthHistory,
                   data.currentAgeMonths,
                 ),
                 const SizedBox(height: 16),
 
-                // المخطط البياني
+                // المخطط البياني (قد يحتاج لتعديل داخلي إذا كانت ألوانه ثابتة)
                 GrowthChartWidget(data: data),
                 const SizedBox(height: 20),
 
@@ -77,22 +82,24 @@ class ChildGrowthTabView extends StatelessWidget {
                   children: [
                     Text(
                       'Growth History'.tr,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
-                        color: Color(0xFF1A2E5A),
+                        // ─── نص متكيف ───
+                        color: context.textTheme.bodyLarge?.color,
                       ),
                     ),
                     Icon(
                       Icons.sort_rounded,
-                      color: Colors.grey.shade600,
+                      // ─── أيقونة متكيفة ───
+                      color: context.textTheme.bodyMedium?.color,
                       size: 20,
                     ),
                   ],
                 ),
                 const SizedBox(height: 12),
 
-                //  قائمة القياسات التاريخية
+                //  قائمة القياسات التاريخية (قد تحتاج لتعديل داخلي إذا كانت ألوانها ثابتة)
                 GrowthHistoryList(data: data),
                 const SizedBox(height: 60),
               ],
@@ -103,8 +110,8 @@ class ChildGrowthTabView extends StatelessWidget {
     );
   }
 
-  /// اللوحة العلوية  للقياسات
-  Widget _buildQuickStatsSection(List<dynamic> history, double rawAge) {
+  /// اللوحة العلوية للقياسات
+  Widget _buildQuickStatsSection(BuildContext context, List<dynamic> history, double rawAge) {
     final latestRecord = history.isNotEmpty ? history.first : null;
     final displayWeight = latestRecord != null
         ? '${latestRecord.weight} ${'kg'.tr}'
@@ -117,9 +124,11 @@ class ChildGrowthTabView extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        // ─── لون خلفية البطاقة متكيف ───
+        color: context.theme.cardColor,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.grey.shade100),
+        // ─── إطار البطاقة متكيف ───
+        border: Border.all(color: context.theme.dividerColor),
       ),
       child: Row(
         children: [
@@ -131,7 +140,8 @@ class ChildGrowthTabView extends StatelessWidget {
               value: displayWeight,
             ),
           ),
-          Container(width: 1, height: 40, color: Colors.grey.shade100),
+          // ─── خط فاصل متكيف ───
+          Container(width: 1, height: 40, color: context.theme.dividerColor),
           // كارت الطول
           Expanded(
             child: _QuickStatCard(
@@ -140,7 +150,8 @@ class ChildGrowthTabView extends StatelessWidget {
               value: displayHeight,
             ),
           ),
-          Container(width: 1, height: 40, color: Colors.grey.shade100),
+          // ─── خط فاصل متكيف ───
+          Container(width: 1, height: 40, color: context.theme.dividerColor),
           // كارت العمر
           Expanded(
             child: _QuickStatCard(
@@ -170,23 +181,26 @@ class _QuickStatCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        Icon(icon, color: const Color(0xFF3B9EFF), size: 22),
+        // ─── لون الأيقونة متكيف ───
+        Icon(icon, color: context.theme.primaryColor, size: 22),
         const SizedBox(height: 6),
         Text(
           label,
           style: TextStyle(
             fontSize: 11,
-            color: Colors.grey.shade500,
+            // ─── نص ثانوي متكيف ───
+            color: context.textTheme.bodyMedium?.color,
             fontWeight: FontWeight.w500,
           ),
         ),
         const SizedBox(height: 4),
         Text(
           value,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 14,
             fontWeight: FontWeight.bold,
-            color: Color(0xFF1A2E5A),
+            // ─── نص أساسي متكيف ───
+            color: context.textTheme.bodyLarge?.color,
           ),
         ),
       ],

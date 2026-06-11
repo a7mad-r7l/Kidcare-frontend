@@ -23,8 +23,8 @@ class GrowthHistoryList extends StatelessWidget {
           padding: const EdgeInsets.symmetric(vertical: 32),
           child: Text(
             'No appointments found'.tr,
-
-            style: TextStyle(color: Colors.grey.shade400, fontSize: 14),
+            // ─── نص ثانوي متكيف ───
+            style: TextStyle(color: context.textTheme.bodyMedium?.color, fontSize: 14),
           ),
         ),
       );
@@ -33,7 +33,6 @@ class GrowthHistoryList extends StatelessWidget {
     return ListView.separated(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
-
       itemCount: sortedHistory.length,
       separatorBuilder: (context, index) => const SizedBox(height: 12),
       itemBuilder: (context, index) {
@@ -62,16 +61,19 @@ class _HistoryCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.white,
+        // ─── لون البطاقة متكيف ───
+        color: context.theme.cardColor,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.02),
+            // ─── إخفاء الظل في الوضع الليلي ───
+            color: context.isDarkMode ? Colors.transparent : Colors.black.withOpacity(0.02),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
         ],
-        border: Border.all(color: Colors.grey.shade100),
+        // ─── إطار البطاقة متكيف ───
+        border: Border.all(color: context.theme.dividerColor),
       ),
       child: Row(
         children: [
@@ -79,12 +81,14 @@ class _HistoryCard extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: const Color(0xFFF0F4FF),
+              // ─── خلفية الأيقونة متكيفة للوضع الليلي والنهاري ───
+              color: context.isDarkMode ? Colors.blue.withOpacity(0.15) : const Color(0xFFF0F4FF),
               borderRadius: BorderRadius.circular(12),
             ),
-            child: const Icon(
+            child: Icon(
               Icons.assignment_outlined,
-              color: Colors.blue,
+              // ─── أيقونة متكيفة ───
+              color: context.isDarkMode ? Colors.blue.shade300 : Colors.blue,
               size: 24,
             ),
           ),
@@ -102,10 +106,11 @@ class _HistoryCard extends StatelessWidget {
                     children: [
                       Text(
                         '${'Weight'.tr}: ${record.weight} ${'kg'.tr}',
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: 13,
-                          color: Color(0xFF1A2E5A),
+                          // ─── نص أساسي متكيف ───
+                          color: context.textTheme.bodyLarge?.color,
                         ),
                       ),
                       const SizedBox(width: 4),
@@ -113,7 +118,8 @@ class _HistoryCard extends StatelessWidget {
                         '|  ${'Height'.tr}: ${record.height} ${'cm'.tr}',
                         style: TextStyle(
                           fontSize: 12,
-                          color: Colors.grey.shade600,
+                          // ─── نص ثانوي متكيف ───
+                          color: context.textTheme.bodyMedium?.color,
                           fontWeight: FontWeight.w500,
                         ),
                       ),
@@ -127,7 +133,8 @@ class _HistoryCard extends StatelessWidget {
                       record.date,
                       style: TextStyle(
                         fontSize: 10,
-                        color: Colors.grey.shade500,
+                        // ─── نص ثانوي متكيف ───
+                        color: context.textTheme.bodyMedium?.color,
                       ),
                     ),
                     const SizedBox(width: 6),
@@ -136,7 +143,8 @@ class _HistoryCard extends StatelessWidget {
                       height: 3,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        color: Colors.grey.shade300,
+                        // ─── لون النقطة الفاصلة متكيف ───
+                        color: context.theme.dividerColor,
                       ),
                     ),
                     const SizedBox(width: 6),
@@ -145,7 +153,8 @@ class _HistoryCard extends StatelessWidget {
                         '${'Age'.tr} ${record.ageInMonths.toInt()} ${'months_old'.tr}',
                         style: TextStyle(
                           fontSize: 10,
-                          color: Colors.grey.shade500,
+                          // ─── نص ثانوي متكيف ───
+                          color: context.textTheme.bodyMedium?.color,
                           fontWeight: FontWeight.w500,
                         ),
                         overflow: TextOverflow.ellipsis,
@@ -173,6 +182,7 @@ class _HistoryCard extends StatelessWidget {
                         vertical: 6,
                       ),
                       decoration: BoxDecoration(
+                        // ─── جعل الشارة أكثر شفافية لتناسب الوضعين ───
                         color: badgeColor.withOpacity(0.12),
                         borderRadius: BorderRadius.circular(12),
                       ),
@@ -210,7 +220,8 @@ class _HistoryCard extends StatelessWidget {
                   onTap: () => _confirmDelete(context, record.id),
                   child: Icon(
                     Icons.delete_outline_rounded,
-                    color: Colors.red.shade400,
+                    // ─── لون أيقونة الحذف متكيف ───
+                    color: context.isDarkMode ? Colors.redAccent : Colors.red.shade400,
                     size: 20,
                   ),
                 ),
@@ -225,6 +236,8 @@ class _HistoryCard extends StatelessWidget {
   void _showStatusDetailsDialog(BuildContext context, Color color) {
     Get.dialog(
       AlertDialog(
+        // ─── خلفية نافذة الحوار متكيفة ───
+        backgroundColor: context.theme.cardColor,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: Row(
           children: [
@@ -232,10 +245,11 @@ class _HistoryCard extends StatelessWidget {
             const SizedBox(width: 8),
             Text(
               'Medical Assessment'.tr,
-              style: const TextStyle(
+              style: TextStyle(
                 fontWeight: FontWeight.bold,
                 fontSize: 16,
-                color: Color(0xFF1A2E5A),
+                // ─── نص العنوان متكيف ───
+                color: context.textTheme.bodyLarge?.color,
               ),
             ),
           ],
@@ -254,11 +268,12 @@ class _HistoryCard extends StatelessWidget {
               ),
               child: Text(
                 record.statusText,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 14,
                   height: 1.5,
                   fontWeight: FontWeight.w500,
-                  color: Color(0xFF212121),
+                  // ─── نص التفاصيل متكيف ───
+                  color: context.textTheme.bodyLarge?.color,
                 ),
               ),
             ),
@@ -269,9 +284,10 @@ class _HistoryCard extends StatelessWidget {
             onPressed: () => Get.back(),
             child: Text(
               'Close'.tr,
-              style: const TextStyle(
+              style: TextStyle(
                 fontWeight: FontWeight.bold,
-                color: Colors.blue,
+                // ─── لون الزر متكيف ───
+                color: context.theme.primaryColor,
               ),
             ),
           ),
@@ -283,18 +299,29 @@ class _HistoryCard extends StatelessWidget {
   void _confirmDelete(BuildContext context, int growthId) {
     Get.dialog(
       AlertDialog(
+        // ─── خلفية نافذة التأكيد متكيفة ───
+        backgroundColor: context.theme.cardColor,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: Text(
           'Delete'.tr,
-          style: const TextStyle(fontWeight: FontWeight.bold),
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            // ─── نص العنوان متكيف ───
+            color: context.textTheme.bodyLarge?.color,
+          ),
         ),
-        content: Text('Are you sure you want to delete this record?'.tr),
+        content: Text(
+          'Are you sure you want to delete this record?'.tr,
+          // ─── نص المحتوى متكيف ───
+          style: TextStyle(color: context.textTheme.bodyLarge?.color),
+        ),
         actions: [
           TextButton(
             onPressed: () => Get.back(),
             child: Text(
               'Cancel'.tr,
-              style: TextStyle(color: Colors.grey.shade600),
+              // ─── لون زر الإلغاء متكيف ───
+              style: TextStyle(color: context.textTheme.bodyMedium?.color),
             ),
           ),
           TextButton(
@@ -304,8 +331,9 @@ class _HistoryCard extends StatelessWidget {
             },
             child: Text(
               'Delete'.tr,
-              style: const TextStyle(
-                color: Colors.red,
+              style: TextStyle(
+                // ─── لون زر الحذف متكيف ───
+                color: context.isDarkMode ? Colors.redAccent : Colors.red,
                 fontWeight: FontWeight.bold,
               ),
             ),

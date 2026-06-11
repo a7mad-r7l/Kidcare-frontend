@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import '../core/booking_theme.dart';
 
 PreferredSizeWidget bookingAppBar({required String subtitle}) {
   return AppBar(
-    backgroundColor: kBookingBackground,
+    // 1. استخدام context هنا يتطلب تعديل طفيف لنجعله دالة تأخذ context
+    // ولكن بما أن الـ AppBar دالة خارجية، سنستخدم Get.context
+    backgroundColor: Get.theme.scaffoldBackgroundColor,
     elevation: 0,
     scrolledUnderElevation: 0,
     toolbarHeight: 72,
@@ -15,19 +16,22 @@ PreferredSizeWidget bookingAppBar({required String subtitle}) {
         borderRadius: BorderRadius.circular(12),
         child: Container(
           decoration: BoxDecoration(
-            color: Colors.white,
+            // 2. استخدام لون البطاقة المتكيف بدلاً من الأبيض الثابت
+            color: Get.theme.cardColor,
             borderRadius: BorderRadius.circular(12),
             boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.05),
-                blurRadius: 8,
-                offset: const Offset(0, 2),
-              ),
+              if (!Get.isDarkMode) // إخفاء الظل في الوضع الليلي
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.05),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
             ],
           ),
-          child: const Icon(
+          child: Icon(
             Icons.chevron_left_rounded,
-            color: kBookingTextPrimary,
+            // 3. لون أيقونة الرجوع متكيف
+            color: Get.textTheme.bodyLarge?.color,
             size: 26,
           ),
         ),
@@ -36,10 +40,11 @@ PreferredSizeWidget bookingAppBar({required String subtitle}) {
     title: Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-         Text(
+        Text(
           'Book New Appointment'.tr,
           style: TextStyle(
-            color: kBookingTextPrimary,
+            // 4. ألوان النصوص متكيفة
+            color: Get.textTheme.bodyLarge?.color,
             fontSize: 16,
             fontWeight: FontWeight.w700,
           ),
@@ -47,8 +52,8 @@ PreferredSizeWidget bookingAppBar({required String subtitle}) {
         const SizedBox(height: 2),
         Text(
           subtitle,
-          style: const TextStyle(
-            color: kBookingTextSecondary,
+          style: TextStyle(
+            color: Get.textTheme.bodyMedium?.color,
             fontSize: 12.5,
             fontWeight: FontWeight.w500,
           ),

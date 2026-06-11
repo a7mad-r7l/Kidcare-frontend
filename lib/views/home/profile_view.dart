@@ -2,41 +2,89 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../controllers/home/profile_controller.dart';
 
-
 class ProfileView extends GetView<ProfileController> {
   const ProfileView({super.key});
+
+  //  دالة مساعدة لظهور نافذة التعديل المنبثقة
+  void _showEditDialog(BuildContext context, String title, String key, String currentValue) {
+    final TextEditingController textController = TextEditingController(text: currentValue);
+
+    Get.dialog(
+      AlertDialog(
+        backgroundColor: context.theme.cardColor,
+        title: Text(
+          'Edit $title'.tr,
+          style: TextStyle(color: context.textTheme.bodyLarge?.color, fontSize: 18, fontWeight: FontWeight.bold),
+        ),
+        content: TextField(
+          controller: textController,
+          style: TextStyle(color: context.textTheme.bodyLarge?.color),
+          decoration: InputDecoration(
+            hintText: 'Enter new $title'.tr,
+            hintStyle: TextStyle(color: context.theme.hintColor),
+            enabledBorder: UnderlineInputBorder(
+              borderSide: BorderSide(color: context.theme.dividerColor),
+            ),
+            focusedBorder: UnderlineInputBorder(
+              borderSide: BorderSide(color: context.theme.primaryColor),
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Get.back(),
+            child: Text('Cancel'.tr, style: TextStyle(color: context.textTheme.bodyMedium?.color)),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Get.back();
+              // استدعاء دالة التحديث في الـ Controller وإرسال المفتاح والقيمة الجديدة
+              controller.updateProfileField(key, textController.text);
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: context.theme.primaryColor,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            ),
+            child: Text('Save'.tr, style: const TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF4F6FA),
       appBar: AppBar(
-        backgroundColor: const Color(0xFFF4F6FA),
         elevation: 0,
         centerTitle: true,
-        title:  Text(
+        title: Text(
           'Personal Profile'.tr,
           style: TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.bold,
-            color: Color(0xFF1A2E5A),
+            color: context.textTheme.bodyLarge?.color,
           ),
         ),
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios,
-              color: Color(0xFF1A2E5A), size: 20),
+          icon: Icon(Icons.arrow_back_ios, color: context.iconColor, size: 20),
           onPressed: () => Get.back(),
         ),
       ),
       body: Obx(() {
         if (controller.isLoading) {
-          return const Center(
-            child: CircularProgressIndicator(color: Colors.blue),
+          return Center(
+            child: CircularProgressIndicator(color: context.theme.primaryColor),
           );
         }
 
         if (controller.profile.value == null) {
-          return  Center(child: Text('Failed to load profile'.tr));
+          return Center(
+            child: Text(
+              'Failed to load profile'.tr,
+              style: TextStyle(color: context.textTheme.bodyMedium?.color),
+            ),
+          );
         }
 
         final profile = controller.profile.value!;
@@ -44,7 +92,6 @@ class ProfileView extends GetView<ProfileController> {
         return SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
           child: Column(
-
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const SizedBox(height: 10),
@@ -53,9 +100,9 @@ class ProfileView extends GetView<ProfileController> {
               Center(
                 child: CircleAvatar(
                   radius: 55,
-                  backgroundColor: const Color(0xFFE8F5E9),
+                  backgroundColor: context.isDarkMode ? Colors.green.withValues(alpha: 0.15) : const Color(0xFFE8F5E9),
                   child: Icon(Icons.person,
-                      color: const Color(0xFF4CAF50).withOpacity(0.6),
+                      color: context.isDarkMode ? Colors.greenAccent : const Color(0xFF4CAF50).withValues(alpha: 0.6),
                       size: 60),
                 ),
               ),
@@ -66,23 +113,21 @@ class ProfileView extends GetView<ProfileController> {
                 alignment: Alignment.centerLeft,
                 child: Text(
                   profile.fullName,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 24,
                     fontWeight: FontWeight.bold,
-                    color: Color(0xFF1A2E5A),
+                    color: context.textTheme.bodyLarge?.color,
                   ),
                 ),
               ),
               const SizedBox(height: 28),
 
-              // ─── Info Items ───────────────────────────
+              //  Info Items
               _ProfileItem(
                 icon: Icons.email_outlined,
                 label: 'Email'.tr,
                 value: profile.email,
-                onEdit: () {
-                  // TODO: تعديل البريد الإلكتروني
-                },
+                onEdit: () => _showEditDialog(context, 'Email', 'email', profile.email),
               ),
               const SizedBox(height: 12),
 
@@ -90,9 +135,8 @@ class ProfileView extends GetView<ProfileController> {
                 icon: Icons.phone_outlined,
                 label: 'Phone Number'.tr,
                 value: profile.phoneNumber,
-                onEdit: () {
-                  // TODO: تعديل رقم الهاتف
-                },
+                // تمرير المفتاح phone_number كما هو مطلوب في الـ API
+                onEdit: () => _showEditDialog(context, 'Phone Number', 'phone_number', profile.phoneNumber),
               ),
               const SizedBox(height: 12),
 
@@ -100,39 +144,39 @@ class ProfileView extends GetView<ProfileController> {
                 icon: Icons.location_on_outlined,
                 label: 'Address'.tr,
                 value: profile.address,
-                onEdit: () {
-                  // TODO: تعديل العنوان
-                },
+                onEdit: () => _showEditDialog(context, 'Address', 'address', profile.address),
               ),
               const SizedBox(height: 12),
 
+              // إزالة زر التعديل بتمرير null إلى onEdit
               _ProfileItem(
                 icon: Icons.group_outlined,
                 label: 'Number of Children'.tr,
                 value: profile.childrenCount.toString(),
-                onEdit: () {
-                  // TODO: الانتقال لإدارة الأطفال
-                },
+                onEdit: null,
               ),
               const SizedBox(height: 28),
 
-              // ─── Logout Button ────────────────────────
+              //  Logout Button
               SizedBox(
                 width: double.infinity,
                 height: 54,
                 child: ElevatedButton.icon(
                   onPressed: controller.logout,
-                  icon: const Icon(Icons.logout, color: Color(0xFF1A2E5A)),
-                  label:  Text(
+                  icon: Icon(
+                    Icons.logout,
+                    color: context.isDarkMode ? Colors.redAccent : const Color(0xFF1A2E5A),
+                  ),
+                  label: Text(
                     'Logout'.tr,
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
-                      color: Color(0xFF1A2E5A),
+                      color: context.isDarkMode ? Colors.redAccent : const Color(0xFF1A2E5A),
                     ),
                   ),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFE8EAF6),
+                    backgroundColor: context.isDarkMode ? Colors.red.withValues(alpha: 0.1) : const Color(0xFFE8EAF6),
                     elevation: 0,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(16),
@@ -149,19 +193,19 @@ class ProfileView extends GetView<ProfileController> {
   }
 }
 
-// ─── Profile Item ─────────────────────────────────────────────────────────────
+// ─── Profile Item
 
 class _ProfileItem extends StatelessWidget {
   final IconData icon;
   final String label;
   final String value;
-  final VoidCallback onEdit;
+  final VoidCallback? onEdit; // أصبح اختيارياً بقبول القيمة null
 
   const _ProfileItem({
     required this.icon,
     required this.label,
     required this.value,
-    required this.onEdit,
+    this.onEdit, // إزالة required
   });
 
   @override
@@ -169,61 +213,68 @@ class _ProfileItem extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: context.theme.cardColor,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color: context.isDarkMode ? Colors.transparent : Colors.black.withValues(alpha: 0.04),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
         ],
       ),
-
       child: Row(
         children: [
           // ─── Icon
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: const Color(0xFFE8F5E9),
+              color: context.isDarkMode ? Colors.green.withValues(alpha: 0.15) : const Color(0xFFE8F5E9),
               borderRadius: BorderRadius.circular(10),
             ),
-            child: Icon(icon, color: const Color(0xFF4CAF50), size: 22),
+            child: Icon(icon, color: context.isDarkMode ? Colors.greenAccent : const Color(0xFF4CAF50), size: 22),
           ),
           const SizedBox(width: 12),
 
           // ─── Label & Value
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                label,
-                style: const TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF1A2E5A),
+          Expanded( // استخدام Expanded لمنع مشاكل المساحات في الشاشات الصغيرة
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                    color: context.textTheme.bodyLarge?.color,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                value,
-                style: TextStyle(
-                  fontSize: 13,
-                  color: Colors.grey.shade600,
+                const SizedBox(height: 4),
+                Text(
+                  value,
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: context.textTheme.bodyMedium?.color,
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
-
-          const Spacer(),
 
           // ─── Edit icon
-          GestureDetector(
-            onTap: onEdit,
-            child: const Icon(Icons.edit_outlined,
-                color: Colors.blue, size: 20),
-          ),
+          // لن يظهر الأيقونة إلا إذا كان onEdit يحتوي على دالة
+          if (onEdit != null)
+            GestureDetector(
+              onTap: onEdit,
+              child: Padding(
+                padding: const EdgeInsets.only(left: 8.0), // إعطاء مساحة نقر أفضل
+                child: Icon(
+                    Icons.edit_outlined,
+                    color: context.isDarkMode ? Colors.blue.shade300 : Colors.blue,
+                    size: 20
+                ),
+              ),
+            ),
         ],
       ),
     );

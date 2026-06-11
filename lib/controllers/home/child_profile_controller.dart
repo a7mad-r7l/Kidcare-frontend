@@ -1,9 +1,10 @@
+import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../core/repos/home/child_profile_repo.dart';
 import '../../models/appointment/child_model.dart';
 import '../../models/home/home_child_model.dart';
 import '../base_controller.dart';
-import 'add_child_controller.dart';
+import 'home_controller.dart';
 
 class ChildProfileController extends BaseController {
   final ChildProfileRepo repo;
@@ -44,10 +45,29 @@ class ChildProfileController extends BaseController {
     }
   }
 
-  // استخدام دالة الحذف الموجودة في AddChildController لتجنب تكرار الكود
+  // الآن الدالة تستخدم الـ repo الخاص بـ هذا الـ Controller مباشرة
   Future<void> deleteCurrentChild() async {
-    if (Get.isRegistered<AddChildController>()) {
-      Get.find<AddChildController>().deleteChild(childId);
+    showLoading();
+    try {
+      // استدعاء دالة الحذف التي أضفناها للـ Repo
+      await repo.deleteChild(childId);
+      if (Get.isRegistered<HomeController>()) {
+        Get.find<HomeController>().fetchChildren(); // أو دالة التحديث الموجودة عندك
+      }
+
+      // بعد نجاح الحذف، نغلق شاشة البروفايل ونعود للرئيسية
+      Get.back();
+      Get.snackbar(
+        'Success'.tr,
+        'Child deleted successfully'.tr,
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.green,
+        colorText: Colors.white,
+      );
+    } catch (e) {
+      handleError(e);
+    } finally {
+      hideLoading();
     }
   }
 }

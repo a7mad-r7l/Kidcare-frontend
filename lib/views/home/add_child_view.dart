@@ -4,19 +4,17 @@ import 'package:get/get.dart';
 import '../../controllers/home/add_child_controller.dart';
 import '../../widgets/custom_text_field.dart';
 
-
 class AddChildView extends GetView<AddChildController> {
   const AddChildView({super.key});
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFEEF4FF),
+      // ❌ تم إزالة backgroundColor للـ Scaffold والـ AppBar
       appBar: AppBar(
-        backgroundColor: const Color(0xFFEEF4FF),
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios, color: Colors.black87, size: 20),
+          icon: Icon(Icons.arrow_back_ios, color: context.iconColor, size: 20), // أيقونة متكيفة
           onPressed: () => Get.back(),
         ),
       ),
@@ -28,19 +26,18 @@ class AddChildView extends GetView<AddChildController> {
             // ─── Avatar ───────────────────────────────
             Center(
               child: GestureDetector(
-                onTap: controller.pickImage, // ✅
+                onTap: controller.pickImage,
                 child: Obx(() => Stack(
                   children: [
                     CircleAvatar(
                       radius: 55,
-                      backgroundColor: Colors.white,
-
+                      backgroundColor: context.theme.scaffoldBackgroundColor, // لون خلفية متكيف
                       backgroundImage: controller.selectedImage.value != null
                           ? FileImage(controller.selectedImage.value!)
                           : null,
                       child: controller.selectedImage.value == null
                           ? Icon(Icons.person,
-                          color: Colors.blue.shade200, size: 60)
+                          color: context.theme.dividerColor, size: 60)
                           : null,
                     ),
                     Positioned(
@@ -48,8 +45,8 @@ class AddChildView extends GetView<AddChildController> {
                       right: 0,
                       child: Container(
                         padding: const EdgeInsets.all(8),
-                        decoration: const BoxDecoration(
-                          color: Color(0xFF3B9EFF),
+                        decoration: BoxDecoration(
+                          color: context.theme.primaryColor, // اللون الأساسي من السمة
                           shape: BoxShape.circle,
                         ),
                         child: const Icon(Icons.camera_alt,
@@ -62,13 +59,13 @@ class AddChildView extends GetView<AddChildController> {
             ),
 
             // ─── Title ────────────────────────────────
-             Center(
+            Center(
               child: Text(
                 'Add New Child'.tr,
                 style: TextStyle(
                   fontSize: 22,
                   fontWeight: FontWeight.bold,
-                  color: Color(0xFF1A2E5A),
+                  color: context.textTheme.bodyLarge?.color, // نص متكيف
                 ),
               ),
             ),
@@ -78,13 +75,12 @@ class AddChildView extends GetView<AddChildController> {
             Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: context.theme.cardColor, // كرت متكيف
                 borderRadius: BorderRadius.circular(24),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-
                   // First & Last Name
                   Row(
                     children: [
@@ -92,11 +88,11 @@ class AddChildView extends GetView<AddChildController> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                             Text('First Name'.tr,
+                            Text('First Name'.tr,
                                 style: TextStyle(
                                     fontSize: 14,
                                     fontWeight: FontWeight.bold,
-                                    color: Color(0xFF1A2E5A))),
+                                    color: context.textTheme.bodyLarge?.color)),
                             const SizedBox(height: 8),
                             CustomTextField(
                               controller: controller.firstNameController,
@@ -110,11 +106,11 @@ class AddChildView extends GetView<AddChildController> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                             Text('Last Name'.tr,
+                            Text('Last Name'.tr,
                                 style: TextStyle(
                                     fontSize: 14,
                                     fontWeight: FontWeight.bold,
-                                    color: Color(0xFF1A2E5A))),
+                                    color: context.textTheme.bodyLarge?.color)),
                             const SizedBox(height: 8),
                             CustomTextField(
                               controller: controller.lastNameController,
@@ -128,11 +124,11 @@ class AddChildView extends GetView<AddChildController> {
                   const SizedBox(height: 20),
 
                   // Gender
-                   Text('Gender'.tr,
+                  Text('Gender'.tr,
                       style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.bold,
-                          color: Color(0xFF1A2E5A))),
+                          color: context.textTheme.bodyLarge?.color)),
                   const SizedBox(height: 10),
                   Obx(() => Row(
                     children: [
@@ -143,14 +139,15 @@ class AddChildView extends GetView<AddChildController> {
                           child: Container(
                             padding: const EdgeInsets.symmetric(vertical: 14),
                             decoration: BoxDecoration(
+                              // لون متكيف بذكاء للوضع الليلي
                               color: controller.selectedGender.value == 'female'
-                                  ? const Color(0xFFFCE4EC)
-                                  : Colors.white,
+                                  ? (context.isDarkMode ? Colors.pinkAccent.withOpacity(0.15) : const Color(0xFFFCE4EC))
+                                  : context.theme.scaffoldBackgroundColor,
                               borderRadius: BorderRadius.circular(12),
                               border: Border.all(
                                 color: controller.selectedGender.value == 'female'
                                     ? Colors.pinkAccent
-                                    : Colors.grey.shade300,
+                                    : context.theme.dividerColor,
                                 width: controller.selectedGender.value == 'female' ? 2 : 1,
                               ),
                             ),
@@ -183,14 +180,15 @@ class AddChildView extends GetView<AddChildController> {
                           child: Container(
                             padding: const EdgeInsets.symmetric(vertical: 14),
                             decoration: BoxDecoration(
+                              // لون متكيف بذكاء للوضع الليلي
                               color: controller.selectedGender.value == 'male'
-                                  ? const Color(0xFFE3F2FD)
-                                  : Colors.white,
+                                  ? (context.isDarkMode ? Colors.blue.withOpacity(0.15) : const Color(0xFFE3F2FD))
+                                  : context.theme.scaffoldBackgroundColor,
                               borderRadius: BorderRadius.circular(12),
                               border: Border.all(
                                 color: controller.selectedGender.value == 'male'
                                     ? Colors.blue
-                                    : Colors.grey.shade300,
+                                    : context.theme.dividerColor,
                                 width: controller.selectedGender.value == 'male' ? 2 : 1,
                               ),
                             ),
@@ -220,11 +218,11 @@ class AddChildView extends GetView<AddChildController> {
                   const SizedBox(height: 20),
 
                   // Birth Date
-                   Text('Birth Date'.tr,
+                  Text('Birth Date'.tr,
                       style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.bold,
-                          color: Color(0xFF1A2E5A))),
+                          color: context.textTheme.bodyLarge?.color)),
                   const SizedBox(height: 8),
                   Obx(() => GestureDetector(
                     onTap: () => controller.pickBirthDate(context),
@@ -233,9 +231,9 @@ class AddChildView extends GetView<AddChildController> {
                       padding: const EdgeInsets.symmetric(
                           horizontal: 16, vertical: 15),
                       decoration: BoxDecoration(
-                        color: Colors.white,
+                        color: context.theme.scaffoldBackgroundColor, // لون متكيف
                         borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: Colors.grey.shade300),
+                        border: Border.all(color: context.theme.dividerColor), // إطار متكيف
                       ),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -249,8 +247,8 @@ class AddChildView extends GetView<AddChildController> {
                             style: TextStyle(
                               fontSize: 13,
                               color: controller.selectedBirthDate.value.isEmpty
-                                  ? Colors.grey.shade400
-                                  : Colors.black87,
+                                  ? context.textTheme.bodyMedium?.color
+                                  : context.textTheme.bodyLarge?.color,
                             ),
                           ),
                         ],
@@ -260,22 +258,23 @@ class AddChildView extends GetView<AddChildController> {
                   const SizedBox(height: 20),
 
                   // Blood Type
-                   Text('Blood Type'.tr,
+                  Text('Blood Type'.tr,
                       style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.bold,
-                          color: Color(0xFF1A2E5A))),
+                          color: context.textTheme.bodyLarge?.color)),
                   const SizedBox(height: 8),
                   Obx(() => Container(
                     padding: const EdgeInsets.symmetric(horizontal: 16),
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: context.theme.scaffoldBackgroundColor, // خلفية متكيفة
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.grey.shade300),
+                      border: Border.all(color: context.theme.dividerColor),
                     ),
                     child: DropdownButtonHideUnderline(
                       child: DropdownButton<String>(
                         isExpanded: true,
+                        dropdownColor: context.theme.cardColor, // لون القائمة المنسدلة في الوضع الليلي
                         hint: Row(
                           mainAxisAlignment: MainAxisAlignment.start,
                           children: [
@@ -284,7 +283,7 @@ class AddChildView extends GetView<AddChildController> {
                             const SizedBox(width: 8),
                             Text('Select blood type'.tr,
                                 style: TextStyle(
-                                    color: Colors.grey.shade400,
+                                    color: context.textTheme.bodyMedium?.color,
                                     fontSize: 13)),
                           ],
                         ),
@@ -295,6 +294,7 @@ class AddChildView extends GetView<AddChildController> {
                             .map((type) => DropdownMenuItem(
                           value: type,
                           child: Text(type,
+                              style: TextStyle(color: context.textTheme.bodyLarge?.color), // نص القائمة
                               textAlign: TextAlign.right),
                         ))
                             .toList(),
@@ -309,34 +309,35 @@ class AddChildView extends GetView<AddChildController> {
                   const SizedBox(height: 20),
 
                   // Medical History
-                   Text('Medical History'.tr,
+                  Text('Medical History'.tr,
                       style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.bold,
-                          color: Color(0xFF1A2E5A))),
+                          color: context.textTheme.bodyLarge?.color)),
                   const SizedBox(height: 8),
                   TextField(
                     controller: controller.medicalHistoryController,
                     maxLines: 3,
                     textAlign: TextAlign.left,
+                    style: TextStyle(color: context.textTheme.bodyLarge?.color), // لون النص
                     decoration: InputDecoration(
                       hintText: "Enter child's medical history".tr,
                       hintStyle: TextStyle(
-                          color: Colors.grey.shade400, fontSize: 13),
+                          color: context.textTheme.bodyMedium?.color, fontSize: 13),
                       suffixIcon: const Icon(Icons.calendar_month_outlined,
                           color: Colors.blue),
                       filled: true,
-                      fillColor: Colors.white,
+                      fillColor: context.theme.scaffoldBackgroundColor, // لون الخلفية
                       contentPadding: const EdgeInsets.all(16),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
                         borderSide:
-                        BorderSide(color: Colors.grey.shade300),
+                        BorderSide(color: context.theme.dividerColor),
                       ),
                       enabledBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
                         borderSide:
-                        BorderSide(color: Colors.grey.shade300),
+                        BorderSide(color: context.theme.dividerColor),
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
@@ -348,34 +349,35 @@ class AddChildView extends GetView<AddChildController> {
                   const SizedBox(height: 20),
 
                   // Allergies
-                   Text('Allergies'.tr,
+                  Text('Allergies'.tr,
                       style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.bold,
-                          color: Color(0xFF1A2E5A))),
+                          color: context.textTheme.bodyLarge?.color)),
                   const SizedBox(height: 8),
                   TextField(
                     controller: controller.allergiesController,
                     maxLines: 3,
                     textAlign: TextAlign.left,
+                    style: TextStyle(color: context.textTheme.bodyLarge?.color), // لون النص
                     decoration: InputDecoration(
                       hintText: 'Enter any allergies the child has'.tr,
                       hintStyle: TextStyle(
-                          color: Colors.grey.shade400, fontSize: 13),
+                          color: context.textTheme.bodyMedium?.color, fontSize: 13),
                       suffixIcon: const Icon(Icons.shield_outlined,
                           color: Colors.blue),
                       filled: true,
-                      fillColor: Colors.white,
+                      fillColor: context.theme.scaffoldBackgroundColor, // لون الخلفية
                       contentPadding: const EdgeInsets.all(16),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
                         borderSide:
-                        BorderSide(color: Colors.grey.shade300),
+                        BorderSide(color: context.theme.dividerColor),
                       ),
                       enabledBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
                         borderSide:
-                        BorderSide(color: Colors.grey.shade300),
+                        BorderSide(color: context.theme.dividerColor),
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),

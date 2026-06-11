@@ -10,15 +10,15 @@ class AddGrowthSheet extends StatelessWidget {
     final controller = Get.find<ChildGrowthController>();
 
     return Container(
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      decoration: BoxDecoration(
+        // ─── خلفية متكيفة للوضع الليلي والنهاري ───
+        color: context.theme.cardColor,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
       ),
       padding: EdgeInsets.only(
         top: 20,
         left: 20,
         right: 20,
-        //  Keyboard Avoidance
         bottom: MediaQuery.of(context).viewInsets.bottom + 20,
       ),
       child: SingleChildScrollView(
@@ -31,7 +31,7 @@ class AddGrowthSheet extends StatelessWidget {
                 width: 45,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: Colors.grey.shade300,
+                  color: context.theme.dividerColor,
                   borderRadius: BorderRadius.circular(10),
                 ),
               ),
@@ -40,111 +40,50 @@ class AddGrowthSheet extends StatelessWidget {
 
             Text(
               'Add Measurement'.tr,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
-                color: Color(0xFF1A2E5A),
+                // ─── لون العنوان متكيف ───
+                color: context.textTheme.bodyLarge?.color,
               ),
             ),
             const SizedBox(height: 20),
 
-            // 1. إدخال الوزن
-            Text(
-              'Weight (kg)'.tr,
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-                color: Colors.grey.shade700,
-              ),
-            ),
-            const SizedBox(height: 8),
-            TextField(
+            // حقول الإدخال
+            _buildInputField(
+              label: 'Weight (kg)'.tr,
               controller: controller.weightController,
-              keyboardType: const TextInputType.numberWithOptions(
-                decimal: true,
-              ),
-              decoration: InputDecoration(
-                hintText: '0.0',
-                prefixIcon: const Icon(Icons.scale_outlined, size: 20),
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 14,
-                ),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(14),
-                  borderSide: BorderSide(color: Colors.grey.shade200),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(14),
-                  borderSide: BorderSide(color: Colors.grey.shade200),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(14),
-                  borderSide: const BorderSide(color: Colors.blue),
-                ),
-              ),
+              icon: Icons.scale_outlined,
+              context: context,
             ),
             const SizedBox(height: 16),
 
-            // 2. إدخال الطول
-            Text(
-              'Height (cm)'.tr,
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-                color: Colors.grey.shade700,
-              ),
-            ),
-            const SizedBox(height: 8),
-            TextField(
+            _buildInputField(
+              label: 'Height (cm)'.tr,
               controller: controller.heightController,
-              keyboardType: const TextInputType.numberWithOptions(
-                decimal: true,
-              ),
-              decoration: InputDecoration(
-                hintText: '0.0',
-                prefixIcon: const Icon(Icons.straighten_outlined, size: 20),
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 14,
-                ),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(14),
-                  borderSide: BorderSide(color: Colors.grey.shade200),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(14),
-                  borderSide: BorderSide(color: Colors.grey.shade200),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(14),
-                  borderSide: const BorderSide(color: Colors.blue),
-                ),
-              ),
+              icon: Icons.straighten_outlined,
+              context: context,
             ),
             const SizedBox(height: 16),
 
-            // 3. اختيار تاريخ القياس (Date Picker Trigger)
+            // اختيار التاريخ
             Text(
               'Record Date'.tr,
               style: TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.w600,
-                color: Colors.grey.shade700,
+                color: context.textTheme.bodyMedium?.color,
               ),
             ),
             const SizedBox(height: 8),
             Obx(
-              () => GestureDetector(
+                  () => GestureDetector(
                 onTap: () => controller.pickRecordDate(context),
                 child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 14,
-                  ),
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: Colors.grey.shade200),
+                    border: Border.all(color: context.theme.dividerColor),
                   ),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -155,16 +94,12 @@ class AddGrowthSheet extends StatelessWidget {
                             : controller.selectedDate.value,
                         style: TextStyle(
                           color: controller.selectedDate.value.isEmpty
-                              ? Colors.grey.shade400
-                              : Colors.black,
+                              ? context.theme.hintColor
+                              : context.textTheme.bodyLarge?.color,
                           fontSize: 14,
                         ),
                       ),
-                      Icon(
-                        Icons.calendar_month_outlined,
-                        color: Colors.grey.shade500,
-                        size: 20,
-                      ),
+                      Icon(Icons.calendar_month_outlined, color: context.theme.hintColor, size: 20),
                     ],
                   ),
                 ),
@@ -172,33 +107,66 @@ class AddGrowthSheet extends StatelessWidget {
             ),
             const SizedBox(height: 28),
 
-            // 4. زر حفظ القياس
+            // زر الحفظ
             SizedBox(
               width: double.infinity,
               height: 52,
               child: ElevatedButton(
                 onPressed: () => controller.addMeasurement(),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF1A2E5A),
-
+                  backgroundColor: context.theme.primaryColor,
                   foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14),
-                  ),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                   elevation: 0,
                 ),
                 child: Text(
                   'Save Measurement'.tr,
-                  style: const TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
                 ),
               ),
             ),
           ],
         ),
       ),
+    );
+  }
+
+  /// مساعد لبناء حقول الإدخال بشكل متناسق ومتكيف
+  Widget _buildInputField({
+    required String label,
+    required TextEditingController controller,
+    required IconData icon,
+    required BuildContext context,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: context.textTheme.bodyMedium?.color)),
+        const SizedBox(height: 8),
+        TextField(
+          controller: controller,
+          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+          style: TextStyle(color: context.textTheme.bodyLarge?.color),
+          decoration: InputDecoration(
+            hintText: '0.0',
+            hintStyle: TextStyle(color: context.theme.hintColor),
+            prefixIcon: Icon(icon, size: 20, color: context.theme.primaryColor),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(14),
+              borderSide: BorderSide(color: context.theme.dividerColor),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(14),
+              borderSide: BorderSide(color: context.theme.dividerColor),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(14),
+              borderSide: BorderSide(color: context.theme.primaryColor),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

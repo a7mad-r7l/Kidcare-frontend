@@ -8,152 +8,157 @@ class AppointmentsView extends GetView<AppointmentsController> {
 
   @override
   Widget build(BuildContext context) {
-    // تحديد السياق: هل نحن في مواعيد طفل محدد أم كل مواعيد المستخدم؟
     final bool isSingleChild = controller.childId != null && controller.childId != 0;
 
-    return Scaffold(
-      backgroundColor: const Color(0xFFF0F4FF),
-      appBar: AppBar(
-        backgroundColor: const Color(0xFFF0F4FF),
-        elevation: 0,
-        centerTitle: true,
-        title: Text(
-          // ─── إضافة الترجمة لعنوان الشاشة ───
-          isSingleChild ? 'Child Appointments'.tr : 'My Appointments'.tr,
-          style: const TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
-            color: Color(0xFF1A2E5A),
+    // ─── إحاطة الواجهة بـ PopScope للتحكم بزر الرجوع في النظام ───
+    return PopScope(
+      canPop: false, // نمنع الرجوع الافتراضي
+      onPopInvokedWithResult: (bool didPop, Object? result) {
+        if (didPop) return;
+        // ─── توجيه المستخدم للرئيسية عند ضغط زر الهاتف ───
+        Get.offAllNamed('/home');
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          elevation: 0,
+          centerTitle: true,
+          title: Text(
+            isSingleChild ? 'Child Appointments'.tr : 'My Appointments'.tr,
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: context.textTheme.bodyLarge?.color,
+            ),
+          ),
+          leading: IconButton(
+            icon: Icon(Icons.arrow_back_ios, color: context.iconColor, size: 20),
+            onPressed: () {
+              // ─── العودة إلى الرئيسية مباشرة من زر الواجهة ───
+              Get.offAllNamed('/home');
+            },
           ),
         ),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios, color: Color(0xFF1A2E5A), size: 20),
-          onPressed: () => Get.back(),
-        ),
-      ),
-      body: Column(
-        children: [
-          const SizedBox(height: 16),
+        body: Column(
+          children: [
+            const SizedBox(height: 16),
 
-          // ─── Tabs (Slider) ───
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            child: Obx(() => Container(
-              padding: const EdgeInsets.all(4),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(14),
-              ),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: GestureDetector(
-                      onTap: () => controller.switchTab(true),
-                      child: AnimatedContainer(
-                        duration: const Duration(milliseconds: 200),
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                        decoration: BoxDecoration(
-                          color: controller.showUpcoming.value ? const Color(0xFF3B9EFF) : Colors.transparent,
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(
-                              Icons.calendar_month_outlined,
-                              color: controller.showUpcoming.value ? Colors.white : Colors.grey,
-                              size: 18,
-                            ),
-                            const SizedBox(width: 6),
-                            Text(
-                              // ─── الترجمة هنا ───
-                              'Upcoming'.tr,
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                color: controller.showUpcoming.value ? Colors.white : Colors.grey,
+            // ─── Tabs (Slider) ───
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Obx(() => Container(
+                padding: const EdgeInsets.all(4),
+                decoration: BoxDecoration(
+                  color: context.theme.cardColor,
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: GestureDetector(
+                        onTap: () => controller.switchTab(true),
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 200),
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          decoration: BoxDecoration(
+                            color: controller.showUpcoming.value ? context.theme.primaryColor : Colors.transparent,
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.calendar_month_outlined,
+                                color: controller.showUpcoming.value ? Colors.white : context.textTheme.bodyMedium?.color,
+                                size: 18,
                               ),
-                            ),
-                          ],
+                              const SizedBox(width: 6),
+                              Text(
+                                'Upcoming'.tr,
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  color: controller.showUpcoming.value ? Colors.white : context.textTheme.bodyMedium?.color,
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
                     ),
-                  ),
-                  Expanded(
-                    child: GestureDetector(
-                      onTap: () => controller.switchTab(false),
-                      child: AnimatedContainer(
-                        duration: const Duration(milliseconds: 200),
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                        decoration: BoxDecoration(
-                          color: !controller.showUpcoming.value ? const Color(0xFF3B9EFF) : Colors.transparent,
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(
-                              Icons.history_outlined,
-                              color: !controller.showUpcoming.value ? Colors.white : Colors.grey,
-                              size: 18,
-                            ),
-                            const SizedBox(width: 6),
-                            Text(
-                              // ─── الترجمة هنا ───
-                              'Past'.tr,
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                color: !controller.showUpcoming.value ? Colors.white : Colors.grey,
+                    Expanded(
+                      child: GestureDetector(
+                        onTap: () => controller.switchTab(false),
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 200),
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          decoration: BoxDecoration(
+                            color: !controller.showUpcoming.value ? context.theme.primaryColor : Colors.transparent,
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.history_outlined,
+                                color: !controller.showUpcoming.value ? Colors.white : context.textTheme.bodyMedium?.color,
+                                size: 18,
                               ),
-                            ),
-                          ],
+                              const SizedBox(width: 6),
+                              Text(
+                                'Past'.tr,
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  color: !controller.showUpcoming.value ? Colors.white : context.textTheme.bodyMedium?.color,
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
                     ),
-                  ),
-                ],
-              ),
-            )),
-          ),
-          const SizedBox(height: 16),
+                  ],
+                ),
+              )),
+            ),
+            const SizedBox(height: 16),
 
-          // ─── List ───
-          Expanded(
-            child: Obx(() {
-              if (controller.isLoading) {
-                return const Center(child: CircularProgressIndicator(color: Colors.blue));
-              }
+            // ─── List ───
+            Expanded(
+              child: Obx(() {
+                if (controller.isLoading) {
+                  return const Center(child: CircularProgressIndicator(color: Colors.blue));
+                }
 
-              final list = controller.showUpcoming.value ? controller.upcoming : controller.past;
+                final list = controller.showUpcoming.value ? controller.upcoming : controller.past;
 
-              if (list.isEmpty) {
-                return Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.calendar_today_outlined, size: 60, color: Colors.grey.shade300),
-                      const SizedBox(height: 12),
-                      Text(
-                        // ─── الترجمة هنا ───
-                        'No appointments found'.tr,
-                        style: TextStyle(fontSize: 16, color: Colors.grey.shade400),
-                      ),
-                    ],
+                if (list.isEmpty) {
+                  return Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.calendar_today_outlined, size: 60, color: context.theme.dividerColor),
+                        const SizedBox(height: 12),
+                        Text(
+                          'No appointments found'.tr,
+                          style: TextStyle(fontSize: 16, color: context.textTheme.bodyMedium?.color),
+                        ),
+                      ],
+                    ),
+                  );
+                }
+
+                return ListView.separated(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  itemCount: list.length,
+                  separatorBuilder: (_, _) => const SizedBox(height: 12),
+                  itemBuilder: (_, index) => _AppointmentCard(
+                    appointment: list[index],
+                    isSingleChild: isSingleChild,
                   ),
                 );
-              }
-
-              return ListView.separated(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                itemCount: list.length,
-                separatorBuilder: (_, _) => const SizedBox(height: 12),
-                itemBuilder: (_, index) => _AppointmentCard(
-                  appointment: list[index],
-                  isSingleChild: isSingleChild, // نمرر السياق للبطاقة
-                ),
-              );
-            }),
-          ),
-        ],
+              }),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -174,31 +179,28 @@ class _AppointmentCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: context.theme.cardColor,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color: context.isDarkMode ? Colors.transparent : Colors.black.withValues(alpha: 0.04),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
         ],
       ),
-      // تبديل ذكي بين التصميمين بناءً على السياق
-      child: isSingleChild ? _buildSingleChildLayout() : _buildAllAppointmentsLayout(),
+      child: isSingleChild ? _buildSingleChildLayout(context) : _buildAllAppointmentsLayout(context),
     );
   }
 
-  // 1. تصميم (جميع المواعيد للمستخدم) - يظهر فيه الطفل والطبيب معاً
-  Widget _buildAllAppointmentsLayout() {
+  Widget _buildAllAppointmentsLayout(BuildContext context) {
     return Column(
       children: [
-        // الصف الأول: معلومات الطفل وحالة الموعد
         Row(
           children: [
             CircleAvatar(
               radius: 22,
-              backgroundColor: Colors.blue.shade50,
+              backgroundColor: context.isDarkMode ? Colors.blue.withValues(alpha: 0.15) : Colors.blue.shade50,
               backgroundImage: appointment.childImage != null && appointment.childImage!.isNotEmpty
                   ? NetworkImage(appointment.childImage!)
                   : null,
@@ -212,13 +214,11 @@ class _AppointmentCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    // ملاحظة: يُفضل استخدام .tr داخل المودل كما فعلنا سابقاً، لذلك لا نحتاج لإضافتها هنا للاسم
                     appointment.childName,
-                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF1A2E5A)),
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: context.textTheme.bodyLarge?.color),
                   ),
                   const SizedBox(height: 2),
-                  // ─── الترجمة هنا ───
-                  Text('Patient'.tr, style: TextStyle(fontSize: 12, color: Colors.grey.shade500)),
+                  Text('Patient'.tr, style: TextStyle(fontSize: 12, color: context.textTheme.bodyMedium?.color)),
                 ],
               ),
             ),
@@ -226,26 +226,25 @@ class _AppointmentCard extends StatelessWidget {
           ],
         ),
 
-        const Padding(
-          padding: EdgeInsets.symmetric(vertical: 12),
-          child: Divider(height: 1, thickness: 1, color: Color(0xFFF0F4FF)),
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          child: Divider(height: 1, thickness: 1, color: context.theme.dividerColor),
         ),
 
-        // الصف الثاني: معلومات الطبيب والاختصاص
         Row(
           children: [
             Container(
               width: 44,
               height: 44,
               decoration: BoxDecoration(
-                color: Colors.grey.shade100,
+                color: context.isDarkMode ? context.theme.scaffoldBackgroundColor : Colors.grey.shade100,
                 borderRadius: BorderRadius.circular(12),
                 image: appointment.doctorImage != null && appointment.doctorImage!.isNotEmpty
                     ? DecorationImage(image: NetworkImage(appointment.doctorImage!), fit: BoxFit.cover)
                     : null,
               ),
               child: appointment.doctorImage == null || appointment.doctorImage!.isEmpty
-                  ? Icon(Icons.person, color: Colors.grey.shade400)
+                  ? Icon(Icons.person, color: context.theme.dividerColor)
                   : null,
             ),
             const SizedBox(width: 12),
@@ -255,10 +254,10 @@ class _AppointmentCard extends StatelessWidget {
                 children: [
                   Text(
                     appointment.doctorName,
-                    style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Color(0xFF1A2E5A)),
+                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: context.textTheme.bodyLarge?.color),
                   ),
                   const SizedBox(height: 2),
-                  Text(appointment.specialty, style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
+                  Text(appointment.specialty, style: TextStyle(fontSize: 12, color: context.textTheme.bodyMedium?.color)),
                 ],
               ),
             ),
@@ -266,26 +265,22 @@ class _AppointmentCard extends StatelessWidget {
         ),
 
         const SizedBox(height: 16),
-
-        // الصف الثالث: التاريخ والوقت
-        _buildDateTimeSection(),
+        _buildDateTimeSection(context),
       ],
     );
   }
 
-  // 2. تصميم (مواعيد طفل محدد) - يظهر فيه الطبيب والقسم فقط
-  Widget _buildSingleChildLayout() {
+  Widget _buildSingleChildLayout(BuildContext context) {
     return Column(
       children: [
         Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // صورة الطبيب
             Container(
               width: 50,
               height: 50,
               decoration: BoxDecoration(
-                color: Colors.grey.shade100,
+                color: context.isDarkMode ? context.theme.scaffoldBackgroundColor : Colors.grey.shade100,
                 borderRadius: BorderRadius.circular(14),
                 image: appointment.doctorImage != null && appointment.doctorImage!.isNotEmpty
                     ? DecorationImage(image: NetworkImage(appointment.doctorImage!), fit: BoxFit.cover)
@@ -296,8 +291,6 @@ class _AppointmentCard extends StatelessWidget {
                   : null,
             ),
             const SizedBox(width: 14),
-
-            // معلومات الطبيب والحالة
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -308,7 +301,7 @@ class _AppointmentCard extends StatelessWidget {
                       Expanded(
                         child: Text(
                           appointment.doctorName,
-                          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF1A2E5A)),
+                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: context.textTheme.bodyLarge?.color),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
@@ -319,7 +312,7 @@ class _AppointmentCard extends StatelessWidget {
                   const SizedBox(height: 6),
                   Text(
                     appointment.specialty,
-                    style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
+                    style: TextStyle(fontSize: 13, color: context.textTheme.bodyMedium?.color),
                   ),
                 ],
               ),
@@ -327,39 +320,36 @@ class _AppointmentCard extends StatelessWidget {
           ],
         ),
         const SizedBox(height: 16),
-
-        // شريط التاريخ والوقت
-        _buildDateTimeSection(),
+        _buildDateTimeSection(context),
       ],
     );
   }
 
-  // ويدجت مشتركة لعرض الوقت والتاريخ بشكل منسق
-  Widget _buildDateTimeSection() {
+  Widget _buildDateTimeSection(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 12),
       decoration: BoxDecoration(
-        color: const Color(0xFFF8FAFC),
+        color: context.isDarkMode ? context.theme.scaffoldBackgroundColor : const Color(0xFFF8FAFC),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.calendar_today_outlined, size: 16, color: Colors.blue.shade600),
+          Icon(Icons.calendar_today_outlined, size: 16, color: context.isDarkMode ? Colors.blue.shade300 : Colors.blue.shade600),
           const SizedBox(width: 6),
           Text(
             appointment.date,
-            style: TextStyle(fontSize: 13, color: Colors.blue.shade700, fontWeight: FontWeight.w600),
+            style: TextStyle(fontSize: 13, color: context.isDarkMode ? Colors.blue.shade300 : Colors.blue.shade700, fontWeight: FontWeight.w600),
           ),
-          const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 16),
-            child: Text('|', style: TextStyle(color: Colors.grey)),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Text('|', style: TextStyle(color: context.theme.dividerColor)),
           ),
-          Icon(Icons.access_time_outlined, size: 16, color: Colors.blue.shade600),
+          Icon(Icons.access_time_outlined, size: 16, color: context.isDarkMode ? Colors.blue.shade300 : Colors.blue.shade600),
           const SizedBox(width: 6),
           Text(
             appointment.time,
-            style: TextStyle(fontSize: 13, color: Colors.blue.shade700, fontWeight: FontWeight.w600),
+            style: TextStyle(fontSize: 13, color: context.isDarkMode ? Colors.blue.shade300 : Colors.blue.shade700, fontWeight: FontWeight.w600),
           ),
         ],
       ),
@@ -367,7 +357,6 @@ class _AppointmentCard extends StatelessWidget {
   }
 }
 
-// ─── Status Pill (مساعد لتلوين حالة الموعد) ───
 class _StatusPill extends StatelessWidget {
   final String status;
 
@@ -382,28 +371,26 @@ class _StatusPill extends StatelessWidget {
     switch (normalized) {
       case 'confirmed':
       case 'success':
-        bg = Colors.green.shade50;
-        fg = Colors.green.shade600;
+        bg = context.isDarkMode ? Colors.green.withValues(alpha: 0.2) : Colors.green.shade50;
+        fg = context.isDarkMode ? Colors.greenAccent : Colors.green.shade600;
         break;
       case 'cancelled':
       case 'canceled':
-        bg = Colors.red.shade50;
-        fg = Colors.red.shade600;
+        bg = context.isDarkMode ? Colors.red.withValues(alpha: 0.2) : Colors.red.shade50;
+        fg = context.isDarkMode ? Colors.redAccent : Colors.red.shade600;
         break;
       case 'pending':
       default:
-        bg = Colors.orange.shade50;
-        fg = Colors.orange.shade700;
+        bg = context.isDarkMode ? Colors.orange.withValues(alpha: 0.2) : Colors.orange.shade50;
+        fg = context.isDarkMode ? Colors.orangeAccent : Colors.orange.shade700;
         break;
     }
 
-    // تجهيز الكلمة (حرف كبير في البداية) لتتطابق مع مفاتيح ملف الترجمة
     final label = status.isEmpty ? 'Pending' : status[0].toUpperCase() + status.substring(1);
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(20)),
-      // ─── تطبيق الترجمة على حالة الموعد هنا ───
       child: Text(label.tr, style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: fg)),
     );
   }

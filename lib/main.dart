@@ -12,6 +12,9 @@ import 'package:kidcare/views/home/child_profile_view.dart';
 import 'package:kidcare/views/home/home_view.dart';
 import 'package:kidcare/views/home/profile_view.dart';
 
+//theme
+import 'package:kidcare/core/theme/app_themes.dart';
+
 // الواجهات الأساسية
 import 'package:kidcare/views/main_advanced.dart';
 import 'package:kidcare/views/auth/login_view.dart';
@@ -112,12 +115,17 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GetMaterialApp(
+      // ─── إعدادات السمة (الجديدة) ───
+      theme: AppThemes.lightTheme,
+      darkTheme: AppThemes.darkTheme,
+      themeMode: ThemeMode.system,
+
       title: 'Kidcare',
       debugShowCheckedModeBanner: false,
 
       initialBinding: BindingsBuilder(() {
         Get.lazyPut<AppointmentController>(
-          () => AppointmentController(
+              () => AppointmentController(
             repo: AppointmentRepo(),
             doctorRepo: DoctorRepo(),
           ),
@@ -125,16 +133,12 @@ class MyApp extends StatelessWidget {
         );
       }),
 
-      //  Localization
+      // ─── إعدادات اللغات ───
       translations: AppTranslations(),
       locale: initialLocale,
       fallbackLocale: const Locale('en', 'US'),
 
-      theme: ThemeData(
-        primarySwatch: Colors.blue,
-        scaffoldBackgroundColor: Colors.white,
-        fontFamily: 'Roboto',
-      ),
+      // (تم حذف كود theme القديم من هنا لأنه يتعارض مع AppThemes أعلاه)
 
       initialRoute: '/',
       getPages: [
@@ -149,7 +153,7 @@ class MyApp extends StatelessWidget {
           page: () => const SignUpView(),
           binding: BindingsBuilder(() {
             Get.lazyPut<SignUpController>(
-              () => SignUpController(signUpRepo: SignUpRepo()),
+                  () => SignUpController(signUpRepo: SignUpRepo()),
             );
           }),
         ),
@@ -174,7 +178,7 @@ class MyApp extends StatelessWidget {
           page: () => const VerifyOtpView(),
           binding: BindingsBuilder(() {
             Get.lazyPut<VerifyOtpController>(
-              () => VerifyOtpController(verifyOtpRepo: VerifyOtpRepo()),
+                  () => VerifyOtpController(verifyOtpRepo: VerifyOtpRepo()),
             );
           }),
         ),
@@ -185,7 +189,7 @@ class MyApp extends StatelessWidget {
           page: () => const ForgotPasswordView(),
           binding: BindingsBuilder(() {
             Get.lazyPut<ForgotPasswordController>(
-              () => ForgotPasswordController(),
+                  () => ForgotPasswordController(),
             );
           }),
         ),
@@ -213,17 +217,17 @@ class MyApp extends StatelessWidget {
           page: () => const HomeView(),
           binding: BindingsBuilder(() {
             Get.lazyPut<HomeController>(
-              () => HomeController(
+                  () => HomeController(
                 homeChildrenRepo: HomeChildrenRepo(),
                 parentNameRepo: ParentNameRepo(),
               ),
             );
 
             Get.lazyPut<ChildController>(
-              () => ChildController(repo: ChildRepo()),
+                  () => ChildController(repo: ChildRepo()),
             );
             Get.lazyPut<MyAppointmentsController>(
-              () => MyAppointmentsController(
+                  () => MyAppointmentsController(
                 repo: AppointmentRepo(),
                 doctorRepo: DoctorRepo(),
                 childRepo: ChildRepo(),
@@ -241,7 +245,7 @@ class MyApp extends StatelessWidget {
             Get.lazyPut(() => DoctorController(repo: DoctorRepo()));
 
             Get.lazyPut<AppointmentController>(
-              () => AppointmentController(
+                  () => AppointmentController(
                 repo: AppointmentRepo(),
                 doctorRepo: DoctorRepo(),
               ),
@@ -255,7 +259,7 @@ class MyApp extends StatelessWidget {
 
           binding: BindingsBuilder(() {
             Get.lazyPut<ChildController>(
-              () => ChildController(repo: ChildRepo()),
+                  () => ChildController(repo: ChildRepo()),
             );
           }),
         ),
@@ -272,7 +276,7 @@ class MyApp extends StatelessWidget {
           page: () => const AppointmentsView(),
           binding: BindingsBuilder(() {
             Get.lazyPut<AppointmentsController>(
-              () =>
+                  () =>
                   AppointmentsController(appointmentsRepo: AppointmentsRepo()),
             );
           }),

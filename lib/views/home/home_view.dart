@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../controllers/home/home_controller.dart';
 import '../../models/home/home_child_model.dart';
+import 'about_app_view.dart';
 
 class HomeView extends GetView<HomeController> {
   const HomeView({super.key});
@@ -460,26 +461,33 @@ class _ClinicInfoSection extends StatelessWidget {
                   textAlign: TextAlign.left,
                 ),
                 const SizedBox(height: 8),
-                GestureDetector(
-                  onTap: () {
-                    // TODO: Get.toNamed('/about-clinic')
-                  },
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Read More'.tr,
-                        style: TextStyle(
-                          fontSize: 13,
-                          color: Colors.blue.shade600,
-                          fontWeight: FontWeight.bold,
-                        ),
+              // ─── إحاطة الـ Row بـ GestureDetector لجعله قابلاً للنقر ───
+              GestureDetector(
+                onTap: () {
+                  // الانتقال إلى واجهة النبذة عن التطبيق عند النقر
+                  Get.to(() => const AboutAppView());
+                },
+                // جعل مساحة النقر تشمل كامل الصف حتى الأجزاء الفارغة بين النص والأيقونة
+                behavior: HitTestBehavior.opaque,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Read More'.tr,
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: Colors.blue.shade600,
+                        fontWeight: FontWeight.bold,
                       ),
-                      const Icon(Icons.chevron_right,
-                          color: Colors.blue, size: 18),
-                    ],
-                  ),
+                    ),
+                    const Icon(
+                      Icons.chevron_right,
+                      color: Colors.blue,
+                      size: 18,
+                    ),
+                  ],
                 ),
+              )
               ],
             ),
           ),

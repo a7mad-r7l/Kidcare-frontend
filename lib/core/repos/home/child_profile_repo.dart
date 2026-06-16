@@ -5,7 +5,6 @@ import '../../apis/home/child_profile_api.dart';
 class ChildProfileRepo {
   final ChildProfileApi _api = ChildProfileApi();
 
-  // 1. الدالة المسؤولة عن جلب بيانات الطفل
   Future<ChildModel> getChildDetails(int childId) async {
     String response = await _api.getChildDetails(childId);
 
@@ -15,19 +14,24 @@ class ChildProfileRepo {
 
     final body = json.decode(response);
 
-    if (body is Map<String, dynamic> && body['id'] != null) {
-      return ChildModel.fromJson(body);
+    // 🌟 تحصين دفاعي: فحص ما إذا كانت البيانات قادمة مغلفة بداخل كائن 'data' بسبب مخرجات السيرفر الجديدة
+    if (body is Map<String, dynamic>) {
+      final rawChild = body['data'] is Map<String, dynamic>
+          ? body['data'] as Map<String, dynamic>
+          : body;
+
+      if (rawChild['id'] != null) {
+        return ChildModel.fromJson(rawChild);
+      }
     }
 
     throw Exception(body['message'] ?? 'Failed to load child details');
   }
 
-  // 2. الدالة المسؤولة عن حذف الطفل (التي أضفناها للتو)
   Future<void> deleteChild(int childId) async {
     final response = await _api.deleteChild(childId);
     final body = json.decode(response);
 
-    // التحقق من النجاح بناءً على استجابة السيرفر
     if (body['message'] != null &&
         (body['message'].toString().toLowerCase().contains('success') ||
             body['message'].toString().toLowerCase().contains('deleted'))) {

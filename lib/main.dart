@@ -10,6 +10,7 @@ import 'package:kidcare/views/home/add_child_view.dart';
 import 'package:kidcare/views/home/appointments_view.dart';
 import 'package:kidcare/views/home/child_profile_view.dart';
 import 'package:kidcare/views/home/home_view.dart';
+import 'package:kidcare/views/home/notification_history_view.dart';
 import 'package:kidcare/views/home/profile_view.dart';
 
 //theme
@@ -69,12 +70,14 @@ import 'controllers/home/add_child_controller.dart';
 import 'controllers/home/appointments_controller.dart';
 import 'controllers/home/child_profile_controller.dart';
 import 'controllers/home/home_controller.dart';
+import 'controllers/home/notification_history_controller.dart';
 import 'controllers/home/profile_controller.dart';
 import 'controllers/payment_controller.dart';
 import 'core/helper/notification_service.dart';
 import 'core/repos/home/appointments_repo.dart';
 import 'core/repos/home/child_profile_repo.dart';
 import 'core/repos/home/home_children_repo.dart';
+import 'core/repos/home/notification_history_repo.dart';
 import 'core/repos/home/parent_name_repo.dart';
 import 'core/repos/home/profile_repo.dart';
 
@@ -115,7 +118,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GetMaterialApp(
-      // ─── إعدادات السمة (الجديدة) ───
+
       theme: AppThemes.lightTheme,
       darkTheme: AppThemes.darkTheme,
       themeMode: ThemeMode.system,
@@ -133,12 +136,12 @@ class MyApp extends StatelessWidget {
         );
       }),
 
-      // ─── إعدادات اللغات ───
+
       translations: AppTranslations(),
       locale: initialLocale,
       fallbackLocale: const Locale('en', 'US'),
 
-      // (تم حذف كود theme القديم من هنا لأنه يتعارض مع AppThemes أعلاه)
+
 
       initialRoute: '/',
       getPages: [
@@ -317,6 +320,13 @@ class MyApp extends StatelessWidget {
             if (!Get.isRegistered<AppointmentController>()) {
               Get.lazyPut(() => AppointmentController(repo: AppointmentRepo(), doctorRepo: DoctorRepo()));
             }
+          }),
+        ),
+        GetPage(
+          name: '/notifications-history',
+          page: () => const NotificationHistoryView(),
+          binding: BindingsBuilder(() {
+            Get.lazyPut(() => NotificationHistoryController(repo: NotificationHistoryRepo()));
           }),
         ),
       ],

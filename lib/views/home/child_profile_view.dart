@@ -18,7 +18,7 @@ class ChildProfileView extends GetView<ChildProfileController> {
         centerTitle: true,
         title: Text(
           'Child Profile'.tr,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.bold,
             color: context.textTheme.bodyLarge?.color, // ─── نص متكيف ───
@@ -31,12 +31,19 @@ class ChildProfileView extends GetView<ChildProfileController> {
       ),
       body: Obx(() {
         if (controller.isLoading) {
-          return Center(child: CircularProgressIndicator(color: context.theme.primaryColor));
+          return Center(
+            child: CircularProgressIndicator(color: context.theme.primaryColor),
+          );
         }
 
         final child = controller.child.value;
         if (child == null) {
-          return Center(child: Text('Failed to load profile'.tr, style: TextStyle(color: context.textTheme.bodyMedium?.color)));
+          return Center(
+            child: Text(
+              'Failed to load profile'.tr,
+              style: TextStyle(color: context.textTheme.bodyMedium?.color),
+            ),
+          );
         }
 
         return Column(
@@ -61,44 +68,80 @@ class ChildProfileView extends GetView<ChildProfileController> {
                     Expanded(
                       child: GestureDetector(
                         onTap: () => isGrowthTab.value = true,
-                        child: Obx(() => AnimatedContainer(
-                          duration: const Duration(milliseconds: 200),
-                          padding: const EdgeInsets.symmetric(vertical: 12),
-                          decoration: BoxDecoration(
-                            color: isGrowthTab.value ? Colors.green : Colors.transparent,
-                            borderRadius: BorderRadius.circular(12),
+                        child: Obx(
+                          () => AnimatedContainer(
+                            duration: const Duration(milliseconds: 200),
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            decoration: BoxDecoration(
+                              color: isGrowthTab.value
+                                  ? Colors.green
+                                  : Colors.transparent,
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  Icons.show_chart_rounded,
+                                  color: isGrowthTab.value
+                                      ? Colors.white
+                                      : Colors.grey,
+                                  size: 18,
+                                ),
+                                const SizedBox(width: 6),
+                                Text(
+                                  'Growth Chart & Weight'.tr,
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 13,
+                                    color: isGrowthTab.value
+                                        ? Colors.white
+                                        : context.textTheme.bodyMedium?.color,
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(Icons.show_chart_rounded, color: isGrowthTab.value ? Colors.white : Colors.grey, size: 18),
-                              const SizedBox(width: 6),
-                              Text('Growth Chart & Weight'.tr, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: isGrowthTab.value ? Colors.white : context.textTheme.bodyMedium?.color)),
-                            ],
-                          ),
-                        ),
                         ),
                       ),
                     ),
                     Expanded(
                       child: GestureDetector(
                         onTap: () => isGrowthTab.value = false,
-                        child: Obx(() => AnimatedContainer(
-                          duration: const Duration(milliseconds: 200),
-                          padding: const EdgeInsets.symmetric(vertical: 12),
-                          decoration: BoxDecoration(
-                            color: !isGrowthTab.value ? context.theme.primaryColor : Colors.transparent,
-                            borderRadius: BorderRadius.circular(12),
+                        child: Obx(
+                          () => AnimatedContainer(
+                            duration: const Duration(milliseconds: 200),
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            decoration: BoxDecoration(
+                              color: !isGrowthTab.value
+                                  ? context.theme.primaryColor
+                                  : Colors.transparent,
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  Icons.assignment_outlined,
+                                  color: !isGrowthTab.value
+                                      ? Colors.white
+                                      : Colors.grey,
+                                  size: 18,
+                                ),
+                                const SizedBox(width: 6),
+                                Text(
+                                  'Appointments & Files'.tr,
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 13,
+                                    color: !isGrowthTab.value
+                                        ? Colors.white
+                                        : context.textTheme.bodyMedium?.color,
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(Icons.assignment_outlined, color: !isGrowthTab.value ? Colors.white : Colors.grey, size: 18),
-                              const SizedBox(width: 6),
-                              Text('Appointments & Files'.tr, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: !isGrowthTab.value ? Colors.white : context.textTheme.bodyMedium?.color)),
-                            ],
-                          ),
-                        ),
                         ),
                       ),
                     ),
@@ -114,22 +157,45 @@ class ChildProfileView extends GetView<ChildProfileController> {
                   return ChildGrowthTabView(childId: controller.childId);
                 } else {
                   return SingleChildScrollView(
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 6,
+                    ),
                     child: Column(
                       children: [
                         _StatsCard(child: child),
                         const SizedBox(height: 16),
-                        if (child.medicalHistory != null && child.medicalHistory!.isNotEmpty) ...[
-                          _DataCard(title: 'Medical History'.tr, content: child.medicalHistory!),
+                        if (child.medicalHistory != null &&
+                            child.medicalHistory!.isNotEmpty) ...[
+                          _DataCard(
+                            title: 'Medical History'.tr,
+                            content: child.medicalHistory!,
+                          ),
                           const SizedBox(height: 16),
                         ],
-                        if (child.allergies != null && child.allergies!.isNotEmpty) ...[
-                          _DataCard(title: 'Allergies'.tr, content: child.allergies!),
+                        if (child.allergies != null &&
+                            child.allergies!.isNotEmpty) ...[
+                          _DataCard(
+                            title: 'Allergies'.tr,
+                            content: child.allergies!,
+                          ),
                           const SizedBox(height: 16),
                         ],
-                        _ActionButton(icon: Icons.vaccines_outlined, label: 'Vaccination Record'.tr, color: context.theme.primaryColor, onTap: () => Get.toNamed('/vaccinations', arguments: child.id)),
+                        _ActionButton(
+                          icon: Icons.vaccines_outlined,
+                          label: 'Vaccination Record'.tr,
+                          color: context.theme.primaryColor,
+                          onTap: () =>
+                              Get.toNamed('/vaccinations', arguments: child.id),
+                        ),
                         const SizedBox(height: 10),
-                        _ActionButton(icon: Icons.calendar_today_outlined, label: 'Appointments'.tr, color: context.theme.primaryColor, onTap: () => Get.toNamed('/appointments', arguments: child.id)),
+                        _ActionButton(
+                          icon: Icons.calendar_today_outlined,
+                          label: 'Appointments'.tr,
+                          color: context.theme.primaryColor,
+                          onTap: () =>
+                              Get.toNamed('/appointments', arguments: child.id),
+                        ),
                         const SizedBox(height: 16),
                         // زر الحذف
                         SizedBox(
@@ -139,42 +205,66 @@ class ChildProfileView extends GetView<ChildProfileController> {
                             onPressed: controller.isLoading
                                 ? null // تعطيل الزر إذا كان التطبيق في حالة تحميل
                                 : () => Get.dialog(
-                              AlertDialog(
-                                backgroundColor: context.theme.cardColor,
-                                title: Text(
-                                  'Delete Child'.tr,
-                                  style: TextStyle(color: context.textTheme.bodyLarge?.color),
-                                ),
-                                content: Text(
-                                  'Are you sure you want to delete this child profile? This action cannot be undone.'.tr,
-                                  style: TextStyle(color: context.textTheme.bodyMedium?.color),
-                                ),
-                                actions: [
-                                  TextButton(
-                                    onPressed: () => Get.back(),
-                                    child: Text('Cancel'.tr),
-                                  ),
-                                  TextButton(
-                                    onPressed: () {
-                                      Get.back(); // إغلاق الـ Dialog
-                                      controller.deleteCurrentChild(); // تنفيذ دالة الحذف المعدلة
-                                    },
-                                    child: Text(
-                                      'Delete'.tr,
-                                      style: const TextStyle(
-                                        color: Colors.red,
-                                        fontWeight: FontWeight.bold,
+                                    AlertDialog(
+                                      backgroundColor: context.theme.cardColor,
+                                      title: Text(
+                                        'Delete Child'.tr,
+                                        style: TextStyle(
+                                          color: context
+                                              .textTheme
+                                              .bodyLarge
+                                              ?.color,
+                                        ),
                                       ),
+                                      content: Text(
+                                        'Are you sure you want to delete this child profile? This action cannot be undone.'
+                                            .tr,
+                                        style: TextStyle(
+                                          color: context
+                                              .textTheme
+                                              .bodyMedium
+                                              ?.color,
+                                        ),
+                                      ),
+                                      actions: [
+                                        TextButton(
+                                          onPressed: () => Get.back(),
+                                          child: Text('Cancel'.tr),
+                                        ),
+                                        TextButton(
+                                          onPressed: () {
+                                            Get.back(); // إغلاق الـ Dialog
+                                            controller
+                                                .deleteCurrentChild(); // تنفيذ دالة الحذف المعدلة
+                                          },
+                                          child: Text(
+                                            'Delete'.tr,
+                                            style: const TextStyle(
+                                              color: Colors.red,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
                                     ),
                                   ),
-                                ],
-                              ),
-                            ),
                             icon: controller.isLoading
-                                ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                                : const Icon(Icons.delete_outline, color: Colors.white),
+                                ? const SizedBox(
+                                    width: 20,
+                                    height: 20,
+                                    child: CircularProgressIndicator(
+                                      color: Colors.white,
+                                      strokeWidth: 2,
+                                    ),
+                                  )
+                                : const Icon(
+                                    Icons.delete_outline,
+                                    color: Colors.white,
+                                  ),
                             label: Text(
-                              controller.isLoading ? 'Deleting...'.tr : 'Delete Child Profile'.tr,
+                              controller.isLoading
+                                  ? 'Deleting...'.tr
+                                  : 'Delete Child Profile'.tr,
                               style: const TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.bold,
@@ -182,7 +272,9 @@ class ChildProfileView extends GetView<ChildProfileController> {
                               ),
                             ),
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: controller.isLoading ? Colors.grey : Colors.red.shade400,
+                              backgroundColor: controller.isLoading
+                                  ? Colors.grey
+                                  : Colors.red.shade400,
                               elevation: 0,
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(16),
@@ -206,6 +298,7 @@ class ChildProfileView extends GetView<ChildProfileController> {
 
 class _InfoCard extends StatelessWidget {
   final ChildModel child;
+
   const _InfoCard({required this.child});
 
   @override
@@ -215,7 +308,9 @@ class _InfoCard extends StatelessWidget {
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         // ─── لون الخلفية متكيف (أخضر خفيف جداً ليلاً ونهاراً) ───
-        color: context.isDarkMode ? Colors.green.withOpacity(0.15) : const Color(0xFFE8F5E9),
+        color: context.isDarkMode
+            ? Colors.green.withOpacity(0.15)
+            : const Color(0xFFE8F5E9),
         borderRadius: BorderRadius.circular(20),
       ),
       child: Row(
@@ -223,23 +318,55 @@ class _InfoCard extends StatelessWidget {
           CircleAvatar(
             radius: 55,
             backgroundColor: context.theme.scaffoldBackgroundColor,
-            backgroundImage: (child.image != null && child.image!.isNotEmpty) ? NetworkImage(child.image!) : null,
-            child: (child.image == null || child.image!.isEmpty) ? Icon(Icons.person, color: context.theme.dividerColor, size: 55) : null,
+            backgroundImage: (child.image != null && child.image!.isNotEmpty)
+                ? NetworkImage(child.image!)
+                : null,
+            child: (child.image == null || child.image!.isEmpty)
+                ? Icon(
+                    Icons.person,
+                    color: context.theme.dividerColor,
+                    size: 55,
+                  )
+                : null,
           ),
           const SizedBox(width: 20),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(child.fullName, style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: context.textTheme.bodyLarge?.color), maxLines: 1, overflow: TextOverflow.ellipsis),
+                Text(
+                  child.fullName,
+                  style: TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                    color: context.textTheme.bodyLarge?.color,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
                 const SizedBox(height: 6),
-                Text('${child.ageYears} ${' years'.tr}', style: TextStyle(fontSize: 16, color: context.textTheme.bodyMedium?.color)),
+                Text(
+                  '${child.ageYears} ${'years'.tr}',
+                  style: TextStyle(
+                    fontSize: 16,
+                    color: context.textTheme.bodyMedium?.color,
+                  ),
+                ),
                 const SizedBox(height: 6),
                 Row(
                   children: [
-                    Icon(child.gender.toLowerCase() == 'female' ? Icons.female : Icons.male, color: Colors.green, size: 18),
+                    Icon(
+                      child.gender.toLowerCase() == 'female'
+                          ? Icons.female
+                          : Icons.male,
+                      color: Colors.green,
+                      size: 18,
+                    ),
                     const SizedBox(width: 4),
-                    Text(child.gender.capitalizeFirst ?? '', style: const TextStyle(fontSize: 16, color: Colors.green)),
+                    Text(
+                      child.gender.capitalizeFirst ?? '',
+                      style: const TextStyle(fontSize: 16, color: Colors.green),
+                    ),
                   ],
                 ),
               ],
@@ -264,15 +391,43 @@ class _StatsCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: context.theme.cardColor,
         borderRadius: BorderRadius.circular(20),
-        boxShadow: [BoxShadow(color: context.isDarkMode ? Colors.transparent : Colors.black.withOpacity(0.04), blurRadius: 10, offset: const Offset(0, 4))],
+        boxShadow: [
+          BoxShadow(
+            color: context.isDarkMode
+                ? Colors.transparent
+                : Colors.black.withOpacity(0.04),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: Row(
         children: [
-          Expanded(child: _StatItem(icon: Icons.water_drop_outlined, value: child.bloodType ?? 'N/A', label: 'Blood Type'.tr)),
+          Expanded(
+            child: _StatItem(
+              icon: Icons.water_drop_outlined,
+              value: child.bloodType ?? 'N/A',
+              label: 'Blood Type'.tr,
+            ),
+          ),
           _VerticalDivider(),
-          Expanded(child: _StatItem(icon: Icons.calendar_month_outlined, value: '${child.ageYears}', label: 'Age'.tr)),
+          Expanded(
+            child: _StatItem(
+              icon: Icons.calendar_month_outlined,
+              value: '${child.ageYears}',
+              label: 'Age'.tr,
+            ),
+          ),
           _VerticalDivider(),
-          Expanded(child: _StatItem(icon: child.gender.toLowerCase() == 'female' ? Icons.female : Icons.male, value: child.gender.capitalizeFirst ?? '', label: 'Gender'.tr)),
+          Expanded(
+            child: _StatItem(
+              icon: child.gender.toLowerCase() == 'female'
+                  ? Icons.female
+                  : Icons.male,
+              value: child.gender.capitalizeFirst ?? '',
+              label: 'Gender'.tr,
+            ),
+          ),
         ],
       ),
     );
@@ -283,7 +438,12 @@ class _StatItem extends StatelessWidget {
   final IconData icon;
   final String value;
   final String label;
-  const _StatItem({required this.icon, required this.value, required this.label});
+
+  const _StatItem({
+    required this.icon,
+    required this.value,
+    required this.label,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -291,9 +451,22 @@ class _StatItem extends StatelessWidget {
       children: [
         Icon(icon, color: Colors.green, size: 28),
         const SizedBox(height: 8),
-        Text(value, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: context.textTheme.bodyLarge?.color)),
+        Text(
+          value,
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: context.textTheme.bodyLarge?.color,
+          ),
+        ),
         const SizedBox(height: 4),
-        Text(label, style: TextStyle(fontSize: 12, color: context.textTheme.bodyMedium?.color)),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 12,
+            color: context.textTheme.bodyMedium?.color,
+          ),
+        ),
       ],
     );
   }
@@ -309,6 +482,7 @@ class _VerticalDivider extends StatelessWidget {
 class _DataCard extends StatelessWidget {
   final String title;
   final String content;
+
   const _DataCard({required this.title, required this.content});
 
   @override
@@ -319,18 +493,44 @@ class _DataCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: context.theme.cardColor,
         borderRadius: BorderRadius.circular(20),
-        boxShadow: [BoxShadow(color: context.isDarkMode ? Colors.transparent : Colors.black.withOpacity(0.04), blurRadius: 10, offset: const Offset(0, 4))],
+        boxShadow: [
+          BoxShadow(
+            color: context.isDarkMode
+                ? Colors.transparent
+                : Colors.black.withOpacity(0.04),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(title, style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: context.textTheme.bodyLarge?.color)),
+          Text(
+            title,
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: context.textTheme.bodyLarge?.color,
+            ),
+          ),
           const SizedBox(height: 10),
           Container(
             width: double.infinity,
             padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(color: context.theme.scaffoldBackgroundColor, borderRadius: BorderRadius.circular(12)),
-            child: Text(content, style: TextStyle(fontSize: 14, color: context.textTheme.bodyMedium?.color, height: 1.5), textAlign: TextAlign.left),
+            decoration: BoxDecoration(
+              color: context.theme.scaffoldBackgroundColor,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Text(
+              content,
+              style: TextStyle(
+                fontSize: 14,
+                color: context.textTheme.bodyMedium?.color,
+                height: 1.5,
+              ),
+              textAlign: TextAlign.left,
+            ),
           ),
         ],
       ),
@@ -343,7 +543,13 @@ class _ActionButton extends StatelessWidget {
   final String label;
   final Color color;
   final VoidCallback onTap;
-  const _ActionButton({required this.icon, required this.label, required this.color, required this.onTap});
+
+  const _ActionButton({
+    required this.icon,
+    required this.label,
+    required this.color,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -355,13 +561,38 @@ class _ActionButton extends StatelessWidget {
         decoration: BoxDecoration(
           color: context.theme.cardColor,
           borderRadius: BorderRadius.circular(16),
-          boxShadow: [BoxShadow(color: context.isDarkMode ? Colors.transparent : Colors.black.withOpacity(0.04), blurRadius: 10, offset: const Offset(0, 4))],
+          boxShadow: [
+            BoxShadow(
+              color: context.isDarkMode
+                  ? Colors.transparent
+                  : Colors.black.withOpacity(0.04),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Row(children: [Icon(icon, color: color, size: 24), const SizedBox(width: 10), Text(label, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: context.textTheme.bodyLarge?.color))]),
-            Icon(Icons.chevron_right, color: context.textTheme.bodyLarge?.color, size: 22),
+            Row(
+              children: [
+                Icon(icon, color: color, size: 24),
+                const SizedBox(width: 10),
+                Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                    color: context.textTheme.bodyLarge?.color,
+                  ),
+                ),
+              ],
+            ),
+            Icon(
+              Icons.chevron_right,
+              color: context.textTheme.bodyLarge?.color,
+              size: 22,
+            ),
           ],
         ),
       ),

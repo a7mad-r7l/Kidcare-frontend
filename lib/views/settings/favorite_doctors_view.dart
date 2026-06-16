@@ -10,7 +10,8 @@ class FavoriteDoctorsView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final DoctorController doctorController = Get.find<DoctorController>();
-    final AppointmentController appointmentController = Get.find<AppointmentController>();
+    final AppointmentController appointmentController =
+        Get.find<AppointmentController>();
 
     doctorController.loadFavoriteDoctorIds();
 
@@ -29,7 +30,8 @@ class FavoriteDoctorsView extends StatelessWidget {
         elevation: 0,
         centerTitle: true,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back_ios, color: context.iconColor), // ─── أيقونة متكيفة ───
+          icon: Icon(Icons.arrow_back_ios, color: context.iconColor),
+          // ─── أيقونة متكيفة ───
           onPressed: () => Get.back(),
         ),
       ),
@@ -50,7 +52,10 @@ class FavoriteDoctorsView extends StatelessWidget {
                   const SizedBox(height: 16),
                   Text(
                     'No doctors available in this department.'.tr,
-                    style: TextStyle(color: context.textTheme.bodyMedium?.color, fontSize: 14), // ─── نص متكيف ───
+                    style: TextStyle(
+                      color: context.textTheme.bodyMedium?.color,
+                      fontSize: 14,
+                    ), // ─── نص متكيف ───
                   ),
                 ],
               ),
@@ -101,7 +106,10 @@ class _FavoriteDoctorCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(18),
           boxShadow: [
             BoxShadow(
-              color: context.isDarkMode ? Colors.transparent : Colors.black.withValues(alpha: 0.04), // ─── إخفاء الظل في الوضع الليلي ───
+              color: context.isDarkMode
+                  ? Colors.transparent
+                  : Colors.black.withValues(alpha: 0.04),
+              // ─── إخفاء الظل في الوضع الليلي ───
               blurRadius: 12,
               offset: const Offset(0, 4),
             ),
@@ -113,25 +121,31 @@ class _FavoriteDoctorCard extends StatelessWidget {
               width: 56,
               height: 56,
               decoration: BoxDecoration(
-                color: context.isDarkMode ? Colors.blue.withOpacity(0.15) : const Color(0xFFF0F4FF), // ─── خلفية الأفاتار متكيفة ───
+                color: context.isDarkMode
+                    ? Colors.blue.withOpacity(0.15)
+                    : const Color(0xFFF0F4FF), // ─── خلفية الأفاتار متكيفة ───
                 shape: BoxShape.circle,
               ),
               clipBehavior: Clip.antiAlias,
-              child: doctor.profilePicture != null && doctor.profilePicture!.isNotEmpty
+              child:
+                  doctor.profilePicture != null &&
+                      doctor.profilePicture!.isNotEmpty
                   ? Image.network(
-                doctor.profilePicture!,
-                fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => Icon(
-                  Icons.person_rounded,
-                  color: context.theme.primaryColor, // ─── أيقونة متكيفة ───
-                  size: 30,
-                ),
-              )
+                      doctor.profilePicture!,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) => Icon(
+                        Icons.person_rounded,
+                        color: context.theme.primaryColor,
+                        // ─── أيقونة متكيفة ───
+                        size: 30,
+                      ),
+                    )
                   : Icon(
-                Icons.person_rounded,
-                color: context.theme.primaryColor, // ─── أيقونة متكيفة ───
-                size: 30,
-              ),
+                      Icons.person_rounded,
+                      color:
+                          context.theme.primaryColor, // ─── أيقونة متكيفة ───
+                      size: 30,
+                    ),
             ),
             const SizedBox(width: 14),
             Expanded(
@@ -143,14 +157,23 @@ class _FavoriteDoctorCard extends StatelessWidget {
                     style: TextStyle(
                       fontSize: 15,
                       fontWeight: FontWeight.bold,
-                      color: context.textTheme.bodyLarge?.color, // ─── نص متكيف ───
+                      color: context
+                          .textTheme
+                          .bodyLarge
+                          ?.color, // ─── نص متكيف ───
                     ),
                   ),
                   const SizedBox(height: 3),
                   // 🌟 الإصلاح: قراءة النص المباشر والآمن للقسم المرتجع من البوستمان وترجمته ديناميكياً
                   Text(
-                    doctor.departmentName.isNotEmpty ? doctor.departmentName.tr : 'Specialist'.tr,
-                    style: TextStyle(fontSize: 12.5, color: context.textTheme.bodyMedium?.color), // ─── نص متكيف ───
+                    (doctor.departmentName != null &&
+                            doctor.departmentName!.isNotEmpty)
+                        ? doctor.departmentName!.tr
+                        : 'Specialist'.tr,
+                    style: TextStyle(
+                      fontSize: 12.5,
+                      color: context.textTheme.bodyMedium?.color,
+                    ), // ─── نص متكيف ───
                   ),
                 ],
               ),

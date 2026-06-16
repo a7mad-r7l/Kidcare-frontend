@@ -145,10 +145,9 @@ class _HeaderSection extends GetView<HomeController> {
         ),
         Stack(
           children: [
-            GestureDetector(
-              onTap: () => Get.toNamed('/notifications'),
-              child: Icon(Icons.notifications_outlined,
-                  size: 28, color: context.iconColor), // أيقونة متكيفة
+            IconButton(
+              icon: const Icon(Icons.notifications_none_outlined, color: Color(0xFF1A2E5A)),
+              onPressed: () => Get.toNamed('/notifications-history'), // 🌟 التوجيه للشاشة التاريخية
             ),
             Positioned(
               top: 0,

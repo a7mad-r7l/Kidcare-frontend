@@ -13,8 +13,20 @@ class ChildRepo {
     final response = await _api.getMine(token);
     final decoded = jsonDecode(response);
 
-    if (decoded is Map && decoded['children'] is List) {
-      return (decoded['children'] as List)
+    // 🌟 فحص مرن ومطاطي لاستخراج مصفوفة الأطفال أينما وجدت بداخل الـ JSON
+    List<dynamic> listToMap = [];
+    if (decoded is List) {
+      listToMap = decoded;
+    } else if (decoded is Map) {
+      if (decoded['children'] is List) {
+        listToMap = decoded['children'];
+      } else if (decoded['data'] is List) {
+        listToMap = decoded['data'];
+      }
+    }
+
+    if (listToMap.isNotEmpty || (decoded is Map && decoded['status'] == 'success')) {
+      return listToMap
           .map((j) => ChildModel.fromJson(j as Map<String, dynamic>))
           .toList();
     }

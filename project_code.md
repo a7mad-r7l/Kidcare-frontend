@@ -1482,7 +1482,7 @@ class AddChildController extends BaseController {
   }
 
   Future<void> addChild() async {
-    // التحقق من الحقول الإلزامية فقط (Mandatory Fields)
+    // 1. التحقق من الحقول الإلزامية (Client-Side Validation)
     if (firstNameController.text.isEmpty || lastNameController.text.isEmpty) {
       Get.snackbar(
         'Required Fields'.tr,
@@ -1509,14 +1509,15 @@ class AddChildController extends BaseController {
       return;
     }
 
+    // التحقق من العمر (ألا يتجاوز 6 سنوات)
     final birthDate = DateTime.tryParse(selectedBirthDate.value);
     if (birthDate != null) {
       final now = DateTime.now();
       final ageLimitDate = DateTime(now.year - 6, now.month, now.day);
       if (birthDate.isBefore(ageLimitDate)) {
         Get.snackbar(
-          'Invalid Age',
-          'Child age cannot exceed 6 years.',
+          'Invalid Age'.tr,
+          'Child age cannot exceed 6 years.'.tr,
           backgroundColor: Colors.grey.shade700,
           colorText: Colors.white,
           snackPosition: SnackPosition.TOP,
@@ -1540,29 +1541,30 @@ class AddChildController extends BaseController {
       return;
     }
 
-    // ─── منطق معالجة الحقول الاختيارية (Optional Fields Sanitization) ───
-    // إذا قام المستخدم بترك الحقل فارغاً، نقوم بتمرير نص افتراضي نظيف للسيرفر
+    // 2. معالجة الحقول الاختيارية (Data Sanitization)
     final String medicalHistory = medicalHistoryController.text.trim().isEmpty
-        ? 'No medical history'
+        ? 'No medical history'.tr
         : medicalHistoryController.text.trim();
 
     final String allergies = allergiesController.text.trim().isEmpty
-        ? 'No allergies'
+        ? 'No allergies'.tr
         : allergiesController.text.trim();
 
     showLoading();
     try {
+      // 3. إرسال الطلب للـ API عبر الـ Repository
       await addChildRepo.addChild(
         firstName: firstNameController.text.trim(),
         lastName: lastNameController.text.trim(),
         gender: selectedGender.value,
         birthDate: selectedBirthDate.value,
         bloodType: selectedBloodType.value,
-        medicalHistory: medicalHistory, // تمرير القيمة المعالجة
-        allergies: allergies,           // تمرير القيمة المعالجة
+        medicalHistory: medicalHistory,
+        allergies: allergies,
         image: selectedImage.value,
       );
 
+      // 4. عرض رسالة النجاح
       Get.snackbar(
         'Success'.tr,
         'Child added successfully!'.tr,
@@ -1571,11 +1573,13 @@ class AddChildController extends BaseController {
         snackPosition: SnackPosition.TOP,
         margin: const EdgeInsets.all(15),
       );
+
+      // تأخير بسيط ليتمكن المستخدم من قراءة رسالة النجاح
       await Future.delayed(const Duration(seconds: 1));
-      Get.back();
-      if (Get.isRegistered<HomeController>()) {
-        Get.find<HomeController>().fetchChildren();
-      }
+
+      // 5. التوجيه الشامل للرئيسية لضمان تحديث البيانات ومسح الـ Stack
+      Get.offAllNamed('/home');
+
     } catch (e) {
       handleError(e);
     } finally {
@@ -1666,12 +1670,13 @@ class AppointmentsController extends BaseController {
 
 ### File: lib\controllers\home\child_profile_controller.dart
 ```dart
+import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../core/repos/home/child_profile_repo.dart';
 import '../../models/appointment/child_model.dart';
 import '../../models/home/home_child_model.dart';
 import '../base_controller.dart';
-import 'add_child_controller.dart';
+import 'home_controller.dart';
 
 class ChildProfileController extends BaseController {
   final ChildProfileRepo repo;
@@ -1712,10 +1717,29 @@ class ChildProfileController extends BaseController {
     }
   }
 
-  // استخدام دالة الحذف الموجودة في AddChildController لتجنب تكرار الكود
+  // الآن الدالة تستخدم الـ repo الخاص بـ هذا الـ Controller مباشرة
   Future<void> deleteCurrentChild() async {
-    if (Get.isRegistered<AddChildController>()) {
-      Get.find<AddChildController>().deleteChild(childId);
+    showLoading();
+    try {
+      // استدعاء دالة الحذف التي أضفناها للـ Repo
+      await repo.deleteChild(childId);
+      if (Get.isRegistered<HomeController>()) {
+        Get.find<HomeController>().fetchChildren(); // أو دالة التحديث الموجودة عندك
+      }
+
+      // بعد نجاح الحذف، نغلق شاشة البروفايل ونعود للرئيسية
+      Get.back();
+      Get.snackbar(
+        'Success'.tr,
+        'Child deleted successfully'.tr,
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.green,
+        colorText: Colors.white,
+      );
+    } catch (e) {
+      handleError(e);
+    } finally {
+      hideLoading();
     }
   }
 }
@@ -1774,14 +1798,47 @@ class HomeController extends BaseController {
 }
 ```
 
+### File: lib\controllers\home\notification_history_controller.dart
+```dart
+import 'package:get/get.dart';
+import '../../core/repos/home/notification_history_repo.dart';
+import '../../models/home/notification_history_model.dart';
+import '../base_controller.dart';
+
+class NotificationHistoryController extends BaseController {
+  final NotificationHistoryRepo repo;
+  NotificationHistoryController({required this.repo});
+
+  final RxList<NotificationHistoryModel> notifications = <NotificationHistoryModel>[].obs;
+
+  @override
+  void onInit() {
+    super.onInit();
+    getNotifications();
+  }
+
+  Future<void> getNotifications() async {
+    showLoading();
+    try {
+      final result = await repo.fetchNotifications();
+      notifications.assignAll(result);
+    } catch (e) {
+      handleError(e);
+    } finally { // 🌟 الإصلاح: تعديل الكلمة إلى لغة البرمجة الافتراضية الصالحة فلاتر
+      hideLoading();
+    }
+  }
+}
+```
+
 ### File: lib\controllers\home\profile_controller.dart
 ```dart
+import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../core/helper/secure_storage_service.dart';
 import '../../core/repos/home/profile_repo.dart';
 import '../../models/home/profile_model.dart';
 import '../base_controller.dart';
-
 
 class ProfileController extends BaseController {
   final ProfileRepo profileRepo;
@@ -1801,6 +1858,33 @@ class ProfileController extends BaseController {
     try {
       final result = await profileRepo.getProfile();
       profile.value = result;
+    } catch (e) {
+      handleError(e);
+    } finally {
+      hideLoading();
+    }
+  }
+
+  // ─── دالة جديدة لتحديث حقل معين ───
+  Future<void> updateProfileField(String key, String newValue) async {
+    if (newValue.trim().isEmpty) return;
+
+    showLoading();
+    try {
+      // إرسال البيانات كـ Map (مثال: {'first_name': 'Louay'})
+      await profileRepo.updateProfile({key: newValue.trim()});
+
+      // جلب البيانات من جديد لتحديث الواجهة تلقائياً
+      await fetchProfile();
+
+      Get.back(); // إغلاق نافذة التعديل (Dialog)
+      Get.snackbar(
+        'Success'.tr,
+        'Profile updated successfully'.tr,
+        backgroundColor: Colors.green,
+        colorText: Colors.white,
+        snackPosition: SnackPosition.BOTTOM,
+      );
     } catch (e) {
       handleError(e);
     } finally {
@@ -1934,11 +2018,20 @@ import '../core/helper/secure_storage_service.dart';
 class SettingsController extends GetxController {
 
   var currentLanguage = 'system'.obs;
+  final RxBool isDarkMode = false.obs;
 
   @override
   void onInit() {
     super.onInit();
     _loadSavedLanguage();
+
+    isDarkMode.value = Get.isDarkMode;
+  }
+  void toggleTheme() {
+    isDarkMode.value = !isDarkMode.value;
+
+    // أمر GetX بتطبيق السمة الجديدة فوراً على كامل التطبيق
+    Get.changeThemeMode(isDarkMode.value ? ThemeMode.dark : ThemeMode.light);
   }
 
   Future<void> _loadSavedLanguage() async {
@@ -1962,6 +2055,7 @@ class SettingsController extends GetxController {
     _applyLocale(langCode);
   }
 
+
   void _applyLocale(String langCode) {
     Locale targetLocale;
 
@@ -1981,6 +2075,32 @@ class SettingsController extends GetxController {
 
 
     Get.updateLocale(targetLocale);
+  }
+}
+```
+
+### File: lib\controllers\theme_controller.dart
+```dart
+import 'package:flutter/material.dart';
+import 'package:get/get.dart';
+
+class ThemeController extends GetxController {
+  // حالة المتغير لمراقبة الوضع الحالي
+  final RxBool isDarkMode = false.obs;
+
+  @override
+  void onInit() {
+    super.onInit();
+    // قراءة حالة النظام الحالية عند بدء التطبيق
+    isDarkMode.value = Get.isDarkMode;
+  }
+
+  void toggleTheme() {
+    // تبديل القيمة
+    isDarkMode.value = !isDarkMode.value;
+
+    // أمر GetX بتغيير السمة في كامل التطبيق فوراً
+    Get.changeThemeMode(isDarkMode.value ? ThemeMode.dark : ThemeMode.light);
   }
 }
 ```
@@ -2238,7 +2358,7 @@ class FavoriteApi {
 
   Future<String> getFavorites(String token) async {
     final response = await client.get(
-      Uri.parse('$baseUrl/favorites'),
+      Uri.parse('$baseUrl/favorite-doctors'),
       headers: {
         'Accept': 'application/json',
         'Authorization': 'Bearer $token',
@@ -2672,6 +2792,7 @@ import '../../helper/secure_storage_service.dart';
 class ChildProfileApi {
   final http.Client client = http.Client();
 
+  // 1. الدالة المسؤولة عن جلب التفاصيل من السيرفر
   Future<String> getChildDetails(int childId) async {
     final token = await SecureStorage.getToken();
     if (token.isEmpty) {
@@ -2687,6 +2808,29 @@ class ChildProfileApi {
     );
 
     return response.body;
+  }
+
+  // 2. الدالة المسؤولة عن إرسال طلب الحذف (DELETE)
+  Future<String> deleteChild(int childId) async {
+    final token = await SecureStorage.getToken();
+    if (token.isEmpty) {
+      throw Exception('Session expired. Please login again.');
+    }
+
+    final response = await client.delete(
+      Uri.parse('$baseUrl/children/$childId'),
+      headers: {
+        'Accept': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+    );
+
+    // التحقق من حالة الطلب
+    if (response.statusCode == 200) {
+      return response.body;
+    } else {
+      throw Exception('Failed to delete child: ${response.statusCode}');
+    }
   }
 }
 ```
@@ -2724,6 +2868,32 @@ class HomeChildrenApi {
 
 ```
 
+### File: lib\core\apis\home\notification_history_api.dart
+```dart
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+import '../../helper/secure_storage_service.dart';
+
+class NotificationHistoryApi {
+  // الـ Base URL المعتمد والموحد في مشروعك
+  final String baseUrl = "https://deputize-daylong-puritan.ngrok-free.dev/api";
+
+  Future<http.Response> getNotificationsHistory() async {
+    final token = await SecureStorage.getToken();
+    final lang = await SecureStorage.getLanguage() ?? 'en';
+
+    return await http.get(
+      Uri.parse('$baseUrl/notifications'),
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Accept': 'application/json',
+        'Accept-Language': lang,
+      },
+    );
+  }
+}
+```
+
 ### File: lib\core\apis\home\parent_name_api.dart
 ```dart
 import 'package:http/http.dart' as http;
@@ -2759,15 +2929,16 @@ class ParentNameApi {
 
 ### File: lib\core\apis\home\profile_api.dart
 ```dart
+import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:get/get.dart';
 import '../../constants.dart';
 import '../../helper/secure_storage_service.dart';
 
-
 class ProfileApi {
   final http.Client client = http.Client();
 
+  // ─── 1. دالة جلب البيانات ───
   Future<String> getProfile() async {
     final token = await SecureStorage.getToken();
 
@@ -2786,8 +2957,32 @@ class ProfileApi {
 
     return response.body;
   }
-}
 
+  // ─── 2. دالة تحديث البيانات (تم إخراجها لتصبح دالة مستقلة) ───
+  Future<String> updateParentProfile(Map<String, dynamic> updatedData) async {
+    final token = await SecureStorage.getToken();
+
+    if (token == null || token.isEmpty) {
+      throw Exception('Session expired. Please login again.');
+    }
+
+    final response = await client.put(
+      Uri.parse('$baseUrl/updateparentProfile'),
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json', // مهم جداً لإرسال الـ Body
+        'Authorization': 'Bearer $token',
+      },
+      body: json.encode(updatedData),
+    );
+
+    if (response.statusCode == 200) {
+      return response.body;
+    } else {
+      throw Exception('Failed to update profile: ${response.statusCode}');
+    }
+  }
+}
 ```
 
 ### File: lib\core\apis\payment_api.dart
@@ -2933,30 +3128,44 @@ bool toBoolSafe(dynamic v, [bool fallback = false]) {
 
 ### File: lib\core\helper\notification_service.dart
 ```dart
+import 'dart:developer';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
-import 'package:flutter/foundation.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:get/get.dart';
-import 'package:http/http.dart' as http;
-import '../helper/secure_storage_service.dart';
-import '../constants.dart';
 
-// 🌟 1.  الخلفية ( Top Level Function)
+// دالة معالجة الإشعارات في الخلفية - يجب أن تكون Top-Level وخارج الكلاس قسرياً في الفايربيس
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
-  //  تهيئة فايربيس ً لأن التطبيق (Terminated)
   await Firebase.initializeApp();
-  debugPrint("Handling a background message: ${message.messageId}");
+  log("📩 إشعار جديد في الخلفية (Background/Terminated): ${message.messageId}");
 }
 
 class NotificationService {
   static final FirebaseMessaging _messaging = FirebaseMessaging.instance;
+  static final FlutterLocalNotificationsPlugin _localNotificationsPlugin =
+  FlutterLocalNotificationsPlugin();
 
+  // 🌟 إعداد القنوات المتوافق 100% مع النسخة 17.0.0 المستقرة هندسياً
+  static const AndroidNotificationChannel _appointmentsChannel = AndroidNotificationChannel(
+    'appointments_channel', // channelId
+    'Appointments Notifications', // channelName
+    description: 'This channel is used for appointments updates.',
+    importance: Importance.max,
+    playSound: true,
+  );
+
+  static const AndroidNotificationChannel _chatChannel = AndroidNotificationChannel(
+    'chat_channel', // channelId
+    'Chat Notifications', // channelName
+    description: 'This channel is used for direct doctor chats.',
+    importance: Importance.max,
+    playSound: true,
+  );
+
+  /// 🌟 1. الدالة الأساسية لتهيئة الإشعارات بالكامل وتوليد الـ Token
   static Future<void> initialize() async {
-    // 1.  الاستماع في الخلفية (Background & Terminated)
-    FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
-
-    // 2. طلب الصلاحيات من المستخدم
+    // طلب صلاحيات الإشعارات من الأهل
     NotificationSettings settings = await _messaging.requestPermission(
       alert: true,
       badge: true,
@@ -2964,81 +3173,121 @@ class NotificationService {
     );
 
     if (settings.authorizationStatus == AuthorizationStatus.authorized) {
-      debugPrint('🔔 Notification permission granted.');
-
-      // رفع التوكن الحالي
-      await uploadFcmToken();
-
-      //  3. تحديث التوكن التلقائي
-      _messaging.onTokenRefresh.listen((newToken) async {
-        debugPrint('🔄 FCM Token Refreshed: $newToken');
-        await uploadFcmToken(forcedToken: newToken);
-      });
+      log("🔔 تم منح صلاحيات الإشعارات بنجاح من قبل المستخدم.");
     }
 
-    // 4. حالة الـ Foreground (التطبيق مفتوح )
+    // إعداد قنوات أندرويد المحلية داخل الهاتف
+    await _localNotificationsPlugin
+        .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
+        ?.createNotificationChannel(_appointmentsChannel);
+
+    await _localNotificationsPlugin
+        .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
+        ?.createNotificationChannel(_chatChannel);
+
+    // إعدادات النقر المبدئية للـ Local Notifications
+    const AndroidInitializationSettings initializationSettingsAndroid =
+    AndroidInitializationSettings('@mipmap/ic_launcher');
+    const InitializationSettings initializationSettings =
+    InitializationSettings(android: initializationSettingsAndroid);
+
+    await _localNotificationsPlugin.initialize(
+      initializationSettings,
+      onDidReceiveNotificationResponse: (NotificationResponse response) {
+        // معالجة النقر على الإشعار والتطبيق مفتوح
+        if (response.payload != null) {
+          _handleNotificationClick(response.payload!);
+        }
+      },
+    );
+
+    // تعيين معالج الخلفية الشامل
+    FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+
+    // الاستماع للإشعارات والتطبيق يعمل في الواجهة (Foreground)
     FirebaseMessaging.onMessage.listen((RemoteMessage message) {
-      debugPrint('📩 Got a message while in the foreground!');
-      if (message.notification != null) {
-        Get.snackbar(
-          message.notification!.title ?? 'Notification'.tr,
-          message.notification!.body ?? '',
-          snackPosition: SnackPosition.TOP,
-          duration: const Duration(seconds: 4),
-        );
+      log("📥 استلام إشعار حي والتطبيق مفتوح: ${message.notification?.title}");
+      _showLocalNotification(message);
+    });
+
+    // الاستماع لنقرة الإشعار عندما يكون التطبيق في الخلفية (Background but not terminated)
+    FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
+      log("🖱️ تم النقر على الإشعار والتطبيق بالخلفية: ${message.data}");
+      if (message.data.containsKey('type')) {
+        _handleNotificationClick(message.data['type'].toString());
       }
     });
 
-    // 5. حالة الـ Background (التطبيق في الخلفية )
-    FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
-      debugPrint('🔓 Notification clicked! Opened app from background.');
-      _handleNotificationClick(message);
-    });
-
-    //  6. حالة الـ Terminated (التطبيق كان مغلقاً تماماً )
+    // معالجة تشغيل التطبيق من الصفر عن طريق نقرة إشعار (Terminated State)
     RemoteMessage? initialMessage = await _messaging.getInitialMessage();
-    if (initialMessage != null) {
-      debugPrint('🚀 App launched from terminated state via notification.');
-      _handleNotificationClick(initialMessage);
+    if (initialMessage != null && initialMessage.data.containsKey('type')) {
+      log("🚀 أقع التطبيق من الصفر بنقرة إشعار: ${initialMessage.data}");
+      _handleNotificationClick(initialMessage.data['type'].toString());
     }
+
+    // توليد وطباعة الـ FCM Token الذهبي للربط مع الباك إند
+    await _getAndPrintFCMToken();
   }
 
-  //  توجيه المستخدم عند الضغط على الإشعار
-  static void _handleNotificationClick(RemoteMessage message) {
-    // يمكنك لاحقاً قراءة message.data لتوجيه المستخدم لشاشة معينة
-    // حالياً سنوجهه لشاشة المواعيد كافتراضي
-    Get.toNamed('/appointments');
-  }
-
-  //  رفع التوكن للباك إند
-  static Future<void> uploadFcmToken({String? forcedToken}) async {
+  /// 🌟 2. توليد التوكن وطباعته في الكونسول
+  static Future<void> _getAndPrintFCMToken() async {
     try {
-      String? fcmToken = forcedToken ?? await _messaging.getToken();
-      debugPrint('🔑 🔑 🔑 MY DEVICE FCM TOKEN = $fcmToken');
-      if (fcmToken == null) return;
-
-      String userToken = await SecureStorage.getToken();
-      if (userToken.isEmpty) return;
-
-      final response = await http.post(
-        Uri.parse('$baseUrl/user/update-fcm-token'),
-        headers: {
-          'Accept': 'application/json',
-          'Authorization': 'Bearer $userToken',
-          'Accept-Language': Get.locale?.languageCode ?? 'en',
-        },
-        body: {
-          'fcm_token': fcmToken,
-        },
-      );
-
-      if (response.statusCode == 200 || response.statusCode == 201) {
-        debugPrint('✅ FCM Token synced with Laravel successfully.');
-      } else {
-        debugPrint('⚠️ Failed to sync FCM Token: ${response.body}');
+      String? token = await _messaging.getToken();
+      if (token != null) {
+        log("🔑 🔑 🔑 MY DEVICE FCM TOKEN = $token");
       }
     } catch (e) {
-      debugPrint('❌ Error syncing FCM Token: $e');
+      log("❌ فشل توليد الـ FCM Token: $e");
+    }
+  }
+
+  /// 🌟 3. عرض الإشعار محلياً بناءً على قواعد النسخة 17.0.0 المستقرة
+  static void _showLocalNotification(RemoteMessage message) {
+    RemoteNotification? notification = message.notification;
+    AndroidNotification? android = message.notification?.android;
+
+    if (notification != null && android != null) {
+      String notificationType = message.data['type']?.toString() ?? 'general';
+      AndroidNotificationChannel targetChannel = _appointmentsChannel;
+
+      if (notificationType == 'chat') {
+        targetChannel = _chatChannel;
+      }
+
+      _localNotificationsPlugin.show(
+        notification.hashCode,
+        notification.title,
+        notification.body,
+        NotificationDetails(
+          android: AndroidNotificationDetails(
+            // في نسخة 17.0.0 نمرر المعاملين الأولين كـ Positional صراحة دون أسماء لمنع التضارب
+            targetChannel.id,
+            targetChannel.name,
+            channelDescription: targetChannel.description,
+            importance: Importance.max,
+            priority: Priority.high,
+            icon: android.smallIcon,
+            playSound: true,
+          ),
+        ),
+        payload: notificationType,
+      );
+    }
+  }
+
+  /// 🌟 4. هندسة التوجيه التلقائي عند نقر الأهل على الإشعار
+  static void _handleNotificationClick(String type) {
+    log("🔀 جاري توجيه المستخدم بناءً على نوع الإشعار: $type");
+
+    switch (type) {
+      case 'appointment_accepted':
+      case 'appointment_rejected':
+      case 'appointment_reminder':
+        Get.toNamed('/appointments');
+        break;
+      default:
+        Get.toNamed('/home');
+        break;
     }
   }
 }
@@ -3278,6 +3527,25 @@ class AppTranslations extends Translations {
       'View My Appointments': 'View My Appointments',
       'Pay ': 'Pay ',
 
+      // --- New Additions (Add Child, Appointments, Session) ---
+      'Invalid Age': 'Invalid Age',
+      'No medical history': 'No medical history',
+      'No allergies': 'No allergies',
+      'Unknown Child': 'Unknown Child',
+      'Unknown Doctor': 'Unknown Doctor',
+      'Patient': 'Patient',
+      'General': 'General',
+      'Session Expired': 'Session Expired',
+      'Please login again to continue.': 'Please login again to continue.',
+      'Failed to load appointment data.': 'Failed to load appointment data.',
+
+      // --- Appointment Status ---
+      'Confirmed': 'Confirmed',
+      'Pending': 'Pending',
+      'Cancelled': 'Cancelled',
+      'Canceled': 'Canceled', // تحسباً لاختلاف الإملاء من الباك إند
+      'Completed': 'Completed',
+
       // --- Profile & Settings ---
       'Personal Profile': 'Personal Profile',
       'Number of Children': 'Number of Children',
@@ -3360,6 +3628,11 @@ class AppTranslations extends Translations {
       'Months': 'Months',
       'Growth Chart & Weight': 'Growth Chart & Weight',
       'Appointments & Files': 'Appointments & Files',
+      'Medical Assessment': 'Medical Assessment',
+      'Needs Review': 'Needs Review',
+      'Add Measurement': 'Add Measurement',
+      'Notifications': 'Notifications',
+      'No notifications found': 'No notifications found',
     },
 
     // ==========================================================
@@ -3537,6 +3810,25 @@ class AppTranslations extends Translations {
       'View My Appointments': 'عرض مواعيدي',
       'Pay ': 'دفع ',
 
+      // --- New Additions (Add Child, Appointments, Session) ---
+      'Invalid Age': 'عمر غير مقبول',
+      'No medical history': 'لا يوجد سجل طبي',
+      'No allergies': 'لا يعاني من حساسية',
+      'Unknown Child': 'طفل غير معروف',
+      'Unknown Doctor': 'طبيب غير معروف',
+      'Patient': 'المريض',
+      'General': 'عام',
+      'Session Expired': 'انتهت الجلسة',
+      'Please login again to continue.': 'يرجى تسجيل الدخول مرة أخرى للمتابعة.',
+      'Failed to load appointment data.': 'فشل في تحميل بيانات الموعد.',
+
+      // --- Appointment Status ---
+      'Confirmed': 'مؤكد',
+      'Pending': 'قيد الانتظار',
+      'Cancelled': 'ملغي',
+      'Canceled': 'ملغي',
+      'Completed': 'تم',
+
       // --- Profile & Settings ---
       'Personal Profile': 'الملف الشخصي',
       'Number of Children': 'عدد الأطفال',
@@ -3621,6 +3913,11 @@ class AppTranslations extends Translations {
       'Months': 'شهر',
       'Growth Chart & Weight': 'منحنى النمو والوزن',
       'Appointments & Files': 'المواعيد والملفات',
+      'Medical Assessment': 'التقييم الطبي المفصل',
+      'Needs Review': 'يحتاج متابعة',
+      'Add Measurement': 'إضافة قياس',
+      'Notifications': 'الإشعارات',
+      'No notifications found': 'لا توجد إشعارات حالياً',
     },
   };
 }
@@ -3803,8 +4100,20 @@ class ChildRepo {
     final response = await _api.getMine(token);
     final decoded = jsonDecode(response);
 
-    if (decoded is Map && decoded['children'] is List) {
-      return (decoded['children'] as List)
+    // 🌟 فحص مرن ومطاطي لاستخراج مصفوفة الأطفال أينما وجدت بداخل الـ JSON
+    List<dynamic> listToMap = [];
+    if (decoded is List) {
+      listToMap = decoded;
+    } else if (decoded is Map) {
+      if (decoded['children'] is List) {
+        listToMap = decoded['children'];
+      } else if (decoded['data'] is List) {
+        listToMap = decoded['data'];
+      }
+    }
+
+    if (listToMap.isNotEmpty || (decoded is Map && decoded['status'] == 'success')) {
+      return listToMap
           .map((j) => ChildModel.fromJson(j as Map<String, dynamic>))
           .toList();
     }
@@ -3815,7 +4124,6 @@ class ChildRepo {
     throw Exception(msg);
   }
 }
-
 ```
 
 ### File: lib\core\repos\appointment\department_repo.dart
@@ -3868,8 +4176,20 @@ class DoctorRepo {
     final response = await _api.getByDepartment(token, departmentId);
     final decoded = jsonDecode(response);
 
+    // 🌟 تحصين دفاعي: استخراج المصفوفة بأمان سواء أتت خام أو مغلفة بداخل مفتاح بسبب اللغات
+    List<dynamic> listToMap = [];
     if (decoded is List) {
-      return decoded
+      listToMap = decoded;
+    } else if (decoded is Map) {
+      if (decoded['doctors'] is List) {
+        listToMap = decoded['doctors'];
+      } else if (decoded['data'] is List) {
+        listToMap = decoded['data'];
+      }
+    }
+
+    if (listToMap.isNotEmpty || (decoded is Map && decoded['status'] == 'success')) {
+      return listToMap
           .map((j) => DoctorModel.fromJson(j as Map<String, dynamic>))
           .toList();
     }
@@ -3889,7 +4209,7 @@ class DoctorRepo {
       final raw = decoded['data'] is Map<String, dynamic>
           ? decoded['data'] as Map<String, dynamic>
           : decoded;
-      if (raw['id'] != null) return DoctorModel.fromJson(raw);
+      return DoctorModel.fromJson(raw);
     }
 
     final msg = (decoded is Map && decoded['message'] != null)
@@ -3898,30 +4218,27 @@ class DoctorRepo {
     throw Exception(msg);
   }
 
-  Future<List<DoctorAvailabilityModel>> fetchWeeklyAvailability(
-    int doctorId,
-  ) async {
+  Future<List<DoctorAvailabilityModel>> fetchWeeklyAvailability(int doctorId) async {
     final token = await SecureStorage.getToken();
     final response = await _api.getAvailabilities(token, doctorId);
     final decoded = jsonDecode(response);
 
+    List<dynamic> listToMap = [];
     if (decoded is List) {
-      return decoded
-          .map(
-            (j) =>
-                DoctorAvailabilityModel.fromJson(j as Map<String, dynamic>),
-          )
-          .toList();
+      listToMap = decoded;
+    } else if (decoded is Map) {
+      if (decoded['availabilities'] is List) {
+        listToMap = decoded['availabilities'];
+      } else if (decoded['data'] is List) {
+        listToMap = decoded['data'];
+      }
     }
 
-    final msg = (decoded is Map && decoded['message'] != null)
-        ? decoded['message'].toString()
-        : 'Failed to load availability';
-    throw Exception(msg);
+    return listToMap
+        .map((j) => DoctorAvailabilityModel.fromJson(j as Map<String, dynamic>))
+        .toList();
   }
 
-  /// Returns the list of available time slots for a doctor on a given date.
-  /// An empty list is a valid result (backend returns `times: []`) — not an error.
   Future<List<String>> fetchSlots(int doctorId, String date) async {
     final token = await SecureStorage.getToken();
     final response = await _api.getAvailableTimes(token, doctorId, date);
@@ -3932,14 +4249,14 @@ class DoctorRepo {
         (decoded['times'] as List).map((e) => e.toString()),
       );
     }
-
-    final msg = (decoded is Map && decoded['message'] != null)
-        ? decoded['message'].toString()
-        : 'Failed to load available times';
-    throw Exception(msg);
+    if (decoded is Map && decoded['data'] is Map && decoded['data']['times'] is List) {
+      return List<String>.from(
+        (decoded['data']['times'] as List).map((e) => e.toString()),
+      );
+    }
+    return [];
   }
 }
-
 ```
 
 ### File: lib\core\repos\appointment\favorite_repo.dart
@@ -4334,18 +4651,36 @@ class ChildProfileRepo {
   Future<ChildModel> getChildDetails(int childId) async {
     String response = await _api.getChildDetails(childId);
 
-    // معالجة دفاعية: تنظيف النص في حال كان السيرفر يرسل تحذيرات HTML قبل الـ JSON
     if (response.contains('{')) {
       response = response.substring(response.indexOf('{'));
     }
 
     final body = json.decode(response);
 
-    if (body is Map<String, dynamic> && body['id'] != null) {
-      return ChildModel.fromJson(body);
+    // 🌟 تحصين دفاعي: فحص ما إذا كانت البيانات قادمة مغلفة بداخل كائن 'data' بسبب مخرجات السيرفر الجديدة
+    if (body is Map<String, dynamic>) {
+      final rawChild = body['data'] is Map<String, dynamic>
+          ? body['data'] as Map<String, dynamic>
+          : body;
+
+      if (rawChild['id'] != null) {
+        return ChildModel.fromJson(rawChild);
+      }
     }
 
     throw Exception(body['message'] ?? 'Failed to load child details');
+  }
+
+  Future<void> deleteChild(int childId) async {
+    final response = await _api.deleteChild(childId);
+    final body = json.decode(response);
+
+    if (body['message'] != null &&
+        (body['message'].toString().toLowerCase().contains('success') ||
+            body['message'].toString().toLowerCase().contains('deleted'))) {
+      return;
+    }
+    throw Exception(body['message'] ?? 'Failed to delete child');
   }
 }
 ```
@@ -4377,6 +4712,40 @@ class HomeChildrenRepo {
 
     final List list = body['children'];
     return list.map((e) => HomeChildModel.fromJson(e)).toList();
+  }
+}
+```
+
+### File: lib\core\repos\home\notification_history_repo.dart
+```dart
+import 'dart:convert';
+import '../../../models/home/notification_history_model.dart';
+import '../../apis/home/notification_history_api.dart';
+
+class NotificationHistoryRepo {
+  final NotificationHistoryApi _api = NotificationHistoryApi();
+
+  Future<List<NotificationHistoryModel>> fetchNotifications() async {
+    final response = await _api.getNotificationsHistory();
+
+    if (response.statusCode == 200) {
+      final decoded = json.decode(response.body);
+
+      if (decoded is List) {
+        return decoded.map((json) => NotificationHistoryModel.fromJson(json as Map<String, dynamic>)).toList();
+      } else if (decoded is Map && decoded['notifications'] is List) {
+        return (decoded['notifications'] as List)
+            .map((json) => NotificationHistoryModel.fromJson(json as Map<String, dynamic>))
+            .toList();
+      } else if (decoded is Map && decoded['data'] is List) {
+        return (decoded['data'] as List)
+            .map((json) => NotificationHistoryModel.fromJson(json as Map<String, dynamic>))
+            .toList();
+      }
+      return [];
+    } else {
+      throw Exception('Failed to load notifications history.');
+    }
   }
 }
 ```
@@ -4420,6 +4789,16 @@ import '../../apis/home/profile_api.dart';
 
 class ProfileRepo {
   final ProfileApi _api = ProfileApi();
+  Future<void> updateProfile(Map<String, dynamic> data) async {
+    final response = await _api.updateParentProfile(data);
+    final body = json.decode(response);
+
+    if (body['status'] == 'success') {
+      return; // تم التحديث بنجاح
+    }
+
+    throw Exception(body['message'] ?? 'Failed to update profile');
+  }
 
   Future<ProfileModel> getProfile() async {
     final response = await _api.getProfile();
@@ -4480,6 +4859,69 @@ class PaymentRepo {
       throw Exception(data['message'] ?? "Failed to process payment data");
     }
   }
+}
+```
+
+### File: lib\core\theme\app_themes.dart
+```dart
+import 'package:flutter/material.dart';
+
+class AppThemes {
+  // ─── الوضع النهاري (مطابق لتصميمك الحالي تماماً) ───
+  static final lightTheme = ThemeData(
+    brightness: Brightness.light,
+    scaffoldBackgroundColor: const Color(0xFFF0F4FF), // لون الخلفية العام
+    cardColor: Colors.white, // لون البطاقات
+    primaryColor: const Color(0xFF3B9EFF), // اللون الأساسي (الأزرق)
+    appBarTheme: const AppBarTheme(
+      backgroundColor: Color(0xFFF0F4FF),
+      elevation: 0,
+      iconTheme: IconThemeData(color: Color(0xFF1A2E5A)),
+      titleTextStyle: TextStyle(
+        color: Color(0xFF1A2E5A),
+        fontSize: 20,
+        fontWeight: FontWeight.bold,
+      ),
+    ),
+    textTheme: TextTheme(
+      bodyLarge: const TextStyle(color: Color(0xFF1A2E5A)), // النصوص الأساسية
+      bodyMedium: TextStyle(color: Colors.grey.shade600), // النصوص الثانوية
+    ),
+    dividerColor: const Color(0xFFE2E8F0),
+    bottomNavigationBarTheme: const BottomNavigationBarThemeData(
+      backgroundColor: Colors.white,
+      selectedItemColor: Color(0xFF3B9EFF),
+      unselectedItemColor: Colors.grey,
+    ),
+  );
+
+  // ─── الوضع الليلي (Dark Mode) ───
+  static final darkTheme = ThemeData(
+    brightness: Brightness.dark,
+    scaffoldBackgroundColor: const Color(0xFF121212), // خلفية داكنة مريحة للعين
+    cardColor: const Color(0xFF1E1E1E), // بطاقات بدرجة أفتح قليلاً
+    primaryColor: const Color(0xFF3B9EFF),
+    appBarTheme: const AppBarTheme(
+      backgroundColor: Color(0xFF121212),
+      elevation: 0,
+      iconTheme: IconThemeData(color: Colors.white),
+      titleTextStyle: TextStyle(
+        color: Colors.white,
+        fontSize: 20,
+        fontWeight: FontWeight.bold,
+      ),
+    ),
+    textTheme: TextTheme(
+      bodyLarge: const TextStyle(color: Colors.white),
+      bodyMedium: TextStyle(color: Colors.grey.shade400),
+    ),
+    dividerColor: const Color(0xFF2C2C2C),
+    bottomNavigationBarTheme: const BottomNavigationBarThemeData(
+      backgroundColor: Color(0xFF1E1E1E),
+      selectedItemColor: Color(0xFF3B9EFF),
+      unselectedItemColor: Colors.grey,
+    ),
+  );
 }
 ```
 
@@ -4571,7 +5013,11 @@ import 'package:kidcare/views/home/add_child_view.dart';
 import 'package:kidcare/views/home/appointments_view.dart';
 import 'package:kidcare/views/home/child_profile_view.dart';
 import 'package:kidcare/views/home/home_view.dart';
+import 'package:kidcare/views/home/notification_history_view.dart';
 import 'package:kidcare/views/home/profile_view.dart';
+
+//theme
+import 'package:kidcare/core/theme/app_themes.dart';
 
 // الواجهات الأساسية
 import 'package:kidcare/views/main_advanced.dart';
@@ -4627,12 +5073,14 @@ import 'controllers/home/add_child_controller.dart';
 import 'controllers/home/appointments_controller.dart';
 import 'controllers/home/child_profile_controller.dart';
 import 'controllers/home/home_controller.dart';
+import 'controllers/home/notification_history_controller.dart';
 import 'controllers/home/profile_controller.dart';
 import 'controllers/payment_controller.dart';
 import 'core/helper/notification_service.dart';
 import 'core/repos/home/appointments_repo.dart';
 import 'core/repos/home/child_profile_repo.dart';
 import 'core/repos/home/home_children_repo.dart';
+import 'core/repos/home/notification_history_repo.dart';
 import 'core/repos/home/parent_name_repo.dart';
 import 'core/repos/home/profile_repo.dart';
 
@@ -4673,12 +5121,17 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GetMaterialApp(
+
+      theme: AppThemes.lightTheme,
+      darkTheme: AppThemes.darkTheme,
+      themeMode: ThemeMode.system,
+
       title: 'Kidcare',
       debugShowCheckedModeBanner: false,
 
       initialBinding: BindingsBuilder(() {
         Get.lazyPut<AppointmentController>(
-          () => AppointmentController(
+              () => AppointmentController(
             repo: AppointmentRepo(),
             doctorRepo: DoctorRepo(),
           ),
@@ -4686,16 +5139,12 @@ class MyApp extends StatelessWidget {
         );
       }),
 
-      //  Localization
+
       translations: AppTranslations(),
       locale: initialLocale,
       fallbackLocale: const Locale('en', 'US'),
 
-      theme: ThemeData(
-        primarySwatch: Colors.blue,
-        scaffoldBackgroundColor: Colors.white,
-        fontFamily: 'Roboto',
-      ),
+
 
       initialRoute: '/',
       getPages: [
@@ -4710,7 +5159,7 @@ class MyApp extends StatelessWidget {
           page: () => const SignUpView(),
           binding: BindingsBuilder(() {
             Get.lazyPut<SignUpController>(
-              () => SignUpController(signUpRepo: SignUpRepo()),
+                  () => SignUpController(signUpRepo: SignUpRepo()),
             );
           }),
         ),
@@ -4735,7 +5184,7 @@ class MyApp extends StatelessWidget {
           page: () => const VerifyOtpView(),
           binding: BindingsBuilder(() {
             Get.lazyPut<VerifyOtpController>(
-              () => VerifyOtpController(verifyOtpRepo: VerifyOtpRepo()),
+                  () => VerifyOtpController(verifyOtpRepo: VerifyOtpRepo()),
             );
           }),
         ),
@@ -4746,7 +5195,7 @@ class MyApp extends StatelessWidget {
           page: () => const ForgotPasswordView(),
           binding: BindingsBuilder(() {
             Get.lazyPut<ForgotPasswordController>(
-              () => ForgotPasswordController(),
+                  () => ForgotPasswordController(),
             );
           }),
         ),
@@ -4774,17 +5223,17 @@ class MyApp extends StatelessWidget {
           page: () => const HomeView(),
           binding: BindingsBuilder(() {
             Get.lazyPut<HomeController>(
-              () => HomeController(
+                  () => HomeController(
                 homeChildrenRepo: HomeChildrenRepo(),
                 parentNameRepo: ParentNameRepo(),
               ),
             );
 
             Get.lazyPut<ChildController>(
-              () => ChildController(repo: ChildRepo()),
+                  () => ChildController(repo: ChildRepo()),
             );
             Get.lazyPut<MyAppointmentsController>(
-              () => MyAppointmentsController(
+                  () => MyAppointmentsController(
                 repo: AppointmentRepo(),
                 doctorRepo: DoctorRepo(),
                 childRepo: ChildRepo(),
@@ -4802,7 +5251,7 @@ class MyApp extends StatelessWidget {
             Get.lazyPut(() => DoctorController(repo: DoctorRepo()));
 
             Get.lazyPut<AppointmentController>(
-              () => AppointmentController(
+                  () => AppointmentController(
                 repo: AppointmentRepo(),
                 doctorRepo: DoctorRepo(),
               ),
@@ -4816,7 +5265,7 @@ class MyApp extends StatelessWidget {
 
           binding: BindingsBuilder(() {
             Get.lazyPut<ChildController>(
-              () => ChildController(repo: ChildRepo()),
+                  () => ChildController(repo: ChildRepo()),
             );
           }),
         ),
@@ -4833,7 +5282,7 @@ class MyApp extends StatelessWidget {
           page: () => const AppointmentsView(),
           binding: BindingsBuilder(() {
             Get.lazyPut<AppointmentsController>(
-              () =>
+                  () =>
                   AppointmentsController(appointmentsRepo: AppointmentsRepo()),
             );
           }),
@@ -4876,11 +5325,17 @@ class MyApp extends StatelessWidget {
             }
           }),
         ),
+        GetPage(
+          name: '/notifications-history',
+          page: () => const NotificationHistoryView(),
+          binding: BindingsBuilder(() {
+            Get.lazyPut(() => NotificationHistoryController(repo: NotificationHistoryRepo()));
+          }),
+        ),
       ],
     );
   }
 }
-
 ```
 
 ### File: lib\models\appointment\appointment_model.dart
@@ -5065,51 +5520,51 @@ class DoctorAvailabilityModel {
 
 ### File: lib\models\appointment\doctor_model.dart
 ```dart
-import '../../core/helper/json_utils.dart';
-
 class DoctorModel {
   final int id;
-  final int departmentId;
   final String firstName;
   final String lastName;
   final String email;
   final String address;
+  final String? departmentName;
   final String? profilePicture;
-  final double? rating;
-  final String? fee;
-  final String? phone;
+  final bool isFavorite;
 
-  const DoctorModel({
+  DoctorModel({
     required this.id,
-    required this.departmentId,
     required this.firstName,
     required this.lastName,
     required this.email,
     required this.address,
+    this.departmentName,
     this.profilePicture,
-    this.rating,
-    this.fee,
-    this.phone,
+    required this.isFavorite,
   });
 
+  String get fullName => '$firstName $lastName';
+
   factory DoctorModel.fromJson(Map<String, dynamic> json) {
+    // 🌟 تحويل قيمة المفضلية بأمان مطلق ضد أي قيم أرقام أو بول قادمة من الباك إند
+    bool favoriteValue = false;
+    final fav = json['is_favorite'] ?? json['isFavorite'];
+    if (fav != null) {
+      if (fav is bool) favoriteValue = fav;
+      if (fav is int) favoriteValue = fav == 1;
+      if (fav is String) favoriteValue = fav == '1' || fav.toLowerCase() == 'true';
+    }
+
     return DoctorModel(
-      id: toIntSafe(json['id']),
-      departmentId: toIntSafe(json['department_id']),
-      firstName: json['first_name']?.toString() ?? '',
-      lastName: json['last_name']?.toString() ?? '',
+      id: json['id'] is int ? json['id'] : int.tryParse(json['id']?.toString() ?? '0') ?? 0,
+      firstName: json['first_name']?.toString() ?? json['firstName']?.toString() ?? '',
+      lastName: json['last_name']?.toString() ?? json['lastName']?.toString() ?? '',
       email: json['email']?.toString() ?? '',
       address: json['address']?.toString() ?? '',
+      departmentName: json['department_name']?.toString() ?? json['departmentName']?.toString() ?? '',
       profilePicture: json['profile_picture']?.toString(),
-      rating: toDoubleOrNull(json['rating']),
-      fee: json['fee']?.toString(),
-      phone: json['phone']?.toString(),
+      isFavorite: favoriteValue,
     );
   }
-
-  String get fullName => 'Dr. $firstName $lastName';
 }
-
 ```
 
 ### File: lib\models\appointment_details_model.dart
@@ -5336,6 +5791,8 @@ class WhoStandardModel {
 
 ### File: lib\models\home\appointments_model.dart
 ```dart
+import 'package:get/get.dart'; // ─── استيراد مكتبة Get ضروري لاستخدام .tr ───
+
 class AppointmentsModel {
   final int id;
   final String doctorName;
@@ -5345,6 +5802,10 @@ class AppointmentsModel {
   final String status;
   final String? doctorImage;
 
+  // الحقول الخاصة بالطفل
+  final String childName;
+  final String? childImage;
+
   const AppointmentsModel({
     required this.id,
     required this.doctorName,
@@ -5353,17 +5814,45 @@ class AppointmentsModel {
     required this.time,
     required this.status,
     this.doctorImage,
+    required this.childName,
+    this.childImage,
   });
 
   factory AppointmentsModel.fromJson(Map<String, dynamic> json) {
+    // 1. استخراج بيانات الطبيب من الكائن المتداخل (Nested Object)
+    final doctor = json['doctor'] as Map<String, dynamic>?;
+
+    // إضافة .tr للقيم الافتراضية
+    final doctorName = doctor != null
+        ? (doctor['full_name'] ?? 'Unknown Doctor'.tr)
+        : (json['doctor_name'] ?? 'Unknown Doctor'.tr);
+
+    final specialty = doctor != null
+        ? (doctor['specialty'] ?? 'General'.tr)
+        : (json['specialty'] ?? 'General'.tr);
+
+    final doctorImage = doctor != null ? doctor['image'] : json['doctor_image'];
+
+    // 2. استخراج بيانات الطفل من الكائن المتداخل (Nested Object)
+    final child = json['child'] as Map<String, dynamic>?;
+
+    // إضافة .tr للقيم الافتراضية
+    final childName = child != null
+        ? (child['first_name'] ?? 'Unknown Child'.tr)
+        : (json['child_name'] ?? 'Unknown Child'.tr);
+
+    final childImage = child != null ? child['image'] : json['child_image'];
+
     return AppointmentsModel(
       id: json['id'] ?? 0,
-      doctorName: json['doctor_name'] ?? '',
-      specialty: json['specialty'] ?? '',
+      doctorName: doctorName,
+      specialty: specialty,
       date: json['date'] ?? '',
       time: json['time'] ?? '',
-      status: json['status'] ?? '',
-      doctorImage: json['doctor_image'],
+      status: json['status'] ?? 'pending',
+      doctorImage: doctorImage,
+      childName: childName,
+      childImage: childImage,
     );
   }
 }
@@ -5371,21 +5860,35 @@ class AppointmentsModel {
 
 ### File: lib\models\home\child_model.dart
 ```dart
-// lib/core/models/child_model.dart
 class ChildModel {
+  final int id;
+  final int parentId;
   final String name;
-  final String age;
-  final String gender; // 'male' or 'female'
-  final bool isSelected;
+  final String gender;
+  final String birthDate;
+  final String? profilePicture;
 
-  const ChildModel({
+  ChildModel({
+    required this.id,
+    required this.parentId,
     required this.name,
-    required this.age,
     required this.gender,
-    this.isSelected = false,
+    required this.birthDate,
+    this.profilePicture,
   });
-}
 
+  factory ChildModel.fromJson(Map<String, dynamic> json) {
+    return ChildModel(
+      id: json['id'] is int ? json['id'] : int.tryParse(json['id']?.toString() ?? '0') ?? 0,
+      parentId: json['parent_id'] is int ? json['parent_id'] : int.tryParse(json['parent_id']?.toString() ?? '0') ?? 0,
+      name: json['name']?.toString() ?? '',
+      // 🌟 حماية حقل الجنس المترجم من الباك إند لمنع الكراش الشهير
+      gender: json['gender']?.toString() ?? '',
+      birthDate: json['birth_date']?.toString() ?? json['birthDate']?.toString() ?? '',
+      profilePicture: json['profile_picture']?.toString(),
+    );
+  }
+}
 ```
 
 ### File: lib\models\home\home_child_model.dart
@@ -5414,6 +5917,35 @@ class HomeChildModel {
   }
 }
 
+```
+
+### File: lib\models\home\notification_history_model.dart
+```dart
+class NotificationHistoryModel {
+  final int id;
+  final String title;
+  final String body;
+  final String? type;
+  final String createdAt;
+
+  NotificationHistoryModel({
+    required this.id,
+    required this.title,
+    required this.body,
+    this.type,
+    required this.createdAt,
+  });
+
+  factory NotificationHistoryModel.fromJson(Map<String, dynamic> json) {
+    return NotificationHistoryModel(
+      id: json['id'] is int ? json['id'] : int.parse(json['id'].toString()),
+      title: json['title']?.toString() ?? '',
+      body: json['body']?.toString() ?? '',
+      type: json['type']?.toString(),
+      createdAt: json['created_at']?.toString() ?? '',
+    );
+  }
+}
 ```
 
 ### File: lib\models\home\profile_model.dart
@@ -5494,7 +6026,7 @@ import '../../widgets/booking_app_bar.dart';
 
 final _fakeChildren = List<ChildModel>.generate(
   3,
-  (i) => ChildModel(
+      (i) => ChildModel(
     id: -i - 1,
     parentId: -1,
     firstName: 'Child',
@@ -5504,11 +6036,7 @@ final _fakeChildren = List<ChildModel>.generate(
   ),
 );
 
-const _kPrimary = kBookingPrimary;
-const _kBackground = kBookingBackground;
-const _kTextPrimary = kBookingTextPrimary;
-const _kTextSecondary = kBookingTextSecondary;
-const _kBorder = kBookingBorder;
+// تم إزالة الألوان الثابتة الخاصة بالخلفية والنصوص لأننا سنعتمد على الـ Theme
 const _kBoyTint = Color(0xFFE7F7E9);
 const _kGirlTint = Color(0xFFFFE7EE);
 const _kSelectedBorder = Color(0xFF22C55E);
@@ -5523,7 +6051,7 @@ class ChooseChildView extends StatefulWidget {
 class _ChooseChildViewState extends State<ChooseChildView> {
   final ChildController childController = Get.find<ChildController>();
   final AppointmentController appointmentController =
-      Get.find<AppointmentController>();
+  Get.find<AppointmentController>();
 
   int? selectedChildId;
 
@@ -5540,7 +6068,7 @@ class _ChooseChildViewState extends State<ChooseChildView> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: _kBackground,
+      // ❌ تم إزالة backgroundColor ليقرأ من النظام (AppThemes)
       appBar: bookingAppBar(subtitle: 'Choose Child'.tr),
       body: SafeArea(
         child: Column(
@@ -5548,18 +6076,19 @@ class _ChooseChildViewState extends State<ChooseChildView> {
             Expanded(
               child: Obx(() {
                 final isLoading = childController.isLoading;
-                final children =
-                    isLoading ? _fakeChildren : childController.children;
+                final children = isLoading
+                    ? _fakeChildren
+                    : childController.children;
 
                 if (!isLoading && children.isEmpty) {
-                  return  Center(
+                  return Center(
                     child: Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 32),
+                      padding: const EdgeInsets.symmetric(horizontal: 32),
                       child: Text(
                         "You haven't added any children yet.".tr,
                         textAlign: TextAlign.center,
                         style: TextStyle(
-                          color: _kTextSecondary,
+                          color: context.textTheme.bodyMedium?.color, // ─── نص متكيف ───
                           fontSize: 14,
                         ),
                       ),
@@ -5577,22 +6106,21 @@ class _ChooseChildViewState extends State<ChooseChildView> {
                       return _ChildCard(
                         child: child,
                         isSelected: selectedChildId == child.id,
-                        onTap:
-                            isLoading ? () {} : () => _onChildTapped(child),
+                        onTap: isLoading ? () {} : () => _onChildTapped(child),
                       );
                     },
                   ),
                 );
               }),
             ),
-            _buildNextButton(),
+            _buildNextButton(context),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildNextButton() {
+  Widget _buildNextButton(BuildContext context) {
     final enabled = selectedChildId != null;
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
@@ -5601,17 +6129,17 @@ class _ChooseChildViewState extends State<ChooseChildView> {
         height: 54,
         child: ElevatedButton(
           style: ElevatedButton.styleFrom(
-            backgroundColor: _kPrimary,
-            disabledBackgroundColor: _kPrimary.withValues(alpha: 0.4),
+            backgroundColor: context.theme.primaryColor, // ─── استخدام اللون الأساسي من السمة ───
+            disabledBackgroundColor: context.theme.primaryColor.withValues(alpha: 0.4),
             elevation: 0,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(16),
             ),
           ),
           onPressed: enabled ? _onNextPressed : null,
-          child:  Text(
+          child: Text(
             'Next'.tr,
-            style: TextStyle(
+            style: const TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w700,
               color: Colors.white,
@@ -5637,7 +6165,11 @@ class _ChildCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isMale = child.gender == 'male';
-    final tint = isMale ? _kBoyTint : _kGirlTint;
+
+    // ─── تكييف الألوان الخلفية للبطاقة المحددة حسب الوضع (ليلي/نهاري) ───
+    final Color lightTint = isMale ? _kBoyTint : _kGirlTint;
+    final Color darkTint = isMale ? Colors.blue.withValues(alpha: 0.15) : Colors.pinkAccent.withValues(alpha: 0.15);
+    final Color tint = context.isDarkMode ? darkTint : lightTint;
 
     return GestureDetector(
       onTap: onTap,
@@ -5646,21 +6178,23 @@ class _ChildCard extends StatelessWidget {
         margin: const EdgeInsets.only(bottom: 14),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         decoration: BoxDecoration(
-          color: isSelected ? tint : Colors.white,
+          // ─── تكييف خلفية البطاقة ───
+          color: isSelected ? tint : context.theme.cardColor,
           borderRadius: BorderRadius.circular(18),
           border: Border.all(
-            color: isSelected ? _kSelectedBorder : _kBorder,
+            // ─── تكييف لون الإطار ───
+            color: isSelected ? _kSelectedBorder : context.theme.dividerColor,
             width: isSelected ? 2 : 1,
           ),
-          boxShadow: isSelected
+          boxShadow: isSelected || context.isDarkMode // إخفاء الظل في الوضع الليلي أو عند التحديد
               ? null
               : [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.03),
-                    blurRadius: 10,
-                    offset: const Offset(0, 3),
-                  ),
-                ],
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.03),
+              blurRadius: 10,
+              offset: const Offset(0, 3),
+            ),
+          ],
         ),
         child: Row(
           children: [
@@ -5672,18 +6206,18 @@ class _ChildCard extends StatelessWidget {
                 children: [
                   Text(
                     child.fullName,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w700,
-                      color: _kTextPrimary,
+                      color: context.textTheme.bodyLarge?.color, // ─── نص متكيف ───
                     ),
                   ),
                   const SizedBox(height: 3),
                   Text(
                     '${child.ageYears} ${'years'.tr}',
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 13,
-                      color: _kTextSecondary,
+                      color: context.textTheme.bodyMedium?.color, // ─── نص متكيف ───
                     ),
                   ),
                 ],
@@ -5714,10 +6248,10 @@ class _ChildAvatar extends StatelessWidget {
       clipBehavior: Clip.antiAlias,
       child: child.image != null
           ? Image.network(
-              child.image!,
-              fit: BoxFit.cover,
-              errorBuilder: (_, _, _) => _localFallback(isMale),
-            )
+        child.image!,
+        fit: BoxFit.cover,
+        errorBuilder: (_, _, _) => _localFallback(isMale),
+      )
           : _localFallback(isMale),
     );
   }
@@ -5734,6 +6268,7 @@ class _ChildAvatar extends StatelessWidget {
 
 class _SelectionIndicator extends StatelessWidget {
   final bool selected;
+
   const _SelectionIndicator({required this.selected});
 
   @override
@@ -5743,10 +6278,12 @@ class _SelectionIndicator extends StatelessWidget {
       width: 26,
       height: 26,
       decoration: BoxDecoration(
-        color: selected ? _kSelectedBorder : Colors.white,
+        // ─── تكييف خلفية المؤشر ───
+        color: selected ? _kSelectedBorder : context.theme.scaffoldBackgroundColor,
         shape: BoxShape.circle,
         border: Border.all(
-          color: selected ? _kSelectedBorder : _kBorder,
+          // ─── تكييف إطار المؤشر ───
+          color: selected ? _kSelectedBorder : context.theme.dividerColor,
           width: 1.5,
         ),
       ),
@@ -5756,8 +6293,6 @@ class _SelectionIndicator extends StatelessWidget {
     );
   }
 }
-
-
 ```
 
 ### File: lib\views\appointment\choose_date_time_view.dart
@@ -5767,7 +6302,6 @@ import 'package:get/get.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 
 import '../../controllers/appointment/appointment_controller.dart';
-import '../../core/booking_theme.dart';
 import '../../models/appointment/appointment_model.dart';
 import '../../widgets/booking_app_bar.dart';
 import '../../widgets/booking_calendar.dart';
@@ -5783,12 +6317,6 @@ const _fakeSlots = <String>[
   '12:30',
   '13:00',
 ];
-
-const _kPrimary = kBookingPrimary;
-const _kBackground = kBookingBackground;
-const _kTextPrimary = kBookingTextPrimary;
-const _kTextSecondary = kBookingTextSecondary;
-const _kBorder = kBookingBorder;
 
 class ChooseDateTimeView extends StatefulWidget {
   const ChooseDateTimeView({super.key});
@@ -5814,7 +6342,7 @@ class _ChooseDateTimeViewState extends State<ChooseDateTimeView> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: _kBackground,
+      // ❌ تم إزالة backgroundColor ليقرأ خلفية النظام تلقائياً
       appBar: bookingAppBar(subtitle: 'Pick Date & Time'.tr),
       body: SafeArea(
         child: Column(
@@ -5837,12 +6365,12 @@ class _ChooseDateTimeViewState extends State<ChooseDateTimeView> {
                       );
                     }),
                     const SizedBox(height: 20),
-                     Text(
+                    Text(
                       'Available Times'.tr,
                       style: TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.w700,
-                        color: _kTextPrimary,
+                        color: context.textTheme.bodyLarge?.color, // ─── نص متكيف ───
                       ),
                     ),
                     const SizedBox(height: 12),
@@ -5861,23 +6389,22 @@ class _ChooseDateTimeViewState extends State<ChooseDateTimeView> {
 
 class _SlotsGrid extends StatelessWidget {
   final AppointmentController controller;
+
   const _SlotsGrid({required this.controller});
 
   @override
   Widget build(BuildContext context) {
     return Obx(() {
-
-
       final selectedDate = controller.selectedDate.value;
       final isLoadingSlots = controller.isLoadingSlots.value;
       final times = controller.availableTimes.toList();
       final selectedTime = controller.selectedTime.value;
 
       if (selectedDate == null) {
-        return  _EmptyHint(text: 'Pick a date to see available times.'.tr);
+        return _EmptyHint(text: 'Pick a date to see available times.'.tr);
       }
       if (!isLoadingSlots && times.isEmpty) {
-        return  _EmptyHint(text: 'No times available for this date.'.tr);
+        return _EmptyHint(text: 'No times available for this date.'.tr);
       }
 
       final shown = isLoadingSlots ? _fakeSlots : times;
@@ -5900,8 +6427,7 @@ class _SlotsGrid extends StatelessWidget {
             return _SlotChip(
               label: _formatTime12h(time),
               selected: isSelected,
-              onTap:
-                  isLoadingSlots ? () {} : () => controller.selectTime(time),
+              onTap: isLoadingSlots ? () {} : () => controller.selectTime(time),
             );
           },
         ),
@@ -5929,10 +6455,12 @@ class _SlotChip extends StatelessWidget {
         duration: const Duration(milliseconds: 180),
         alignment: Alignment.center,
         decoration: BoxDecoration(
-          color: selected ? _kPrimary : Colors.white,
+          // ─── خلفية الشريحة متكيفة (اللون الأساسي إذا حُددت، ولون البطاقة إذا لم تُحدد) ───
+          color: selected ? context.theme.primaryColor : context.theme.cardColor,
           borderRadius: BorderRadius.circular(14),
           border: Border.all(
-            color: selected ? _kPrimary : _kBorder,
+            // ─── إطار متكيف ───
+            color: selected ? context.theme.primaryColor : context.theme.dividerColor,
             width: 1.2,
           ),
         ),
@@ -5941,7 +6469,8 @@ class _SlotChip extends StatelessWidget {
           style: TextStyle(
             fontSize: 13,
             fontWeight: FontWeight.w700,
-            color: selected ? Colors.white : _kTextPrimary,
+            // ─── لون النص متكيف (أبيض إذا حُدد، ولون النص الأساسي إذا لم يُحدد) ───
+            color: selected ? Colors.white : context.textTheme.bodyLarge?.color,
           ),
         ),
       ),
@@ -5951,6 +6480,7 @@ class _SlotChip extends StatelessWidget {
 
 class _EmptyHint extends StatelessWidget {
   final String text;
+
   const _EmptyHint({required this.text});
 
   @override
@@ -5960,7 +6490,8 @@ class _EmptyHint extends StatelessWidget {
       child: Center(
         child: Text(
           text,
-          style: const TextStyle(color: _kTextSecondary, fontSize: 13.5),
+          // ─── لون نص ثانوي متكيف ───
+          style: TextStyle(color: context.textTheme.bodyMedium?.color, fontSize: 13.5),
         ),
       ),
     );
@@ -5969,6 +6500,7 @@ class _EmptyHint extends StatelessWidget {
 
 class _BookButton extends StatelessWidget {
   final AppointmentController controller;
+
   const _BookButton({required this.controller});
 
   Future<void> _handleBook(BuildContext context) async {
@@ -5980,8 +6512,6 @@ class _BookButton extends StatelessWidget {
     Get.delete<AppointmentController>(force: true);
 
     Get.offNamed('/payment-method', arguments: appointmentId);
-
-
   }
 
   @override
@@ -5996,8 +6526,9 @@ class _BookButton extends StatelessWidget {
               controller.selectedTime.value != null && !controller.isLoading;
           return ElevatedButton(
             style: ElevatedButton.styleFrom(
-              backgroundColor: _kPrimary,
-              disabledBackgroundColor: _kPrimary.withValues(alpha: 0.4),
+              // ─── اللون الأساسي للزر متكيف ───
+              backgroundColor: context.theme.primaryColor,
+              disabledBackgroundColor: context.theme.primaryColor.withValues(alpha: 0.4),
               elevation: 0,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(16),
@@ -6006,31 +6537,27 @@ class _BookButton extends StatelessWidget {
             onPressed: enabled ? () => _handleBook(context) : null,
             child: controller.isLoading
                 ? const SizedBox(
-                    width: 22,
-                    height: 22,
-                    child: CircularProgressIndicator(
-                      color: Colors.white,
-                      strokeWidth: 2.4,
-                    ),
-                  )
-                :  Text(
-                    'Book Appointment'.tr,
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w700,
-                      color: Colors.white,
-                    ),
-                  ),
+              width: 22,
+              height: 22,
+              child: CircularProgressIndicator(
+                color: Colors.white,
+                strokeWidth: 2.4,
+              ),
+            )
+                : Text(
+              'Book Appointment'.tr,
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w700,
+                color: Colors.white,
+              ),
+            ),
           );
         }),
       ),
     );
   }
 }
-
-
-
-
 
 String _formatTime12h(String hhmm) {
   final parts = hhmm.split(':');
@@ -6042,8 +6569,6 @@ String _formatTime12h(String hhmm) {
   final hh12 = h % 12 == 0 ? 12 : h % 12;
   return '${hh12.toString().padLeft(2, '0')}:$m $period';
 }
-
-
 ```
 
 ### File: lib\views\appointment\choose_doctor_view.dart
@@ -6054,29 +6579,22 @@ import 'package:skeletonizer/skeletonizer.dart';
 
 import '../../controllers/appointment/appointment_controller.dart';
 import '../../controllers/appointment/doctor_controller.dart';
-import '../../core/booking_theme.dart';
 import '../../models/appointment/doctor_model.dart';
 import '../../widgets/booking_app_bar.dart';
 
+// 🌟 المعطيات المزيفة
 final _fakeDoctors = List<DoctorModel>.generate(
   5,
-      (i) => DoctorModel(
+  (i) => DoctorModel(
     id: -i - 1,
-    departmentId: -1,
     firstName: 'Doctor',
     lastName: 'Loading',
     email: '',
     address: '',
-    rating: 4.5,
+    departmentName: 'Loading...',
+    isFavorite: false,
   ),
 );
-
-const _kPrimary = kBookingPrimary;
-const _kBackground = kBookingBackground;
-const _kTextPrimary = kBookingTextPrimary;
-const _kTextSecondary = kBookingTextSecondary;
-const _kBorder = kBookingBorder;
-const _kAvatarTint = kBookingAvatarTint;
 
 class ChooseDoctorView extends StatefulWidget {
   const ChooseDoctorView({super.key});
@@ -6087,10 +6605,10 @@ class ChooseDoctorView extends StatefulWidget {
 
 class _ChooseDoctorViewState extends State<ChooseDoctorView> {
   final DoctorController doctorController = Get.find<DoctorController>();
-  final AppointmentController appointmentController = Get.find<AppointmentController>();
+  final AppointmentController appointmentController =
+      Get.find<AppointmentController>();
 
   int? selectedDoctorId;
-
 
   late final int departmentId;
   late final String specialty;
@@ -6099,11 +6617,9 @@ class _ChooseDoctorViewState extends State<ChooseDoctorView> {
   void initState() {
     super.initState();
 
-
     final args = Get.arguments as Map<String, dynamic>?;
     departmentId = args?['departmentId'] ?? 1;
     specialty = args?['specialty'] ?? 'General Pediatrics';
-
 
     doctorController.loadDoctors(departmentId);
   }
@@ -6121,16 +6637,14 @@ class _ChooseDoctorViewState extends State<ChooseDoctorView> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: _kBackground,
-
+      // ❌ تم إزالة backgroundColor ليقرأ خلفية النظام تلقائياً
       appBar: bookingAppBar(subtitle: '${'Choose Doctor'.tr} - $specialty'),
       body: SafeArea(
         child: Column(
           children: [
-
             const SizedBox(height: 16),
             Expanded(child: _buildDoctorList()),
-            _buildNextButton(),
+            _buildNextButton(context),
           ],
         ),
       ),
@@ -6149,7 +6663,11 @@ class _ChooseDoctorViewState extends State<ChooseDoctorView> {
             child: Text(
               'No doctors available in this department.'.tr,
               textAlign: TextAlign.center,
-              style: const TextStyle(color: _kTextSecondary, fontSize: 14),
+              // ─── لون النص متكيف ───
+              style: TextStyle(
+                color: context.textTheme.bodyMedium?.color,
+                fontSize: 14,
+              ),
             ),
           ),
         );
@@ -6163,9 +6681,8 @@ class _ChooseDoctorViewState extends State<ChooseDoctorView> {
           itemBuilder: (context, index) {
             final doctor = doctors[index];
 
-
             return Obx(
-                  () => _DoctorCard(
+              () => _DoctorCard(
                 doctor: doctor,
                 specialty: specialty,
                 isSelected: selectedDoctorId == doctor.id,
@@ -6182,7 +6699,7 @@ class _ChooseDoctorViewState extends State<ChooseDoctorView> {
     });
   }
 
-  Widget _buildNextButton() {
+  Widget _buildNextButton(BuildContext context) {
     final enabled = selectedDoctorId != null;
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
@@ -6191,8 +6708,11 @@ class _ChooseDoctorViewState extends State<ChooseDoctorView> {
         height: 54,
         child: ElevatedButton(
           style: ElevatedButton.styleFrom(
-            backgroundColor: _kPrimary,
-            disabledBackgroundColor: _kPrimary.withValues(alpha: 0.4),
+            // ─── استخدام اللون الأساسي من السمة ───
+            backgroundColor: context.theme.primaryColor,
+            disabledBackgroundColor: context.theme.primaryColor.withValues(
+              alpha: 0.4,
+            ),
             elevation: 0,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(16),
@@ -6239,15 +6759,20 @@ class _DoctorCard extends StatelessWidget {
         margin: const EdgeInsets.only(bottom: 12),
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: Colors.white,
+          // ─── خلفية البطاقة متكيفة ───
+          color: context.theme.cardColor,
           borderRadius: BorderRadius.circular(18),
           border: Border.all(
-            color: isSelected ? _kPrimary : Colors.transparent,
+            // ─── لون الإطار متكيف عند التحديد ───
+            color: isSelected ? context.theme.primaryColor : Colors.transparent,
             width: 2,
           ),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: isSelected ? 0.06 : 0.04),
+              // ─── إخفاء الظل في الوضع الليلي ───
+              color: context.isDarkMode
+                  ? Colors.transparent
+                  : Colors.black.withValues(alpha: isSelected ? 0.06 : 0.04),
               blurRadius: 12,
               offset: const Offset(0, 4),
             ),
@@ -6263,62 +6788,38 @@ class _DoctorCard extends StatelessWidget {
                 children: [
                   Text(
                     doctor.fullName,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 15,
                       fontWeight: FontWeight.w700,
-                      color: _kTextPrimary,
+                      // ─── نص الاسم متكيف ───
+                      color: context.textTheme.bodyLarge?.color,
                     ),
                   ),
-                  if (specialty.isNotEmpty) ...[
-                    const SizedBox(height: 3),
-                    Text(
-                      '$specialty ${'Specialist'.tr}',
-                      style: const TextStyle(
-                        fontSize: 12.5,
-                        color: _kTextSecondary,
-                      ),
+                  const SizedBox(height: 3),
+                  Text(
+                    (doctor.departmentName != null &&
+                            doctor.departmentName!.isNotEmpty)
+                        ? doctor.departmentName!.tr
+                        : '$specialty ${'Specialist'.tr}',
+                    style: TextStyle(
+                      fontSize: 12.5,
+                      // ─── نص التخصص متكيف ───
+                      color: context.textTheme.bodyMedium?.color,
                     ),
-                  ],
-                  if (doctor.rating != null) ...[
-                    const SizedBox(height: 8),
-                    Row(
-                      children: [
-                        const Icon(
-                          Icons.star_rounded,
-                          color: Color(0xFFFBBF24),
-                          size: 16,
-                        ),
-                        const SizedBox(width: 3),
-                        Text(
-                          doctor.rating!.toStringAsFixed(1),
-                          style: const TextStyle(
-                            fontSize: 12.5,
-                            fontWeight: FontWeight.w700,
-                            color: _kTextPrimary,
-                          ),
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          'rating'.tr,
-                          style: const TextStyle(
-                            fontSize: 12,
-                            color: _kTextSecondary,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
+                  ),
                 ],
               ),
             ),
-
             GestureDetector(
               onTap: onFavoriteTap,
               child: Padding(
                 padding: const EdgeInsets.all(8.0),
                 child: Icon(
                   isFavorite ? Icons.favorite : Icons.favorite_border,
-                  color: isFavorite ? Colors.redAccent : Colors.grey.shade400,
+                  // ─── لون أيقونة المفضلة متكيف (أحمر للمفضلة، ورمادي/داكن لغير المفضلة) ───
+                  color: isFavorite
+                      ? Colors.redAccent
+                      : context.theme.dividerColor,
                   size: 24,
                 ),
               ),
@@ -6342,17 +6843,20 @@ class _Avatar extends StatelessWidget {
     return Container(
       width: 56,
       height: 56,
-      decoration: const BoxDecoration(
-        color: _kAvatarTint,
+      decoration: BoxDecoration(
+        // ─── لون خلفية الأفاتار متكيف (شفاف وأزرق ليلاً، باستيل أزرق نهاراً) ───
+        color: context.isDarkMode
+            ? Colors.blue.withOpacity(0.15)
+            : const Color(0xFFE3F2FD),
         shape: BoxShape.circle,
       ),
       clipBehavior: Clip.antiAlias,
-      child: url != null
+      child: url != null && url!.isNotEmpty
           ? Image.network(
-        url!,
-        fit: BoxFit.cover,
-        errorBuilder: (_, _, _) => const _FallbackPersonIcon(),
-      )
+              url!,
+              fit: BoxFit.cover,
+              errorBuilder: (_, _, _) => const _FallbackPersonIcon(),
+            )
           : const _FallbackPersonIcon(),
     );
   }
@@ -6363,8 +6867,13 @@ class _FallbackPersonIcon extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Center(
-      child: Icon(Icons.person_rounded, color: _kPrimary, size: 30),
+    return Center(
+      // ─── لون الأيقونة البديلة متكيف ───
+      child: Icon(
+        Icons.person_rounded,
+        color: context.theme.primaryColor,
+        size: 30,
+      ),
     );
   }
 }
@@ -6381,9 +6890,15 @@ class _SelectionDot extends StatelessWidget {
       width: 24,
       height: 24,
       decoration: BoxDecoration(
-        color: selected ? _kPrimary : Colors.transparent,
+        color: selected ? context.theme.primaryColor : Colors.transparent,
         shape: BoxShape.circle,
-        border: Border.all(color: selected ? _kPrimary : _kBorder, width: 1.5),
+        // ─── إطار الدائرة متكيف ───
+        border: Border.all(
+          color: selected
+              ? context.theme.primaryColor
+              : context.theme.dividerColor,
+          width: 1.5,
+        ),
       ),
       child: selected
           ? const Icon(Icons.check_rounded, color: Colors.white, size: 16)
@@ -6391,6 +6906,7 @@ class _SelectionDot extends StatelessWidget {
     );
   }
 }
+
 ```
 
 ### File: lib\views\auth\activation\otp_verification_view.dart
@@ -7111,11 +7627,10 @@ class SuccessResetView extends StatelessWidget {
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../controllers/auth/login_controller.dart';
-
 import '../../controllers/settings_controller.dart';
 import '../../core/repos/auth/login_repo.dart';
-
 import '../../widgets/custom_text_field.dart';
+// تأكد من استيراد الأزرار المخصصة هنا (PrimaryButton و OutlinedPrimaryButton)
 
 class LoginView extends StatelessWidget {
   const LoginView({super.key});
@@ -7126,164 +7641,180 @@ class LoginView extends StatelessWidget {
     final size = MediaQuery.of(context).size;
     final settingsController = Get.put(SettingsController());
 
-
-    return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        actions: [
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12.0),
-            child: Obx(() {
-              final isArabic = settingsController.currentLanguage.value == 'ar';
-              return TextButton.icon(
-                icon: const Icon(Icons.language, size: 20, color: Color(0xFF4A86D1)),
-                label: Text(
-                  isArabic ? 'English' : 'العربية',
-                  style: const TextStyle(
-                    color: Color(0xFF4A86D1),
-                    fontWeight: FontWeight.bold,
-                    fontSize: 14,
-                  ),
-                ),
-                onPressed: () {
-
-                  settingsController.changeLanguage(isArabic ? 'en' : 'ar');
-                },
-              );
-            }),
-          ),
-        ],
+    // ─── إجبار الواجهة بالكامل على الوضع الفاتح ───
+    return Theme(
+      data: ThemeData.light().copyWith(
+        scaffoldBackgroundColor: Colors.white,
+        primaryColor: const Color(0xFF1A2E5A),
+        colorScheme: const ColorScheme.light(
+          primary: Color(0xFF1A2E5A),
+          onSurface: Colors.black, // لضمان أن النصوص الافتراضية باللون الأسود
+        ),
+        textTheme: ThemeData.light().textTheme.apply(
+          bodyColor: Colors.black,
+          displayColor: Colors.black,
+        ),
       ),
-      body: SafeArea(
-        child: Center(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 24.0),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Image.asset(
-                  'assets/images/logo.jpg',
-                  height: size.height * 0.25,
-                ),
-                const SizedBox(height: 20),
-                 Text(
-                  'Welcome Back'.tr,
-                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 40),
-
-                CustomTextField(
-                  controller: controller.phoneController,
-                  hintText: 'Phone Number'.tr,
-                  keyboardType: TextInputType.phone,
-                ),
-                const SizedBox(height: 16),
-
-                Obx(
-                  () => CustomTextField(
-                    controller: controller.passwordController,
-                    hintText: 'Password'.tr,
-                    isPassword: controller.isPasswordHidden.value,
-                    suffixIcon: IconButton(
-                      icon: Icon(
-                        controller.isPasswordHidden.value
-                            ? Icons.visibility_off
-                            : Icons.visibility,
-                      ),
-                      onPressed: controller.togglePasswordVisibility,
+      child: Scaffold(
+        backgroundColor: Colors.white,
+        appBar: AppBar(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          actions: [
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12.0),
+              child: Obx(() {
+                final isArabic = settingsController.currentLanguage.value == 'ar';
+                return TextButton.icon(
+                  icon: const Icon(Icons.language, size: 20, color: Color(0xFF4A86D1)),
+                  label: Text(
+                    isArabic ? 'English' : 'العربية',
+                    style: const TextStyle(
+                      color: Color(0xFF4A86D1),
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
                     ),
                   ),
-                ),
-
-                Align(
-                  alignment:AlignmentDirectional.topStart,
-                  child: TextButton(
-
-                    onPressed: () {
-                      Get.toNamed('/forgot-password');
-                    },
-                    style: TextButton.styleFrom(
-
-                      padding: const EdgeInsets.only(top: 8, bottom: 8),
-                      minimumSize: Size.zero,
-                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                    ),
-                    child:  Text(
-                      'Forgot Password?'.tr,
-
-                      style: TextStyle(
-                        color: Colors.blue,
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                      ),
+                  onPressed: () {
+                    settingsController.changeLanguage(isArabic ? 'en' : 'ar');
+                  },
+                );
+              }),
+            ),
+          ],
+        ),
+        body: SafeArea(
+          child: Center(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(horizontal: 24.0),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Image.asset(
+                    'assets/images/logo.jpg',
+                    height: size.height * 0.25,
+                  ),
+                  const SizedBox(height: 20),
+                  // إجبار النص على اللون الأسود لضمان التباين
+                  Text(
+                    'Welcome Back'.tr,
+                    style: const TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black,
                     ),
                   ),
-                ),
+                  const SizedBox(height: 40),
 
-                const SizedBox(height: 20),
+                  CustomTextField(
+                    controller: controller.phoneController,
+                    hintText: 'Phone Number'.tr,
+                    keyboardType: TextInputType.phone,
+                  ),
+                  const SizedBox(height: 16),
 
-                Obx(
-                  () => controller.isLoading
-                      ? const CircularProgressIndicator()
-                      : PrimaryButton(
-                          text: 'Login'.tr,
-                          onPressed: controller.login,
+                  Obx(
+                        () => CustomTextField(
+                      controller: controller.passwordController,
+                      hintText: 'Password'.tr,
+                      isPassword: controller.isPasswordHidden.value,
+                      suffixIcon: IconButton(
+                        icon: Icon(
+                          controller.isPasswordHidden.value
+                              ? Icons.visibility_off
+                              : Icons.visibility,
+                          color: Colors.grey, // تثبيت لون الأيقونة
                         ),
-                ),
-                const SizedBox(height: 30),
-                Row(
-                  children: [
-                    const Expanded(
-                      child: Divider(thickness: 1, color: Colors.grey),
+                        onPressed: controller.togglePasswordVisibility,
+                      ),
                     ),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 10),
+                  ),
+
+                  Align(
+                    alignment: AlignmentDirectional.topStart,
+                    child: TextButton(
+                      onPressed: () {
+                        Get.toNamed('/forgot-password');
+                      },
+                      style: TextButton.styleFrom(
+                        padding: const EdgeInsets.only(top: 8, bottom: 8),
+                        minimumSize: Size.zero,
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      ),
                       child: Text(
-                        'Or'.tr,
-                        style: TextStyle(
-                          color: Colors.grey.shade600,
-                          fontSize: 14,
+                        'Forgot Password?'.tr,
+                        style: const TextStyle(
+                          color: Colors.blue,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
                     ),
-                    const Expanded(
-                      child: Divider(thickness: 1, color: Colors.grey),
-                    ),
-                  ],
-                ),
-
-                const SizedBox(height: 20),
-                OutlinedPrimaryButton(
-                  text: 'Create New Account'.tr,
-                  onPressed: () => Get.toNamed('/register'),
-                ),
-
-                const SizedBox(height: 12),
-
-                TextButton(
-                  onPressed: () => Get.toNamed('/activation-phone'),
-                  style: TextButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 8),
                   ),
-                  child: RichText(
-                    text:  TextSpan(
-                      text: "Have a clinic file? ".tr,
-                      style: TextStyle(color: Colors.grey, fontSize: 14),
-                      children: [
-                        TextSpan(
-                          text: "Activate account".tr,
+
+                  const SizedBox(height: 20),
+
+                  Obx(
+                        () => controller.isLoading
+                        ? const CircularProgressIndicator()
+                        : PrimaryButton(
+                      text: 'Login'.tr,
+                      onPressed: controller.login,
+                    ),
+                  ),
+                  const SizedBox(height: 30),
+                  Row(
+                    children: [
+                      const Expanded(
+                        child: Divider(thickness: 1, color: Colors.grey),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 10),
+                        child: Text(
+                          'Or'.tr,
                           style: TextStyle(
-                            color: Colors.blue,
-                            fontWeight: FontWeight.bold,
+                            color: Colors.grey.shade600,
+                            fontSize: 14,
                           ),
                         ),
-                      ],
+                      ),
+                      const Expanded(
+                        child: Divider(thickness: 1, color: Colors.grey),
+                      ),
+                    ],
+                  ),
+
+                  const SizedBox(height: 20),
+                  OutlinedPrimaryButton(
+                    text: 'Create New Account'.tr,
+                    onPressed: () => Get.toNamed('/register'),
+                  ),
+
+                  const SizedBox(height: 12),
+
+                  TextButton(
+                    onPressed: () => Get.toNamed('/activation-phone'),
+                    style: TextButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                    ),
+                    child: RichText(
+                      text: TextSpan(
+                        text: "Have a clinic file? ".tr,
+                        style: const TextStyle(color: Colors.grey, fontSize: 14),
+                        children: [
+                          TextSpan(
+                            text: "Activate account".tr,
+                            style: const TextStyle(
+                              color: Colors.blue,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ),
@@ -7291,7 +7822,6 @@ class LoginView extends StatelessWidget {
     );
   }
 }
-
 ```
 
 ### File: lib\views\auth\sign_up_view.dart
@@ -7309,183 +7839,197 @@ class SignUpView extends StatelessWidget {
     final controller = Get.find<SignUpController>();
     final size = MediaQuery.of(context).size;
 
-    return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(
-            Icons.arrow_back_ios,
-            color: Colors.black87,
-            size: 20,
-          ),
-          onPressed: () => Get.back(),
+    // ─── إجبار الواجهة بالكامل على الوضع الفاتح ───
+    return Theme(
+      data: ThemeData.light().copyWith(
+        scaffoldBackgroundColor: Colors.white,
+        primaryColor: const Color(0xFF1A2E5A), // لون تطبيقك الأساسي
+        colorScheme: const ColorScheme.light(
+          primary: Color(0xFF1A2E5A),
+          onSurface: Colors.black,
         ),
-        title: Image.asset(
-          'assets/images/pediatric_clinic_logo.png',
-          height: 38,
-          fit: BoxFit.contain,
+        textTheme: ThemeData.light().textTheme.apply(
+          bodyColor: Colors.black,
+          displayColor: Colors.black,
         ),
-        centerTitle: true,
+        iconTheme: const IconThemeData(color: Colors.black87),
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: 24),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            const SizedBox(height: 12),
-            Text(
-              'Create New Account'.tr,
-              style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-                color: Colors.black87,
-              ),
+      child: Scaffold(
+        backgroundColor: Colors.white,
+        appBar: AppBar(
+          backgroundColor: Colors.white,
+          elevation: 0,
+          leading: IconButton(
+            icon: const Icon(
+              Icons.arrow_back_ios,
+              color: Colors.black87,
+              size: 20,
             ),
-            const SizedBox(height: 6),
-            Text(
-              'Create your account to benefit from our services'.tr,
-              style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 16),
-            Image.asset(
-              'assets/images/doctor_and_children.png',
-              height: size.height * 0.18,
-              fit: BoxFit.contain,
-            ),
-            const SizedBox(height: 24),
-
-            CustomTextField(
-              controller: controller.firstNameController,
-              hintText: 'Enter your name'.tr,
-              label: 'Name'.tr,
-              labelIcon: Icons.person_outline,
-            ),
-            const SizedBox(height: 14),
-
-            CustomTextField(
-              controller: controller.lastNameController,
-              hintText: 'Enter your last name'.tr,
-              label: 'Last Name'.tr,
-              labelIcon: Icons.person_outline,
-            ),
-            const SizedBox(height: 14),
-
-            CustomTextField(
-              controller: controller.emailController,
-              hintText: 'Enter your email'.tr,
-              label: 'Email'.tr,
-              labelIcon: Icons.mail_outline,
-              keyboardType: TextInputType.emailAddress,
-            ),
-            const SizedBox(height: 14),
-
-            CustomTextField(
-              controller: controller.phoneController,
-              hintText: 'Enter your phone number'.tr,
-              keyboardType: TextInputType.phone,
-              label: 'Phone'.tr,
-              labelIcon: Icons.phone_outlined,
-            ),
-            const SizedBox(height: 14),
-
-            CustomTextField(
-              controller: controller.addressController,
-              hintText: 'Enter your address in detail'.tr,
-              label: 'Address'.tr,
-              labelIcon: Icons.location_on_outlined,
-            ),
-            const SizedBox(height: 14),
-
-            Obx(
-              () => CustomTextField(
-                controller: controller.passwordController,
-                hintText: 'Enter your password'.tr,
-                isPassword: controller.isPasswordHidden.value,
-                label: 'Password'.tr,
-                labelIcon: Icons.lock_outline,
-                suffixIcon: IconButton(
-                  icon: Icon(
-                    controller.isPasswordHidden.value
-                        ? Icons.visibility_off_outlined
-                        : Icons.visibility_outlined,
-                    color: Colors.grey.shade500,
-                    size: 20,
-                  ),
-                  onPressed: controller.togglePassword,
+            onPressed: () => Get.back(),
+          ),
+          title: Image.asset(
+            'assets/images/pediatric_clinic_logo.png',
+            height: 38,
+            fit: BoxFit.contain,
+          ),
+          centerTitle: true,
+        ),
+        body: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: 24),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              const SizedBox(height: 12),
+              Text(
+                'Create New Account'.tr,
+                style: const TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black87,
                 ),
               ),
-            ),
-            const SizedBox(height: 6),
-            Align(
-              alignment: Alignment.centerRight,
-              child: Text(
-                'At least 8 characters with uppercase, lowercase and a number'
-                    .tr,
-                style: TextStyle(fontSize: 11, color: Colors.grey.shade500),
+              const SizedBox(height: 6),
+              Text(
+                'Create your account to benefit from our services'.tr,
+                style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
+                textAlign: TextAlign.center,
               ),
-            ),
-            const SizedBox(height: 14),
-
-            Obx(
-              () => CustomTextField(
-                controller: controller.confirmPasswordController,
-                hintText: 'Enter your password again'.tr,
-                isPassword: controller.isConfirmPasswordHidden.value,
-                label: 'Confirm Password'.tr,
-                labelIcon: Icons.lock_outline,
-                suffixIcon: IconButton(
-                  icon: Icon(
-                    controller.isConfirmPasswordHidden.value
-                        ? Icons.visibility_off_outlined
-                        : Icons.visibility_outlined,
-                    color: Colors.grey.shade500,
-                    size: 20,
-                  ),
-                  onPressed: controller.toggleConfirmPassword,
-                ),
+              const SizedBox(height: 16),
+              Image.asset(
+                'assets/images/doctor_and_children.png',
+                height: size.height * 0.18,
+                fit: BoxFit.contain,
               ),
-            ),
-            const SizedBox(height: 20),
+              const SizedBox(height: 24),
 
-            Obx(
-              () => controller.isLoading
-                  ? const Center(
-                      child: CircularProgressIndicator(color: Colors.blue),
-                    )
-                  : PrimaryButton(
-                      text: 'Create Account'.tr,
-                      onPressed: controller.signUp,
+              CustomTextField(
+                controller: controller.firstNameController,
+                hintText: 'Enter your name'.tr,
+                label: 'Name'.tr,
+                labelIcon: Icons.person_outline,
+              ),
+              const SizedBox(height: 14),
+
+              CustomTextField(
+                controller: controller.lastNameController,
+                hintText: 'Enter your last name'.tr,
+                label: 'Last Name'.tr,
+                labelIcon: Icons.person_outline,
+              ),
+              const SizedBox(height: 14),
+
+              CustomTextField(
+                controller: controller.emailController,
+                hintText: 'Enter your email'.tr,
+                label: 'Email'.tr,
+                labelIcon: Icons.mail_outline,
+                keyboardType: TextInputType.emailAddress,
+              ),
+              const SizedBox(height: 14),
+
+              CustomTextField(
+                controller: controller.phoneController,
+                hintText: 'Enter your phone number'.tr,
+                keyboardType: TextInputType.phone,
+                label: 'Phone'.tr,
+                labelIcon: Icons.phone_outlined,
+              ),
+              const SizedBox(height: 14),
+
+              CustomTextField(
+                controller: controller.addressController,
+                hintText: 'Enter your address in detail'.tr,
+                label: 'Address'.tr,
+                labelIcon: Icons.location_on_outlined,
+              ),
+              const SizedBox(height: 14),
+
+              Obx(
+                    () => CustomTextField(
+                  controller: controller.passwordController,
+                  hintText: 'Enter your password'.tr,
+                  isPassword: controller.isPasswordHidden.value,
+                  label: 'Password'.tr,
+                  labelIcon: Icons.lock_outline,
+                  suffixIcon: IconButton(
+                    icon: Icon(
+                      controller.isPasswordHidden.value
+                          ? Icons.visibility_off_outlined
+                          : Icons.visibility_outlined,
+                      color: Colors.grey.shade500,
+                      size: 20,
                     ),
-            ),
-            const SizedBox(height: 20),
-
-            Row(
-              children: [
-                Expanded(child: Divider(color: Colors.grey.shade300)),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 12),
-                  child: Text(
-                    'Already have an account?'.tr,
-                    style: TextStyle(color: Colors.grey.shade500, fontSize: 13),
+                    onPressed: controller.togglePassword,
                   ),
                 ),
-                Expanded(child: Divider(color: Colors.grey.shade300)),
-              ],
-            ),
-            const SizedBox(height: 16),
+              ),
+              const SizedBox(height: 6),
+              Align(
+                alignment: Alignment.centerRight,
+                child: Text(
+                  'At least 8 characters with uppercase, lowercase and a number'.tr,
+                  style: TextStyle(fontSize: 11, color: Colors.grey.shade500),
+                ),
+              ),
+              const SizedBox(height: 14),
 
-            OutlinedPrimaryButton(text: 'Login'.tr, onPressed: () => Get.back()),
-            const SizedBox(height: 32),
-          ],
+              Obx(
+                    () => CustomTextField(
+                  controller: controller.confirmPasswordController,
+                  hintText: 'Enter your password again'.tr,
+                  isPassword: controller.isConfirmPasswordHidden.value,
+                  label: 'Confirm Password'.tr,
+                  labelIcon: Icons.lock_outline,
+                  suffixIcon: IconButton(
+                    icon: Icon(
+                      controller.isConfirmPasswordHidden.value
+                          ? Icons.visibility_off_outlined
+                          : Icons.visibility_outlined,
+                      color: Colors.grey.shade500,
+                      size: 20,
+                    ),
+                    onPressed: controller.toggleConfirmPassword,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
+
+              Obx(
+                    () => controller.isLoading
+                    ? const Center(
+                  child: CircularProgressIndicator(color: Colors.blue),
+                )
+                    : PrimaryButton(
+                  text: 'Create Account'.tr,
+                  onPressed: controller.signUp,
+                ),
+              ),
+              const SizedBox(height: 20),
+
+              Row(
+                children: [
+                  Expanded(child: Divider(color: Colors.grey.shade300)),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    child: Text(
+                      'Already have an account?'.tr,
+                      style: TextStyle(color: Colors.grey.shade500, fontSize: 13),
+                    ),
+                  ),
+                  Expanded(child: Divider(color: Colors.grey.shade300)),
+                ],
+              ),
+              const SizedBox(height: 16),
+
+              OutlinedPrimaryButton(text: 'Login'.tr, onPressed: () => Get.back()),
+              const SizedBox(height: 32),
+            ],
+          ),
         ),
       ),
     );
   }
 }
-
 ```
 
 ### File: lib\views\auth\verify_otp_view.dart
@@ -7731,79 +8275,95 @@ class ChildGrowthTabView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // حقن وتأمين وجود الـ Controller الخاص بهذه الميزة الفرعية ديناميكياً
-    final controller = Get.put(
-      ChildGrowthController(repo: ChildGrowthRepo()),
+    final controller = Get.put(ChildGrowthController(repo: ChildGrowthRepo()));
 
-    );
-
-    // ربط المعطيات والتأكد من جلب البيانات النظيفة من السيرفر
     controller.childId = childId;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      controller.getGrowthDashboard();
+    });
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF4F6FA), // تطابق لون خلفية ملف الطفل الحالي
+      // ❌ تم إزالة backgroundColor ليقرأ خلفية النظام تلقائياً
 
-      // الزر العائم الأزرق الذكي لإضافة القياسات الجديدة
       floatingActionButton: FloatingActionButton(
         onPressed: () {
-          // فتح الورقة السفلية التي بنيناها مع تصفير الحقول للجاهزية
           controller.selectedDate.value = '';
-          Get.bottomSheet(
-            const AddGrowthSheet(),
-            isScrollControlled: true, // للسماح للكيبورد بالصعود بحرية
-          );
+          Get.bottomSheet(const AddGrowthSheet(), isScrollControlled: true);
         },
-        backgroundColor: const Color(0xFF3B9EFF), // اللون الأزرق البراند للمشروع
+        // ─── لون الزر العائم متكيف مع السمة ───
+        backgroundColor: context.theme.primaryColor,
         shape: const CircleBorder(),
         child: const Icon(Icons.add, color: Colors.white, size: 28),
       ),
 
       body: Obx(() {
-        // 1. حالة التحميل الصامتة والأنيقة للمؤشر الموحد
+        // 1. حالة التحميل
         if (controller.isLoading && controller.growthData.value == null) {
-          return const Center(child: CircularProgressIndicator(color: Colors.blue));
+          return Center(
+            // ─── مؤشر التحميل متكيف ───
+            child: CircularProgressIndicator(color: context.theme.primaryColor),
+          );
         }
 
         final data = controller.growthData.value;
         if (data == null) {
           return Center(
-            child: Text('Failed to load profile'.tr, style: const TextStyle(color: Colors.grey)),
+            child: Text(
+              'Failed to load profile'.tr,
+              // ─── نص متكيف ───
+              style: TextStyle(color: context.textTheme.bodyMedium?.color),
+            ),
           );
         }
 
         return RefreshIndicator(
           onRefresh: () => controller.getGrowthDashboard(),
-          color: Colors.blue,
+          // ─── لون مؤشر التحديث متكيف ───
+          color: context.theme.primaryColor,
           child: SingleChildScrollView(
             physics: const AlwaysScrollableScrollPhysics(),
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // ─── كروت القياسات العلوية السريعة (الوزن الحالي وطول الطفل)
-                _buildQuickStatsSection(data.growthHistory, data.currentAgeMonths),
+                //  كروت القياسات العلوية السريعة
+                _buildQuickStatsSection(
+                  context, // ─── نمرر الـ context لاستخدامه في تكييف الألوان ───
+                  data.growthHistory,
+                  data.currentAgeMonths,
+                ),
                 const SizedBox(height: 16),
 
-                // ─── ويدجت المخطط البياني التفاعلي المتكامل من الخطوة الخامسة
+                // المخطط البياني (قد يحتاج لتعديل داخلي إذا كانت ألوانه ثابتة)
                 GrowthChartWidget(data: data),
                 const SizedBox(height: 20),
 
-                // ─── ترويسة سجلات النمو السفلية
+                //   سجلات النمو السفلية
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
                       'Growth History'.tr,
-                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF1A2E5A)),
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        // ─── نص متكيف ───
+                        color: context.textTheme.bodyLarge?.color,
+                      ),
                     ),
-                    Icon(Icons.sort_rounded, color: Colors.grey.shade600, size: 20),
+                    Icon(
+                      Icons.sort_rounded,
+                      // ─── أيقونة متكيفة ───
+                      color: context.textTheme.bodyMedium?.color,
+                      size: 20,
+                    ),
                   ],
                 ),
                 const SizedBox(height: 12),
 
-                // ─── ويدجت قائمة القياسات التاريخية المفصلة من الخطوة السادسة
+                //  قائمة القياسات التاريخية (قد تحتاج لتعديل داخلي إذا كانت ألوانها ثابتة)
                 GrowthHistoryList(data: data),
-                const SizedBox(height: 60), // حماية الفراغ للزر العائم السفلّي
+                const SizedBox(height: 60),
               ],
             ),
           ),
@@ -7812,20 +8372,25 @@ class ChildGrowthTabView extends StatelessWidget {
     );
   }
 
-  /// بناء اللوحة العلوية التفاعلية للقياسات الفورية للطفل
-  Widget _buildQuickStatsSection(List<dynamic> history, double rawAge) {
-    // استخراج أحدث قراءة مُدخلة بشكل آمن
+  /// اللوحة العلوية للقياسات
+  Widget _buildQuickStatsSection(BuildContext context, List<dynamic> history, double rawAge) {
     final latestRecord = history.isNotEmpty ? history.first : null;
-    final displayWeight = latestRecord != null ? '${latestRecord.weight} ${'kg'.tr}' : '--';
-    final displayHeight = latestRecord != null ? '${latestRecord.height} ${'cm'.tr}' : '--';
+    final displayWeight = latestRecord != null
+        ? '${latestRecord.weight} ${'kg'.tr}'
+        : '--';
+    final displayHeight = latestRecord != null
+        ? '${latestRecord.height} ${'cm'.tr}'
+        : '--';
 
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        // ─── لون خلفية البطاقة متكيف ───
+        color: context.theme.cardColor,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.grey.shade100),
+        // ─── إطار البطاقة متكيف ───
+        border: Border.all(color: context.theme.dividerColor),
       ),
       child: Row(
         children: [
@@ -7837,7 +8402,8 @@ class ChildGrowthTabView extends StatelessWidget {
               value: displayWeight,
             ),
           ),
-          Container(width: 1, height: 40, color: Colors.grey.shade100),
+          // ─── خط فاصل متكيف ───
+          Container(width: 1, height: 40, color: context.theme.dividerColor),
           // كارت الطول
           Expanded(
             child: _QuickStatCard(
@@ -7846,13 +8412,14 @@ class ChildGrowthTabView extends StatelessWidget {
               value: displayHeight,
             ),
           ),
-          Container(width: 1, height: 40, color: Colors.grey.shade100),
-          // كارت العمر بالأشهر الصريح
+          // ─── خط فاصل متكيف ───
+          Container(width: 1, height: 40, color: context.theme.dividerColor),
+          // كارت العمر
           Expanded(
             child: _QuickStatCard(
               icon: Icons.calendar_month_outlined,
               label: 'Age'.tr,
-              value: '${rawAge.toInt()} ${'Months'.tr}', // تحويل وعرض كرقم صحيح
+              value: '${rawAge.toInt()} ${'Months'.tr}',
             ),
           ),
         ],
@@ -7866,21 +8433,43 @@ class _QuickStatCard extends StatelessWidget {
   final String label;
   final String value;
 
-  const _QuickStatCard({required this.icon, required this.label, required this.value});
+  const _QuickStatCard({
+    required this.icon,
+    required this.label,
+    required this.value,
+  });
 
   @override
   Widget build(BuildContext context) {
     return Column(
       children: [
-        Icon(icon, color: const Color(0xFF3B9EFF), size: 22),
+        // ─── لون الأيقونة متكيف ───
+        Icon(icon, color: context.theme.primaryColor, size: 22),
         const SizedBox(height: 6),
-        Text(label, style: TextStyle(fontSize: 11, color: Colors.grey.shade500, fontWeight: FontWeight.w500)),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 11,
+            // ─── نص ثانوي متكيف ───
+            color: context.textTheme.bodyMedium?.color,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
         const SizedBox(height: 4),
-        Text(value, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Color(0xFF1A2E5A))),
+        Text(
+          value,
+          style: TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.bold,
+            // ─── نص أساسي متكيف ───
+            color: context.textTheme.bodyLarge?.color,
+          ),
+        ),
       ],
     );
   }
 }
+
 ```
 
 ### File: lib\views\home\add_child_view.dart
@@ -7891,19 +8480,17 @@ import 'package:get/get.dart';
 import '../../controllers/home/add_child_controller.dart';
 import '../../widgets/custom_text_field.dart';
 
-
 class AddChildView extends GetView<AddChildController> {
   const AddChildView({super.key});
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFEEF4FF),
+      // ❌ تم إزالة backgroundColor للـ Scaffold والـ AppBar
       appBar: AppBar(
-        backgroundColor: const Color(0xFFEEF4FF),
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios, color: Colors.black87, size: 20),
+          icon: Icon(Icons.arrow_back_ios, color: context.iconColor, size: 20), // أيقونة متكيفة
           onPressed: () => Get.back(),
         ),
       ),
@@ -7915,19 +8502,18 @@ class AddChildView extends GetView<AddChildController> {
             // ─── Avatar ───────────────────────────────
             Center(
               child: GestureDetector(
-                onTap: controller.pickImage, // ✅
+                onTap: controller.pickImage,
                 child: Obx(() => Stack(
                   children: [
                     CircleAvatar(
                       radius: 55,
-                      backgroundColor: Colors.white,
-
+                      backgroundColor: context.theme.scaffoldBackgroundColor, // لون خلفية متكيف
                       backgroundImage: controller.selectedImage.value != null
                           ? FileImage(controller.selectedImage.value!)
                           : null,
                       child: controller.selectedImage.value == null
                           ? Icon(Icons.person,
-                          color: Colors.blue.shade200, size: 60)
+                          color: context.theme.dividerColor, size: 60)
                           : null,
                     ),
                     Positioned(
@@ -7935,8 +8521,8 @@ class AddChildView extends GetView<AddChildController> {
                       right: 0,
                       child: Container(
                         padding: const EdgeInsets.all(8),
-                        decoration: const BoxDecoration(
-                          color: Color(0xFF3B9EFF),
+                        decoration: BoxDecoration(
+                          color: context.theme.primaryColor, // اللون الأساسي من السمة
                           shape: BoxShape.circle,
                         ),
                         child: const Icon(Icons.camera_alt,
@@ -7949,13 +8535,13 @@ class AddChildView extends GetView<AddChildController> {
             ),
 
             // ─── Title ────────────────────────────────
-             Center(
+            Center(
               child: Text(
                 'Add New Child'.tr,
                 style: TextStyle(
                   fontSize: 22,
                   fontWeight: FontWeight.bold,
-                  color: Color(0xFF1A2E5A),
+                  color: context.textTheme.bodyLarge?.color, // نص متكيف
                 ),
               ),
             ),
@@ -7965,13 +8551,12 @@ class AddChildView extends GetView<AddChildController> {
             Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: context.theme.cardColor, // كرت متكيف
                 borderRadius: BorderRadius.circular(24),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-
                   // First & Last Name
                   Row(
                     children: [
@@ -7979,11 +8564,11 @@ class AddChildView extends GetView<AddChildController> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                             Text('First Name'.tr,
+                            Text('First Name'.tr,
                                 style: TextStyle(
                                     fontSize: 14,
                                     fontWeight: FontWeight.bold,
-                                    color: Color(0xFF1A2E5A))),
+                                    color: context.textTheme.bodyLarge?.color)),
                             const SizedBox(height: 8),
                             CustomTextField(
                               controller: controller.firstNameController,
@@ -7997,11 +8582,11 @@ class AddChildView extends GetView<AddChildController> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                             Text('Last Name'.tr,
+                            Text('Last Name'.tr,
                                 style: TextStyle(
                                     fontSize: 14,
                                     fontWeight: FontWeight.bold,
-                                    color: Color(0xFF1A2E5A))),
+                                    color: context.textTheme.bodyLarge?.color)),
                             const SizedBox(height: 8),
                             CustomTextField(
                               controller: controller.lastNameController,
@@ -8015,11 +8600,11 @@ class AddChildView extends GetView<AddChildController> {
                   const SizedBox(height: 20),
 
                   // Gender
-                   Text('Gender'.tr,
+                  Text('Gender'.tr,
                       style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.bold,
-                          color: Color(0xFF1A2E5A))),
+                          color: context.textTheme.bodyLarge?.color)),
                   const SizedBox(height: 10),
                   Obx(() => Row(
                     children: [
@@ -8030,14 +8615,15 @@ class AddChildView extends GetView<AddChildController> {
                           child: Container(
                             padding: const EdgeInsets.symmetric(vertical: 14),
                             decoration: BoxDecoration(
+                              // لون متكيف بذكاء للوضع الليلي
                               color: controller.selectedGender.value == 'female'
-                                  ? const Color(0xFFFCE4EC)
-                                  : Colors.white,
+                                  ? (context.isDarkMode ? Colors.pinkAccent.withOpacity(0.15) : const Color(0xFFFCE4EC))
+                                  : context.theme.scaffoldBackgroundColor,
                               borderRadius: BorderRadius.circular(12),
                               border: Border.all(
                                 color: controller.selectedGender.value == 'female'
                                     ? Colors.pinkAccent
-                                    : Colors.grey.shade300,
+                                    : context.theme.dividerColor,
                                 width: controller.selectedGender.value == 'female' ? 2 : 1,
                               ),
                             ),
@@ -8070,14 +8656,15 @@ class AddChildView extends GetView<AddChildController> {
                           child: Container(
                             padding: const EdgeInsets.symmetric(vertical: 14),
                             decoration: BoxDecoration(
+                              // لون متكيف بذكاء للوضع الليلي
                               color: controller.selectedGender.value == 'male'
-                                  ? const Color(0xFFE3F2FD)
-                                  : Colors.white,
+                                  ? (context.isDarkMode ? Colors.blue.withOpacity(0.15) : const Color(0xFFE3F2FD))
+                                  : context.theme.scaffoldBackgroundColor,
                               borderRadius: BorderRadius.circular(12),
                               border: Border.all(
                                 color: controller.selectedGender.value == 'male'
                                     ? Colors.blue
-                                    : Colors.grey.shade300,
+                                    : context.theme.dividerColor,
                                 width: controller.selectedGender.value == 'male' ? 2 : 1,
                               ),
                             ),
@@ -8107,11 +8694,11 @@ class AddChildView extends GetView<AddChildController> {
                   const SizedBox(height: 20),
 
                   // Birth Date
-                   Text('Birth Date'.tr,
+                  Text('Birth Date'.tr,
                       style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.bold,
-                          color: Color(0xFF1A2E5A))),
+                          color: context.textTheme.bodyLarge?.color)),
                   const SizedBox(height: 8),
                   Obx(() => GestureDetector(
                     onTap: () => controller.pickBirthDate(context),
@@ -8120,9 +8707,9 @@ class AddChildView extends GetView<AddChildController> {
                       padding: const EdgeInsets.symmetric(
                           horizontal: 16, vertical: 15),
                       decoration: BoxDecoration(
-                        color: Colors.white,
+                        color: context.theme.scaffoldBackgroundColor, // لون متكيف
                         borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: Colors.grey.shade300),
+                        border: Border.all(color: context.theme.dividerColor), // إطار متكيف
                       ),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -8136,8 +8723,8 @@ class AddChildView extends GetView<AddChildController> {
                             style: TextStyle(
                               fontSize: 13,
                               color: controller.selectedBirthDate.value.isEmpty
-                                  ? Colors.grey.shade400
-                                  : Colors.black87,
+                                  ? context.textTheme.bodyMedium?.color
+                                  : context.textTheme.bodyLarge?.color,
                             ),
                           ),
                         ],
@@ -8147,22 +8734,23 @@ class AddChildView extends GetView<AddChildController> {
                   const SizedBox(height: 20),
 
                   // Blood Type
-                   Text('Blood Type'.tr,
+                  Text('Blood Type'.tr,
                       style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.bold,
-                          color: Color(0xFF1A2E5A))),
+                          color: context.textTheme.bodyLarge?.color)),
                   const SizedBox(height: 8),
                   Obx(() => Container(
                     padding: const EdgeInsets.symmetric(horizontal: 16),
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: context.theme.scaffoldBackgroundColor, // خلفية متكيفة
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.grey.shade300),
+                      border: Border.all(color: context.theme.dividerColor),
                     ),
                     child: DropdownButtonHideUnderline(
                       child: DropdownButton<String>(
                         isExpanded: true,
+                        dropdownColor: context.theme.cardColor, // لون القائمة المنسدلة في الوضع الليلي
                         hint: Row(
                           mainAxisAlignment: MainAxisAlignment.start,
                           children: [
@@ -8171,7 +8759,7 @@ class AddChildView extends GetView<AddChildController> {
                             const SizedBox(width: 8),
                             Text('Select blood type'.tr,
                                 style: TextStyle(
-                                    color: Colors.grey.shade400,
+                                    color: context.textTheme.bodyMedium?.color,
                                     fontSize: 13)),
                           ],
                         ),
@@ -8182,6 +8770,7 @@ class AddChildView extends GetView<AddChildController> {
                             .map((type) => DropdownMenuItem(
                           value: type,
                           child: Text(type,
+                              style: TextStyle(color: context.textTheme.bodyLarge?.color), // نص القائمة
                               textAlign: TextAlign.right),
                         ))
                             .toList(),
@@ -8196,34 +8785,35 @@ class AddChildView extends GetView<AddChildController> {
                   const SizedBox(height: 20),
 
                   // Medical History
-                   Text('Medical History'.tr,
+                  Text('Medical History'.tr,
                       style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.bold,
-                          color: Color(0xFF1A2E5A))),
+                          color: context.textTheme.bodyLarge?.color)),
                   const SizedBox(height: 8),
                   TextField(
                     controller: controller.medicalHistoryController,
                     maxLines: 3,
                     textAlign: TextAlign.left,
+                    style: TextStyle(color: context.textTheme.bodyLarge?.color), // لون النص
                     decoration: InputDecoration(
                       hintText: "Enter child's medical history".tr,
                       hintStyle: TextStyle(
-                          color: Colors.grey.shade400, fontSize: 13),
+                          color: context.textTheme.bodyMedium?.color, fontSize: 13),
                       suffixIcon: const Icon(Icons.calendar_month_outlined,
                           color: Colors.blue),
                       filled: true,
-                      fillColor: Colors.white,
+                      fillColor: context.theme.scaffoldBackgroundColor, // لون الخلفية
                       contentPadding: const EdgeInsets.all(16),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
                         borderSide:
-                        BorderSide(color: Colors.grey.shade300),
+                        BorderSide(color: context.theme.dividerColor),
                       ),
                       enabledBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
                         borderSide:
-                        BorderSide(color: Colors.grey.shade300),
+                        BorderSide(color: context.theme.dividerColor),
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
@@ -8235,34 +8825,35 @@ class AddChildView extends GetView<AddChildController> {
                   const SizedBox(height: 20),
 
                   // Allergies
-                   Text('Allergies'.tr,
+                  Text('Allergies'.tr,
                       style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.bold,
-                          color: Color(0xFF1A2E5A))),
+                          color: context.textTheme.bodyLarge?.color)),
                   const SizedBox(height: 8),
                   TextField(
                     controller: controller.allergiesController,
                     maxLines: 3,
                     textAlign: TextAlign.left,
+                    style: TextStyle(color: context.textTheme.bodyLarge?.color), // لون النص
                     decoration: InputDecoration(
                       hintText: 'Enter any allergies the child has'.tr,
                       hintStyle: TextStyle(
-                          color: Colors.grey.shade400, fontSize: 13),
+                          color: context.textTheme.bodyMedium?.color, fontSize: 13),
                       suffixIcon: const Icon(Icons.shield_outlined,
                           color: Colors.blue),
                       filled: true,
-                      fillColor: Colors.white,
+                      fillColor: context.theme.scaffoldBackgroundColor, // لون الخلفية
                       contentPadding: const EdgeInsets.all(16),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
                         borderSide:
-                        BorderSide(color: Colors.grey.shade300),
+                        BorderSide(color: context.theme.dividerColor),
                       ),
                       enabledBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
                         borderSide:
-                        BorderSide(color: Colors.grey.shade300),
+                        BorderSide(color: context.theme.dividerColor),
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
@@ -8307,168 +8898,157 @@ class AppointmentsView extends GetView<AppointmentsController> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFF0F4FF),
-      appBar: AppBar(
-        backgroundColor: const Color(0xFFF0F4FF),
-        elevation: 0,
-        centerTitle: true,
-        title: Text(
-          // تغيير العنوان ديناميكياً
-          controller.childId == null ? 'My Appointments'.tr : 'Child Appointments'.tr,
-          style: const TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
-            color: Color(0xFF1A2E5A),
+    final bool isSingleChild = controller.childId != null && controller.childId != 0;
+
+    // ─── إحاطة الواجهة بـ PopScope للتحكم بزر الرجوع في النظام ───
+    return PopScope(
+      canPop: false, // نمنع الرجوع الافتراضي
+      onPopInvokedWithResult: (bool didPop, Object? result) {
+        if (didPop) return;
+        // ─── توجيه المستخدم للرئيسية عند ضغط زر الهاتف ───
+        Get.offAllNamed('/home');
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          elevation: 0,
+          centerTitle: true,
+          title: Text(
+            isSingleChild ? 'Child Appointments'.tr : 'My Appointments'.tr,
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: context.textTheme.bodyLarge?.color,
+            ),
+          ),
+          leading: IconButton(
+            icon: Icon(Icons.arrow_back_ios, color: context.iconColor, size: 20),
+            onPressed: () {
+              // ─── العودة إلى الرئيسية مباشرة من زر الواجهة ───
+              Get.offAllNamed('/home');
+            },
           ),
         ),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios,
-              color: Color(0xFF1A2E5A), size: 20),
-          onPressed: () => Get.back(),
-        ),
-      ),
-      body: Column(
-        children: [
-          const SizedBox(height: 16),
+        body: Column(
+          children: [
+            const SizedBox(height: 16),
 
-          // ─── Tabs (Slider) ───
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            child: Obx(() => Container(
-              padding: const EdgeInsets.all(4),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(14),
-              ),
-              child: Row(
-                children: [
-                  // Upcoming Tab
-                  Expanded(
-                    child: GestureDetector(
-                      onTap: () => controller.switchTab(true),
-                      child: AnimatedContainer(
-                        duration: const Duration(milliseconds: 200),
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                        decoration: BoxDecoration(
-                          color: controller.showUpcoming.value
-                              ? const Color(0xFF3B9EFF)
-                              : Colors.transparent,
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(
-                              Icons.calendar_month_outlined,
-                              color: controller.showUpcoming.value
-                                  ? Colors.white
-                                  : Colors.grey,
-                              size: 18,
-                            ),
-                            const SizedBox(width: 6),
-                            Text(
-                              'Upcoming'.tr,
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                color: controller.showUpcoming.value
-                                    ? Colors.white
-                                    : Colors.grey,
+            // ─── Tabs (Slider) ───
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Obx(() => Container(
+                padding: const EdgeInsets.all(4),
+                decoration: BoxDecoration(
+                  color: context.theme.cardColor,
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: GestureDetector(
+                        onTap: () => controller.switchTab(true),
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 200),
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          decoration: BoxDecoration(
+                            color: controller.showUpcoming.value ? context.theme.primaryColor : Colors.transparent,
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.calendar_month_outlined,
+                                color: controller.showUpcoming.value ? Colors.white : context.textTheme.bodyMedium?.color,
+                                size: 18,
                               ),
-                            ),
-                          ],
+                              const SizedBox(width: 6),
+                              Text(
+                                'Upcoming'.tr,
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  color: controller.showUpcoming.value ? Colors.white : context.textTheme.bodyMedium?.color,
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
                     ),
-                  ),
-
-                  // Past Tab
-                  Expanded(
-                    child: GestureDetector(
-                      onTap: () => controller.switchTab(false),
-                      child: AnimatedContainer(
-                        duration: const Duration(milliseconds: 200),
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                        decoration: BoxDecoration(
-                          color: !controller.showUpcoming.value
-                              ? const Color(0xFF3B9EFF)
-                              : Colors.transparent,
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(
-                              Icons.history_outlined,
-                              color: !controller.showUpcoming.value
-                                  ? Colors.white
-                                  : Colors.grey,
-                              size: 18,
-                            ),
-                            const SizedBox(width: 6),
-                            Text(
-                              'Past'.tr,
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                color: !controller.showUpcoming.value
-                                    ? Colors.white
-                                    : Colors.grey,
+                    Expanded(
+                      child: GestureDetector(
+                        onTap: () => controller.switchTab(false),
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 200),
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          decoration: BoxDecoration(
+                            color: !controller.showUpcoming.value ? context.theme.primaryColor : Colors.transparent,
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.history_outlined,
+                                color: !controller.showUpcoming.value ? Colors.white : context.textTheme.bodyMedium?.color,
+                                size: 18,
                               ),
-                            ),
-                          ],
+                              const SizedBox(width: 6),
+                              Text(
+                                'Past'.tr,
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  color: !controller.showUpcoming.value ? Colors.white : context.textTheme.bodyMedium?.color,
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
                     ),
-                  ),
-                ],
-              ),
-            )),
-          ),
-          const SizedBox(height: 16),
+                  ],
+                ),
+              )),
+            ),
+            const SizedBox(height: 16),
 
-          // ─── List ───
-          Expanded(
-            child: Obx(() {
-              if (controller.isLoading) {
-                return const Center(
-                  child: CircularProgressIndicator(color: Colors.blue),
-                );
-              }
+            // ─── List ───
+            Expanded(
+              child: Obx(() {
+                if (controller.isLoading) {
+                  return const Center(child: CircularProgressIndicator(color: Colors.blue));
+                }
 
-              final list = controller.showUpcoming.value
-                  ? controller.upcoming
-                  : controller.past;
+                final list = controller.showUpcoming.value ? controller.upcoming : controller.past;
 
-              if (list.isEmpty) {
-                return Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.calendar_today_outlined,
-                          size: 60, color: Colors.grey.shade300),
-                      const SizedBox(height: 12),
-                      Text(
-                        'No appointments found'.tr,
-                        style: TextStyle(
-                          fontSize: 16,
-                          color: Colors.grey.shade400,
+                if (list.isEmpty) {
+                  return Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.calendar_today_outlined, size: 60, color: context.theme.dividerColor),
+                        const SizedBox(height: 12),
+                        Text(
+                          'No appointments found'.tr,
+                          style: TextStyle(fontSize: 16, color: context.textTheme.bodyMedium?.color),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
+                  );
+                }
+
+                return ListView.separated(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  itemCount: list.length,
+                  separatorBuilder: (_, _) => const SizedBox(height: 12),
+                  itemBuilder: (_, index) => _AppointmentCard(
+                    appointment: list[index],
+                    isSingleChild: isSingleChild,
                   ),
                 );
-              }
-
-              return ListView.separated(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                itemCount: list.length,
-                separatorBuilder: (_, _) => const SizedBox(height: 12),
-                itemBuilder: (_, index) =>
-                    _AppointmentCard(appointment: list[index]),
-              );
-            }),
-          ),
-        ],
+              }),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -8477,93 +9057,231 @@ class AppointmentsView extends GetView<AppointmentsController> {
 // ─── Appointment Card ───
 class _AppointmentCard extends StatelessWidget {
   final AppointmentsModel appointment;
+  final bool isSingleChild;
 
-  const _AppointmentCard({required this.appointment});
+  const _AppointmentCard({
+    required this.appointment,
+    required this.isSingleChild,
+  });
 
   @override
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: context.theme.cardColor,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
+            color: context.isDarkMode ? Colors.transparent : Colors.black.withValues(alpha: 0.04),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
         ],
       ),
-      child: Row(
-        children: [
-          // Doctor image
-          CircleAvatar(
-            radius: 30,
-            backgroundColor: Colors.grey.shade200,
-            backgroundImage: (appointment.doctorImage != null && appointment.doctorImage!.isNotEmpty)
-                ? NetworkImage(appointment.doctorImage!)
-                : null,
-            child: (appointment.doctorImage == null || appointment.doctorImage!.isEmpty)
-                ? Icon(Icons.person, color: Colors.grey.shade400, size: 30)
-                : null,
-          ),
-          const SizedBox(width: 14),
+      child: isSingleChild ? _buildSingleChildLayout(context) : _buildAllAppointmentsLayout(context),
+    );
+  }
 
-          // Info
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  appointment.doctorName,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFF1A2E5A),
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  appointment.specialty,
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: Colors.grey.shade500,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Row(
-                  children: [
-                    Icon(Icons.calendar_today_outlined,
-                        size: 14, color: Colors.blue.shade400),
-                    const SizedBox(width: 4),
-                    Text(
-                      appointment.date,
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey.shade600,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    const Text('|', style: TextStyle(color: Colors.grey)),
-                    const SizedBox(width: 12),
-                    Icon(Icons.access_time_outlined,
-                        size: 14, color: Colors.blue.shade400),
-                    const SizedBox(width: 4),
-                    Text(
-                      appointment.time,
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey.shade600,
-                      ),
-                    ),
-                  ],
-                ),
-              ],
+  Widget _buildAllAppointmentsLayout(BuildContext context) {
+    return Column(
+      children: [
+        Row(
+          children: [
+            CircleAvatar(
+              radius: 22,
+              backgroundColor: context.isDarkMode ? Colors.blue.withValues(alpha: 0.15) : Colors.blue.shade50,
+              backgroundImage: appointment.childImage != null && appointment.childImage!.isNotEmpty
+                  ? NetworkImage(appointment.childImage!)
+                  : null,
+              child: appointment.childImage == null || appointment.childImage!.isEmpty
+                  ? Icon(Icons.child_care, color: Colors.blue.shade300, size: 24)
+                  : null,
             ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    appointment.childName,
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: context.textTheme.bodyLarge?.color),
+                  ),
+                  const SizedBox(height: 2),
+                  Text('Patient'.tr, style: TextStyle(fontSize: 12, color: context.textTheme.bodyMedium?.color)),
+                ],
+              ),
+            ),
+            _StatusPill(status: appointment.status),
+          ],
+        ),
+
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          child: Divider(height: 1, thickness: 1, color: context.theme.dividerColor),
+        ),
+
+        Row(
+          children: [
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                color: context.isDarkMode ? context.theme.scaffoldBackgroundColor : Colors.grey.shade100,
+                borderRadius: BorderRadius.circular(12),
+                image: appointment.doctorImage != null && appointment.doctorImage!.isNotEmpty
+                    ? DecorationImage(image: NetworkImage(appointment.doctorImage!), fit: BoxFit.cover)
+                    : null,
+              ),
+              child: appointment.doctorImage == null || appointment.doctorImage!.isEmpty
+                  ? Icon(Icons.person, color: context.theme.dividerColor)
+                  : null,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    appointment.doctorName,
+                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: context.textTheme.bodyLarge?.color),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(appointment.specialty, style: TextStyle(fontSize: 12, color: context.textTheme.bodyMedium?.color)),
+                ],
+              ),
+            ),
+          ],
+        ),
+
+        const SizedBox(height: 16),
+        _buildDateTimeSection(context),
+      ],
+    );
+  }
+
+  Widget _buildSingleChildLayout(BuildContext context) {
+    return Column(
+      children: [
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              width: 50,
+              height: 50,
+              decoration: BoxDecoration(
+                color: context.isDarkMode ? context.theme.scaffoldBackgroundColor : Colors.grey.shade100,
+                borderRadius: BorderRadius.circular(14),
+                image: appointment.doctorImage != null && appointment.doctorImage!.isNotEmpty
+                    ? DecorationImage(image: NetworkImage(appointment.doctorImage!), fit: BoxFit.cover)
+                    : null,
+              ),
+              child: appointment.doctorImage == null || appointment.doctorImage!.isEmpty
+                  ? Icon(Icons.medical_services_outlined, color: Colors.blue.shade400, size: 26)
+                  : null,
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Expanded(
+                        child: Text(
+                          appointment.doctorName,
+                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: context.textTheme.bodyLarge?.color),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      _StatusPill(status: appointment.status),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    appointment.specialty,
+                    style: TextStyle(fontSize: 13, color: context.textTheme.bodyMedium?.color),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 16),
+        _buildDateTimeSection(context),
+      ],
+    );
+  }
+
+  Widget _buildDateTimeSection(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 12),
+      decoration: BoxDecoration(
+        color: context.isDarkMode ? context.theme.scaffoldBackgroundColor : const Color(0xFFF8FAFC),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.calendar_today_outlined, size: 16, color: context.isDarkMode ? Colors.blue.shade300 : Colors.blue.shade600),
+          const SizedBox(width: 6),
+          Text(
+            appointment.date,
+            style: TextStyle(fontSize: 13, color: context.isDarkMode ? Colors.blue.shade300 : Colors.blue.shade700, fontWeight: FontWeight.w600),
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Text('|', style: TextStyle(color: context.theme.dividerColor)),
+          ),
+          Icon(Icons.access_time_outlined, size: 16, color: context.isDarkMode ? Colors.blue.shade300 : Colors.blue.shade600),
+          const SizedBox(width: 6),
+          Text(
+            appointment.time,
+            style: TextStyle(fontSize: 13, color: context.isDarkMode ? Colors.blue.shade300 : Colors.blue.shade700, fontWeight: FontWeight.w600),
           ),
         ],
       ),
+    );
+  }
+}
+
+class _StatusPill extends StatelessWidget {
+  final String status;
+
+  const _StatusPill({required this.status});
+
+  @override
+  Widget build(BuildContext context) {
+    final normalized = status.toLowerCase();
+    late final Color bg;
+    late final Color fg;
+
+    switch (normalized) {
+      case 'confirmed':
+      case 'success':
+        bg = context.isDarkMode ? Colors.green.withValues(alpha: 0.2) : Colors.green.shade50;
+        fg = context.isDarkMode ? Colors.greenAccent : Colors.green.shade600;
+        break;
+      case 'cancelled':
+      case 'canceled':
+        bg = context.isDarkMode ? Colors.red.withValues(alpha: 0.2) : Colors.red.shade50;
+        fg = context.isDarkMode ? Colors.redAccent : Colors.red.shade600;
+        break;
+      case 'pending':
+      default:
+        bg = context.isDarkMode ? Colors.orange.withValues(alpha: 0.2) : Colors.orange.shade50;
+        fg = context.isDarkMode ? Colors.orangeAccent : Colors.orange.shade700;
+        break;
+    }
+
+    final label = status.isEmpty ? 'Pending' : status[0].toUpperCase() + status.substring(1);
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(20)),
+      child: Text(label.tr, style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: fg)),
     );
   }
 }
@@ -8575,130 +9293,147 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../controllers/home/child_profile_controller.dart';
 import '../../models/appointment/child_model.dart';
-import '../growth/child_growth_tab_view.dart'; // استدعاء واجهة المنحنى الشاملة
+import '../growth/child_growth_tab_view.dart';
 
 class ChildProfileView extends GetView<ChildProfileController> {
   const ChildProfileView({super.key});
 
   @override
   Widget build(BuildContext context) {
-    // متغير Rx محلي للتحكم بالتنقل بين التبويبات (True = منحنى النمو، False = المواعيد والبيانات)
     final RxBool isGrowthTab = true.obs;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF4F6FA),
+      // ❌ تم إزالة اللون الأبيض الثابت
       appBar: AppBar(
-        backgroundColor: const Color(0xFFF4F6FA),
         elevation: 0,
         centerTitle: true,
         title: Text(
           'Child Profile'.tr,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.bold,
-            color: Color(0xFF1A2E5A),
+            color: context.textTheme.bodyLarge?.color, // ─── نص متكيف ───
           ),
         ),
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios, color: Color(0xFF1A2E5A), size: 20),
+          icon: Icon(Icons.arrow_back_ios, color: context.iconColor, size: 20),
           onPressed: () => Get.back(),
         ),
       ),
       body: Obx(() {
         if (controller.isLoading) {
-          return const Center(child: CircularProgressIndicator(color: Colors.blue));
+          return Center(
+            child: CircularProgressIndicator(color: context.theme.primaryColor),
+          );
         }
 
         final child = controller.child.value;
         if (child == null) {
-          return Center(child: Text('Failed to load profile'.tr));
+          return Center(
+            child: Text(
+              'Failed to load profile'.tr,
+              style: TextStyle(color: context.textTheme.bodyMedium?.color),
+            ),
+          );
         }
 
         return Column(
           children: [
-            // ─── القسم العلوي الثابت: كارت معلومات الطفل الأساسية ───
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
               child: _InfoCard(child: child),
             ),
             const SizedBox(height: 16),
 
-            // ─── نظام التبويبات المخصص (Custom Tabs Switcher) المطابق للصورة ───
+            // Tabs Switcher
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: Container(
                 padding: const EdgeInsets.all(4),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFEFF2F8),
+                  color: context.theme.cardColor, // ─── خلفية التابز متكيفة ───
                   borderRadius: BorderRadius.circular(14),
                 ),
                 child: Row(
                   children: [
-                    // تبويب منحنى النمو والوزن
                     Expanded(
                       child: GestureDetector(
                         onTap: () => isGrowthTab.value = true,
-                        child: Obx(() => AnimatedContainer(
-                          duration: const Duration(milliseconds: 200),
-                          padding: const EdgeInsets.symmetric(vertical: 12),
-                          decoration: BoxDecoration(
-                            color: isGrowthTab.value ? const Color(0xFF2ecc71) : Colors.transparent, // اللون الأخضر المطابق للصورة
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(
-                                Icons.show_chart_rounded,
-                                color: isGrowthTab.value ? Colors.white : Colors.grey.shade600,
-                                size: 18,
-                              ),
-                              const SizedBox(width: 6),
-                              Text(
-                                'Growth Chart & Weight'.tr,
-                                style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 13,
-                                  color: isGrowthTab.value ? Colors.white : Colors.grey.shade700,
+                        child: Obx(
+                          () => AnimatedContainer(
+                            duration: const Duration(milliseconds: 200),
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            decoration: BoxDecoration(
+                              color: isGrowthTab.value
+                                  ? Colors.green
+                                  : Colors.transparent,
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  Icons.show_chart_rounded,
+                                  color: isGrowthTab.value
+                                      ? Colors.white
+                                      : Colors.grey,
+                                  size: 18,
                                 ),
-                              ),
-                            ],
+                                const SizedBox(width: 6),
+                                Text(
+                                  'Growth Chart & Weight'.tr,
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 13,
+                                    color: isGrowthTab.value
+                                        ? Colors.white
+                                        : context.textTheme.bodyMedium?.color,
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
-                        )),
+                        ),
                       ),
                     ),
-
-                    // تبويب المواعيد والبيانات الطبية
                     Expanded(
                       child: GestureDetector(
                         onTap: () => isGrowthTab.value = false,
-                        child: Obx(() => AnimatedContainer(
-                          duration: const Duration(milliseconds: 200),
-                          padding: const EdgeInsets.symmetric(vertical: 12),
-                          decoration: BoxDecoration(
-                            color: !isGrowthTab.value ? const Color(0xFF3B9EFF) : Colors.transparent, // اللون الأزرق للمشروع عند النشاط
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(
-                                Icons.assignment_outlined,
-                                color: !isGrowthTab.value ? Colors.white : Colors.grey.shade600,
-                                size: 18,
-                              ),
-                              const SizedBox(width: 6),
-                              Text(
-                                'Appointments & Files'.tr,
-                                style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 13,
-                                  color: !isGrowthTab.value ? Colors.white : Colors.grey.shade700,
+                        child: Obx(
+                          () => AnimatedContainer(
+                            duration: const Duration(milliseconds: 200),
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            decoration: BoxDecoration(
+                              color: !isGrowthTab.value
+                                  ? context.theme.primaryColor
+                                  : Colors.transparent,
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  Icons.assignment_outlined,
+                                  color: !isGrowthTab.value
+                                      ? Colors.white
+                                      : Colors.grey,
+                                  size: 18,
                                 ),
-                              ),
-                            ],
+                                const SizedBox(width: 6),
+                                Text(
+                                  'Appointments & Files'.tr,
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 13,
+                                    color: !isGrowthTab.value
+                                        ? Colors.white
+                                        : context.textTheme.bodyMedium?.color,
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
-                        )),
+                        ),
                       ),
                     ),
                   ],
@@ -8707,81 +9442,134 @@ class ChildProfileView extends GetView<ChildProfileController> {
             ),
             const SizedBox(height: 10),
 
-            // ─── العرض الديناميكي لمحتوى التبويبات بناءً على الاختيار ───
             Expanded(
               child: Obx(() {
                 if (isGrowthTab.value) {
-                  // عرض ميزتك الجديدة المتكاملة وتمرير الـ ID المباشر لها
                   return ChildGrowthTabView(childId: controller.childId);
                 } else {
-                  // عرض كود زميلك القديم بالكامل دون تعديل أو تخريب
                   return SingleChildScrollView(
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 6,
+                    ),
                     child: Column(
                       children: [
                         _StatsCard(child: child),
                         const SizedBox(height: 16),
-
-                        if (child.medicalHistory != null && child.medicalHistory!.isNotEmpty) ...[
-                          _DataCard(title: 'Medical History'.tr, content: child.medicalHistory!),
+                        if (child.medicalHistory != null &&
+                            child.medicalHistory!.isNotEmpty) ...[
+                          _DataCard(
+                            title: 'Medical History'.tr,
+                            content: child.medicalHistory!,
+                          ),
                           const SizedBox(height: 16),
                         ],
-
-                        if (child.allergies != null && child.allergies!.isNotEmpty) ...[
-                          _DataCard(title: 'Allergies'.tr, content: child.allergies!),
+                        if (child.allergies != null &&
+                            child.allergies!.isNotEmpty) ...[
+                          _DataCard(
+                            title: 'Allergies'.tr,
+                            content: child.allergies!,
+                          ),
                           const SizedBox(height: 16),
                         ],
-
                         _ActionButton(
                           icon: Icons.vaccines_outlined,
                           label: 'Vaccination Record'.tr,
-                          color: Colors.blue,
-                          onTap: () => Get.toNamed('/vaccinations', arguments: child.id),
+                          color: context.theme.primaryColor,
+                          onTap: () =>
+                              Get.toNamed('/vaccinations', arguments: child.id),
                         ),
                         const SizedBox(height: 10),
                         _ActionButton(
                           icon: Icons.calendar_today_outlined,
                           label: 'Appointments'.tr,
-                          color: Colors.blue,
-                          onTap: () => Get.toNamed('/appointments', arguments: child.id),
+                          color: context.theme.primaryColor,
+                          onTap: () =>
+                              Get.toNamed('/appointments', arguments: child.id),
                         ),
                         const SizedBox(height: 16),
-
-                        // زر الحذف الأصلي الخاص بزميلك
+                        // زر الحذف
                         SizedBox(
                           width: double.infinity,
                           height: 54,
                           child: ElevatedButton.icon(
-                            onPressed: () {
-                              Get.dialog(
-                                AlertDialog(
-                                  title: Text('Delete Child'.tr),
-                                  content: Text('Are you sure you want to delete this child profile? This action cannot be undone.'.tr),
-                                  actions: [
-                                    TextButton(
-                                      onPressed: () => Get.back(),
-                                      child: Text('Cancel'.tr),
+                            onPressed: controller.isLoading
+                                ? null // تعطيل الزر إذا كان التطبيق في حالة تحميل
+                                : () => Get.dialog(
+                                    AlertDialog(
+                                      backgroundColor: context.theme.cardColor,
+                                      title: Text(
+                                        'Delete Child'.tr,
+                                        style: TextStyle(
+                                          color: context
+                                              .textTheme
+                                              .bodyLarge
+                                              ?.color,
+                                        ),
+                                      ),
+                                      content: Text(
+                                        'Are you sure you want to delete this child profile? This action cannot be undone.'
+                                            .tr,
+                                        style: TextStyle(
+                                          color: context
+                                              .textTheme
+                                              .bodyMedium
+                                              ?.color,
+                                        ),
+                                      ),
+                                      actions: [
+                                        TextButton(
+                                          onPressed: () => Get.back(),
+                                          child: Text('Cancel'.tr),
+                                        ),
+                                        TextButton(
+                                          onPressed: () {
+                                            Get.back(); // إغلاق الـ Dialog
+                                            controller
+                                                .deleteCurrentChild(); // تنفيذ دالة الحذف المعدلة
+                                          },
+                                          child: Text(
+                                            'Delete'.tr,
+                                            style: const TextStyle(
+                                              color: Colors.red,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
                                     ),
-                                    TextButton(
-                                      onPressed: () {
-                                        Get.back();
-                                        controller.deleteCurrentChild();
-                                      },
-                                      child: Text('Delete'.tr, style: const TextStyle(color: Colors.red)),
+                                  ),
+                            icon: controller.isLoading
+                                ? const SizedBox(
+                                    width: 20,
+                                    height: 20,
+                                    child: CircularProgressIndicator(
+                                      color: Colors.white,
+                                      strokeWidth: 2,
                                     ),
-                                  ],
-                                ),
-                              );
-                            },
-                            icon: const Icon(Icons.delete_outline, color: Colors.white),
+                                  )
+                                : const Icon(
+                                    Icons.delete_outline,
+                                    color: Colors.white,
+                                  ),
                             label: Text(
-                              'Delete Child Profile'.tr,
-                              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
+                              controller.isLoading
+                                  ? 'Deleting...'.tr
+                                  : 'Delete Child Profile'.tr,
+                              style: const TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                              ),
                             ),
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.red.shade400,
+                              backgroundColor: controller.isLoading
+                                  ? Colors.grey
+                                  : Colors.red.shade400,
                               elevation: 0,
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(16),
+                              ),
                             ),
                           ),
                         ),
@@ -8799,8 +9587,6 @@ class ChildProfileView extends GetView<ChildProfileController> {
   }
 }
 
-// ─── الأكواد الفرعية لـ زميلك كما هي 100% دون أي تعديل يذكر ───
-
 class _InfoCard extends StatelessWidget {
   final ChildModel child;
 
@@ -8812,19 +9598,26 @@ class _InfoCard extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: const Color(0xFFE8F5E9),
+        // ─── لون الخلفية متكيف (أخضر خفيف جداً ليلاً ونهاراً) ───
+        color: context.isDarkMode
+            ? Colors.green.withOpacity(0.15)
+            : const Color(0xFFE8F5E9),
         borderRadius: BorderRadius.circular(20),
       ),
       child: Row(
         children: [
           CircleAvatar(
             radius: 55,
-            backgroundColor: Colors.white,
+            backgroundColor: context.theme.scaffoldBackgroundColor,
             backgroundImage: (child.image != null && child.image!.isNotEmpty)
                 ? NetworkImage(child.image!)
                 : null,
             child: (child.image == null || child.image!.isEmpty)
-                ? Icon(Icons.person, color: Colors.grey.shade300, size: 55)
+                ? Icon(
+                    Icons.person,
+                    color: context.theme.dividerColor,
+                    size: 55,
+                  )
                 : null,
           ),
           const SizedBox(width: 20),
@@ -8833,11 +9626,11 @@ class _InfoCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                 child.fullName,
-                  style: const TextStyle(
+                  child.fullName,
+                  style: TextStyle(
                     fontSize: 22,
                     fontWeight: FontWeight.bold,
-                    color: Color(0xFF1A2E5A),
+                    color: context.textTheme.bodyLarge?.color,
                   ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
@@ -8845,20 +9638,25 @@ class _InfoCard extends StatelessWidget {
                 const SizedBox(height: 6),
                 Text(
                   '${child.ageYears} ${' years'.tr}',
-                  style: TextStyle(fontSize: 16, color: Colors.grey.shade600),
+                  style: TextStyle(
+                    fontSize: 16,
+                    color: context.textTheme.bodyMedium?.color,
+                  ),
                 ),
                 const SizedBox(height: 6),
                 Row(
                   children: [
                     Icon(
-                        child.gender.toLowerCase() == 'female' ? Icons.female : Icons.male,
-                        color: const Color(0xFF4CAF50),
-                        size: 18
+                      child.gender.toLowerCase() == 'female'
+                          ? Icons.female
+                          : Icons.male,
+                      color: Colors.green,
+                      size: 18,
                     ),
                     const SizedBox(width: 4),
                     Text(
                       child.gender.capitalizeFirst ?? '',
-                      style: const TextStyle(fontSize: 16, color: Color(0xFF4CAF50)),
+                      style: const TextStyle(fontSize: 16, color: Colors.green),
                     ),
                   ],
                 ),
@@ -8873,6 +9671,7 @@ class _InfoCard extends StatelessWidget {
 
 class _StatsCard extends StatelessWidget {
   final ChildModel child;
+
   const _StatsCard({required this.child});
 
   @override
@@ -8881,11 +9680,13 @@ class _StatsCard extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.symmetric(vertical: 20),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: context.theme.cardColor,
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color: context.isDarkMode
+                ? Colors.transparent
+                : Colors.black.withOpacity(0.04),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -8911,7 +9712,9 @@ class _StatsCard extends StatelessWidget {
           _VerticalDivider(),
           Expanded(
             child: _StatItem(
-              icon: child.gender.toLowerCase() == 'female' ? Icons.female : Icons.male,
+              icon: child.gender.toLowerCase() == 'female'
+                  ? Icons.female
+                  : Icons.male,
               value: child.gender.capitalizeFirst ?? '',
               label: 'Gender'.tr,
             ),
@@ -8927,26 +9730,33 @@ class _StatItem extends StatelessWidget {
   final String value;
   final String label;
 
-  const _StatItem({required this.icon, required this.value, required this.label});
+  const _StatItem({
+    required this.icon,
+    required this.value,
+    required this.label,
+  });
 
   @override
   Widget build(BuildContext context) {
     return Column(
       children: [
-        Icon(icon, color: const Color(0xFF4CAF50), size: 28),
+        Icon(icon, color: Colors.green, size: 28),
         const SizedBox(height: 8),
         Text(
           value,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.bold,
-            color: Color(0xFF1A2E5A),
+            color: context.textTheme.bodyLarge?.color,
           ),
         ),
         const SizedBox(height: 4),
         Text(
           label,
-          style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
+          style: TextStyle(
+            fontSize: 12,
+            color: context.textTheme.bodyMedium?.color,
+          ),
         ),
       ],
     );
@@ -8956,7 +9766,7 @@ class _StatItem extends StatelessWidget {
 class _VerticalDivider extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    return Container(width: 1, height: 60, color: Colors.grey.shade200);
+    return Container(width: 1, height: 60, color: context.theme.dividerColor);
   }
 }
 
@@ -8972,11 +9782,13 @@ class _DataCard extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: context.theme.cardColor,
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color: context.isDarkMode
+                ? Colors.transparent
+                : Colors.black.withOpacity(0.04),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -8987,10 +9799,10 @@ class _DataCard extends StatelessWidget {
         children: [
           Text(
             title,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.bold,
-              color: Color(0xFF1A2E5A),
+              color: context.textTheme.bodyLarge?.color,
             ),
           ),
           const SizedBox(height: 10),
@@ -8998,12 +9810,16 @@ class _DataCard extends StatelessWidget {
             width: double.infinity,
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: const Color(0xFFF4F6FA),
+              color: context.theme.scaffoldBackgroundColor,
               borderRadius: BorderRadius.circular(12),
             ),
             child: Text(
               content,
-              style: TextStyle(fontSize: 14, color: Colors.grey.shade700, height: 1.5),
+              style: TextStyle(
+                fontSize: 14,
+                color: context.textTheme.bodyMedium?.color,
+                height: 1.5,
+              ),
               textAlign: TextAlign.left,
             ),
           ),
@@ -9020,7 +9836,10 @@ class _ActionButton extends StatelessWidget {
   final VoidCallback onTap;
 
   const _ActionButton({
-    required this.icon, required this.label, required this.color, required this.onTap,
+    required this.icon,
+    required this.label,
+    required this.color,
+    required this.onTap,
   });
 
   @override
@@ -9031,11 +9850,13 @@ class _ActionButton extends StatelessWidget {
         width: double.infinity,
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: context.theme.cardColor,
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.04),
+              color: context.isDarkMode
+                  ? Colors.transparent
+                  : Colors.black.withOpacity(0.04),
               blurRadius: 10,
               offset: const Offset(0, 4),
             ),
@@ -9050,21 +9871,26 @@ class _ActionButton extends StatelessWidget {
                 const SizedBox(width: 10),
                 Text(
                   label,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.w600,
-                    color: Color(0xFF1A2E5A),
+                    color: context.textTheme.bodyLarge?.color,
                   ),
                 ),
               ],
             ),
-            const Icon(Icons.chevron_right, color: Color(0xFF1A2E5A), size: 22),
+            Icon(
+              Icons.chevron_right,
+              color: context.textTheme.bodyLarge?.color,
+              size: 22,
+            ),
           ],
         ),
       ),
     );
   }
 }
+
 ```
 
 ### File: lib\views\home\home_view.dart
@@ -9083,7 +9909,7 @@ class HomeView extends GetView<HomeController> {
       'icon': Icons.medical_services_outlined,
       'color': Color(0xFFE3F2FD),
       'iconColor': Color(0xFF1E88E5),
-      'route': '/choose-doctor', // عدلت هون
+      'route': '/choose-doctor',
       'specialty': 'General Pediatrics',
       'departmentId': 1,
     },
@@ -9092,7 +9918,7 @@ class HomeView extends GetView<HomeController> {
       'icon': Icons.medical_information_outlined,
       'color': Color(0xFFE3F2FD),
       'iconColor': Color(0xFF1E88E5),
-      'route': '/choose-doctor', // عدلت هون
+      'route': '/choose-doctor',
       'specialty': 'Dental Care',
       'departmentId': 2,
     },
@@ -9101,21 +9927,17 @@ class HomeView extends GetView<HomeController> {
       'icon': Icons.psychology_outlined,
       'color': Color(0xFFFCE4EC),
       'iconColor': Color(0xFFE91E63),
-      'route': '/choose-doctor', // عدلت هون
+      'route': '/choose-doctor',
       'specialty': 'Psychiatry',
       'departmentId': 3,
     },
   ];
 
-
   @override
   Widget build(BuildContext context) {
+    // ❌ تم حذف backgroundColor من الـ Scaffold ليأخذ لون السمة تلقائياً
     return Scaffold(
-      backgroundColor: Colors.white,
-
-
       bottomNavigationBar: const _BottomNav(),
-
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
@@ -9125,7 +9947,6 @@ class HomeView extends GetView<HomeController> {
               const _HeaderSection(),
               const SizedBox(height: 24),
 
-              // ربط الـ Slider بالـ Controller
               Obx(() {
                 if (controller.isLoading) {
                   return const SizedBox(
@@ -9143,11 +9964,11 @@ class HomeView extends GetView<HomeController> {
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           Icon(Icons.child_care,
-                              size: 48, color: Colors.grey.shade300),
+                              size: 48, color: context.theme.dividerColor), // لون أيقونة فارغ متكيف
                           const SizedBox(height: 8),
                           Text(
                             'No children added yet'.tr,
-                            style: TextStyle(color: Colors.grey.shade400),
+                            style: TextStyle(color: context.textTheme.bodyMedium?.color), // نص متكيف
                           ),
                         ],
                       ),
@@ -9160,7 +9981,7 @@ class HomeView extends GetView<HomeController> {
               const SizedBox(height: 20),
               const _BookButton(),
               const SizedBox(height: 28),
-              _DepartmentsSection(departments: _departments),
+              const _DepartmentsSection(departments: _departments),
               const SizedBox(height: 28),
               const _ClinicInfoSection(),
               const SizedBox(height: 20),
@@ -9182,17 +10003,17 @@ class _HeaderSection extends GetView<HomeController> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        // صورة البروفايل مع الاسم على اليسار
         Expanded(
           child: Row(
             children: [
               GestureDetector(
-                onTap: () => Get.toNamed('/profile'), // تم التصحيح ليطابق الـ main
+                onTap: () => Get.toNamed('/profile'),
                 child: CircleAvatar(
                   radius: 26,
-                  backgroundColor: Colors.grey.shade200,
+                  // لون خلفية ذكي بناءً على الوضع
+                  backgroundColor: context.isDarkMode ? Colors.grey.shade800 : Colors.grey.shade200,
                   child: Icon(Icons.person,
-                      color: Colors.grey.shade400, size: 28),
+                      color: context.isDarkMode ? Colors.grey.shade400 : Colors.grey.shade500, size: 28),
                 ),
               ),
               const SizedBox(width: 12),
@@ -9203,30 +10024,27 @@ class _HeaderSection extends GetView<HomeController> {
                     controller.parentName.value.isEmpty
                         ? 'Welcome!'.tr
                         : controller.parentName.value,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 17,
                       fontWeight: FontWeight.bold,
-                      color: Colors.black87,
+                      color: context.textTheme.bodyLarge?.color, // نص متكيف
                     ),
                   )),
                   Text(
                     'Welcome back!'.tr,
                     style: TextStyle(
-                        fontSize: 13, color: Colors.grey.shade500),
+                        fontSize: 13, color: context.textTheme.bodyMedium?.color), // نص ثانوي متكيف
                   ),
                 ],
               ),
             ],
           ),
         ),
-
-        // أيقونة الإشعارات على اليمين
         Stack(
           children: [
-            GestureDetector(
-              onTap: () => Get.toNamed('/notifications'),
-              child: const Icon(Icons.notifications_outlined,
-                  size: 28, color: Colors.black87),
+            IconButton(
+              icon: const Icon(Icons.notifications_none_outlined, color: Color(0xFF1A2E5A)),
+              onPressed: () => Get.toNamed('/notifications-history'), // 🌟 التوجيه للشاشة التاريخية
             ),
             Positioned(
               top: 0,
@@ -9309,34 +10127,31 @@ class _ChildCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: () => Get.toNamed('/child-profile', arguments: child),
-
       child: Container(
         decoration: BoxDecoration(
-          color: const Color(0xFFD6F5D6),
+          // استخدام لون داكن للبطاقة في الوضع الليلي ليناسب اللون الأخضر
+          color: context.isDarkMode ? const Color(0xFF1E3A2F) : const Color(0xFFD6F5D6),
           borderRadius: BorderRadius.circular(20),
         ),
         child: Stack(
           children: [
-            // صورة الطفل من السيرفر
             Center(
               child: Padding(
                 padding: const EdgeInsets.only(bottom: 50),
                 child: CircleAvatar(
                   radius: 45,
-                  backgroundColor: Colors.white,
+                  backgroundColor: context.theme.scaffoldBackgroundColor, // خلفية متكيفة للصورة
                   backgroundImage: (child.image != null &&
                       child.image!.isNotEmpty)
                       ? NetworkImage(child.image!)
                       : null,
                   child: (child.image == null || child.image!.isEmpty)
                       ? Icon(Icons.person,
-                      color: Colors.grey.shade400, size: 40)
+                      color: context.theme.dividerColor, size: 40)
                       : null,
                 ),
               ),
             ),
-
-            // الاسم والعمر من الـ API
             Positioned(
               bottom: 14,
               left: 0,
@@ -9345,10 +10160,10 @@ class _ChildCard extends StatelessWidget {
                 children: [
                   Text(
                     child.name,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
-                      color: Colors.black87,
+                      color: context.textTheme.bodyLarge?.color, // نص متكيف
                     ),
                   ),
                   const SizedBox(height: 2),
@@ -9356,7 +10171,7 @@ class _ChildCard extends StatelessWidget {
                     '${child.age} ${'years'.tr}',
                     style: TextStyle(
                       fontSize: 12,
-                      color: Colors.grey.shade600,
+                      color: context.textTheme.bodyMedium?.color, // نص متكيف
                     ),
                   ),
                 ],
@@ -9380,21 +10195,19 @@ class _BookButton extends StatelessWidget {
       width: double.infinity,
       height: 58,
       child: ElevatedButton.icon(
-        onPressed: () {
-          // TODO: Get.toNamed('/book-appointment')
-        },
+        onPressed: () {},
         icon: const Icon(Icons.add_circle_outline,
             color: Colors.white, size: 22),
-        label:  Text(
+        label: Text(
           'Book New Appointment'.tr,
-          style: TextStyle(
+          style: const TextStyle(
             fontSize: 17,
             fontWeight: FontWeight.bold,
             color: Colors.white,
           ),
         ),
         style: ElevatedButton.styleFrom(
-          backgroundColor: const Color(0xFF3B9EFF),
+          backgroundColor: context.theme.primaryColor, // استخدام اللون الأساسي للسمة
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
           ),
@@ -9405,7 +10218,7 @@ class _BookButton extends StatelessWidget {
   }
 }
 
-// ─── Departments
+// ─── Departments ──────────────────────────────────────────────────────────────
 
 class _DepartmentsSection extends StatelessWidget {
   final List<Map<String, dynamic>> departments;
@@ -9422,7 +10235,7 @@ class _DepartmentsSection extends StatelessWidget {
           style: TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.bold,
-            color: Colors.black87,
+            color: context.textTheme.bodyLarge?.color, // نص متكيف
           ),
         ),
         const SizedBox(height: 14),
@@ -9460,9 +10273,11 @@ class _DepartmentItem extends StatelessWidget {
             width: 80,
             height: 80,
             decoration: BoxDecoration(
-              color: const Color(0xFFF0F4FF),
+              // لون البطاقة يتكيف مع الوضع الليلي
+              color: context.isDarkMode ? context.theme.cardColor : const Color(0xFFF0F4FF),
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: Colors.blue.shade100),
+              border: Border.all(
+                  color: context.isDarkMode ? Colors.transparent : Colors.blue.shade100),
             ),
             child: Icon(
               department['icon'] as IconData,
@@ -9473,7 +10288,7 @@ class _DepartmentItem extends StatelessWidget {
           const SizedBox(height: 8),
           Text(
             department['label'].toString().tr,
-            style: const TextStyle(fontSize: 12, color: Colors.black87),
+            style: TextStyle(fontSize: 12, color: context.textTheme.bodyLarge?.color), // نص متكيف
             textAlign: TextAlign.center,
           ),
         ],
@@ -9492,7 +10307,7 @@ class _ClinicInfoSection extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFFF0F4FF),
+        color: context.isDarkMode ? context.theme.cardColor : const Color(0xFFF0F4FF), // لون متكيف
         borderRadius: BorderRadius.circular(20),
       ),
       child: Row(
@@ -9501,23 +10316,23 @@ class _ClinicInfoSection extends StatelessWidget {
             width: 100,
             height: 100,
             decoration: BoxDecoration(
-              color: Colors.blue.shade50,
+              color: context.isDarkMode ? Colors.blue.withValues(alpha: 0.1) : Colors.blue.shade50,
               borderRadius: BorderRadius.circular(12),
             ),
             child: Icon(Icons.local_hospital_outlined,
-                color: Colors.blue.shade200, size: 48),
+                color: Colors.blue.shade300, size: 48),
           ),
           const SizedBox(width: 16),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                 Text(
+                Text(
                   'About the Clinic'.tr,
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
-                    color: Colors.black87,
+                    color: context.textTheme.bodyLarge?.color, // متكيف
                   ),
                 ),
                 const SizedBox(height: 8),
@@ -9525,16 +10340,14 @@ class _ClinicInfoSection extends StatelessWidget {
                   'We provide comprehensive healthcare for your children with the highest quality standards.'.tr,
                   style: TextStyle(
                     fontSize: 12,
-                    color: Colors.grey.shade600,
+                    color: context.textTheme.bodyMedium?.color, // متكيف
                     height: 1.5,
                   ),
                   textAlign: TextAlign.left,
                 ),
                 const SizedBox(height: 8),
                 GestureDetector(
-                  onTap: () {
-                    // TODO: Get.toNamed('/about-clinic')
-                  },
+                  onTap: () {},
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.start,
                     children: [
@@ -9542,12 +10355,12 @@ class _ClinicInfoSection extends StatelessWidget {
                         'Read More'.tr,
                         style: TextStyle(
                           fontSize: 13,
-                          color: Colors.blue.shade600,
+                          color: context.theme.primaryColor,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
-                      const Icon(Icons.chevron_right,
-                          color: Colors.blue, size: 18),
+                      Icon(Icons.chevron_right,
+                          color: context.theme.primaryColor, size: 18),
                     ],
                   ),
                 ),
@@ -9560,24 +10373,24 @@ class _ClinicInfoSection extends StatelessWidget {
   }
 }
 
-// ─── Bottom Navigation (المعدل بالكامل) ──────────────────────────────────────
+// ─── Bottom Navigation ───────────────────────────────────────────────────────
 
 class _BottomNav extends StatelessWidget {
   const _BottomNav();
 
   @override
   Widget build(BuildContext context) {
-
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: context.theme.bottomNavigationBarTheme.backgroundColor, // لون الـ BottomNav من السمة
         borderRadius: const BorderRadius.only(
           topLeft: Radius.circular(24),
           topRight: Radius.circular(24),
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.08),
+            // إخفاء الظل في الوضع الليلي
+            color: context.isDarkMode ? Colors.transparent : Colors.black.withValues(alpha: 0.08),
             blurRadius: 20,
             offset: const Offset(0, -4),
           ),
@@ -9589,23 +10402,10 @@ class _BottomNav extends StatelessWidget {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
-              // ─── Home ─────────────────────────────
-              _NavItem(
-                icon: Icons.home_rounded,
-                label: 'Home'.tr,
-                isSelected: true,
-                onTap: () {},
-              ),
+              _NavItem(icon: Icons.home_rounded, label: 'Home'.tr, isSelected: true, onTap: () {}),
+              _NavItem(icon: Icons.calendar_month_outlined, label: 'Appointments'.tr, isSelected: false, onTap: () => Get.toNamed('/appointments')),
 
-              // ─── Appointments ──────────────────────
-              _NavItem(
-                icon: Icons.calendar_month_outlined,
-                label: 'Appointments'.tr,
-                isSelected: false,
-                onTap: () => Get.toNamed('/appointments'),
-              ),
-
-              // ─── زر + في المنتصف ───────────────────
+              // زر الوسط
               GestureDetector(
                 onTap: () => Get.toNamed('/add-child'),
                 child: Container(
@@ -9620,7 +10420,7 @@ class _BottomNav extends StatelessWidget {
                     shape: BoxShape.circle,
                     boxShadow: [
                       BoxShadow(
-                        color: const Color(0xFF3B9EFF).withValues(alpha: 0.4),
+                        color: context.isDarkMode ? Colors.transparent : const Color(0xFF3B9EFF).withValues(alpha: 0.4),
                         blurRadius: 12,
                         offset: const Offset(0, 4),
                       ),
@@ -9630,21 +10430,8 @@ class _BottomNav extends StatelessWidget {
                 ),
               ),
 
-              // ─── Vaccinations ──────────────────────
-              _NavItem(
-                icon: Icons.vaccines_outlined,
-                label: 'Vaccinations'.tr,
-                isSelected: false,
-                onTap: () => Get.toNamed('/vaccinations'),
-              ),
-
-              // ─── More ──────────────────────────────
-              _NavItem(
-                icon: Icons.more_horiz,
-                label: 'More'.tr,
-                isSelected: false,
-                onTap: () => Get.toNamed('/settings'),
-              ),
+              _NavItem(icon: Icons.vaccines_outlined, label: 'Vaccinations'.tr, isSelected: false, onTap: () => Get.toNamed('/vaccinations')),
+              _NavItem(icon: Icons.more_horiz, label: 'More'.tr, isSelected: false, onTap: () => Get.toNamed('/settings')),
             ],
           ),
         ),
@@ -9659,15 +10446,14 @@ class _NavItem extends StatelessWidget {
   final bool isSelected;
   final VoidCallback onTap;
 
-  const _NavItem({
-    required this.icon,
-    required this.label,
-    required this.isSelected,
-    required this.onTap,
-  });
+  const _NavItem({required this.icon, required this.label, required this.isSelected, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
+    // الألوان المتكيفة للـ BottomNav
+    final selectedColor = context.theme.bottomNavigationBarTheme.selectedItemColor;
+    final unselectedColor = context.theme.bottomNavigationBarTheme.unselectedItemColor;
+
     return GestureDetector(
       onTap: onTap,
       behavior: HitTestBehavior.opaque,
@@ -9675,35 +10461,149 @@ class _NavItem extends StatelessWidget {
         duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         decoration: BoxDecoration(
-          color: isSelected
-              ? const Color(0xFF3B9EFF).withValues(alpha: 0.1)
-              : Colors.transparent,
+          color: isSelected ? selectedColor?.withValues(alpha: 0.1) : Colors.transparent,
           borderRadius: BorderRadius.circular(12),
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
-              icon,
-              color: isSelected
-                  ? const Color(0xFF3B9EFF)
-                  : Colors.grey.shade400,
-              size: 24,
-            ),
+            Icon(icon, color: isSelected ? selectedColor : unselectedColor, size: 24),
             const SizedBox(height: 3),
             Text(
               label,
               style: TextStyle(
                 fontSize: 10,
-                color: isSelected
-                    ? const Color(0xFF3B9EFF)
-                    : Colors.grey.shade400,
-                fontWeight:
-                isSelected ? FontWeight.bold : FontWeight.normal,
+                color: isSelected ? selectedColor : unselectedColor,
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
               ),
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+```
+
+### File: lib\views\home\notification_history_view.dart
+```dart
+import 'package:flutter/material.dart';
+import 'package:get/get.dart';
+import '../../controllers/home/notification_history_controller.dart';
+
+class NotificationHistoryView extends GetView<NotificationHistoryController> {
+  const NotificationHistoryView({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: const Color(0xFFF4F6FA),
+      appBar: AppBar(
+        title: Text(
+          'Notifications'.tr,
+          style: const TextStyle(
+            color: Color(0xFF1A2E5A),
+            fontWeight: FontWeight.bold,
+            fontSize: 18,
+          ),
+        ),
+        centerTitle: true,
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios, color: Color(0xFF1A2E5A), size: 20),
+          onPressed: () => Get.back(),
+        ),
+      ),
+      body: SafeArea(
+        child: Obx(() {
+          if (controller.isLoading && controller.notifications.isEmpty) {
+            return const Center(child: CircularProgressIndicator(color: Colors.blue));
+          }
+
+          if (controller.notifications.isEmpty) {
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.notifications_off_outlined, size: 64, color: Colors.grey.shade300),
+                  const SizedBox(height: 16),
+                  Text(
+                    'No notifications found'.tr,
+                    style: TextStyle(color: Colors.grey.shade400, fontSize: 14),
+                  ),
+                ],
+              ),
+            );
+          }
+
+          return RefreshIndicator(
+            onRefresh: () => controller.getNotifications(),
+            color: Colors.blue,
+            child: ListView.builder(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              itemCount: controller.notifications.length,
+              itemBuilder: (context, index) {
+                final item = controller.notifications[index];
+                return Container(
+                  margin: const EdgeInsets.only(bottom: 12),
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(16),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.02),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                    border: Border.all(color: Colors.grey.shade100),
+                  ),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: const BoxDecoration(
+                          color: Color(0xFFF0F4FF),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(Icons.notifications_outlined, color: Colors.blue, size: 22),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              item.title,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 14,
+                                color: Color(0xFF1A2E5A),
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              item.body,
+                              style: TextStyle(fontSize: 12.5, color: Colors.grey.shade600, height: 1.4),
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              item.createdAt,
+                              style: TextStyle(fontSize: 10, color: Colors.grey.shade400),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
+          );
+        }),
       ),
     );
   }
@@ -9716,41 +10616,89 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../controllers/home/profile_controller.dart';
 
-
 class ProfileView extends GetView<ProfileController> {
   const ProfileView({super.key});
+
+  //  دالة مساعدة لظهور نافذة التعديل المنبثقة
+  void _showEditDialog(BuildContext context, String title, String key, String currentValue) {
+    final TextEditingController textController = TextEditingController(text: currentValue);
+
+    Get.dialog(
+      AlertDialog(
+        backgroundColor: context.theme.cardColor,
+        title: Text(
+          'Edit $title'.tr,
+          style: TextStyle(color: context.textTheme.bodyLarge?.color, fontSize: 18, fontWeight: FontWeight.bold),
+        ),
+        content: TextField(
+          controller: textController,
+          style: TextStyle(color: context.textTheme.bodyLarge?.color),
+          decoration: InputDecoration(
+            hintText: 'Enter new $title'.tr,
+            hintStyle: TextStyle(color: context.theme.hintColor),
+            enabledBorder: UnderlineInputBorder(
+              borderSide: BorderSide(color: context.theme.dividerColor),
+            ),
+            focusedBorder: UnderlineInputBorder(
+              borderSide: BorderSide(color: context.theme.primaryColor),
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Get.back(),
+            child: Text('Cancel'.tr, style: TextStyle(color: context.textTheme.bodyMedium?.color)),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Get.back();
+              // استدعاء دالة التحديث في الـ Controller وإرسال المفتاح والقيمة الجديدة
+              controller.updateProfileField(key, textController.text);
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: context.theme.primaryColor,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            ),
+            child: Text('Save'.tr, style: const TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF4F6FA),
       appBar: AppBar(
-        backgroundColor: const Color(0xFFF4F6FA),
         elevation: 0,
         centerTitle: true,
-        title:  Text(
+        title: Text(
           'Personal Profile'.tr,
           style: TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.bold,
-            color: Color(0xFF1A2E5A),
+            color: context.textTheme.bodyLarge?.color,
           ),
         ),
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios,
-              color: Color(0xFF1A2E5A), size: 20),
+          icon: Icon(Icons.arrow_back_ios, color: context.iconColor, size: 20),
           onPressed: () => Get.back(),
         ),
       ),
       body: Obx(() {
         if (controller.isLoading) {
-          return const Center(
-            child: CircularProgressIndicator(color: Colors.blue),
+          return Center(
+            child: CircularProgressIndicator(color: context.theme.primaryColor),
           );
         }
 
         if (controller.profile.value == null) {
-          return  Center(child: Text('Failed to load profile'.tr));
+          return Center(
+            child: Text(
+              'Failed to load profile'.tr,
+              style: TextStyle(color: context.textTheme.bodyMedium?.color),
+            ),
+          );
         }
 
         final profile = controller.profile.value!;
@@ -9758,7 +10706,6 @@ class ProfileView extends GetView<ProfileController> {
         return SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
           child: Column(
-
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const SizedBox(height: 10),
@@ -9767,9 +10714,9 @@ class ProfileView extends GetView<ProfileController> {
               Center(
                 child: CircleAvatar(
                   radius: 55,
-                  backgroundColor: const Color(0xFFE8F5E9),
+                  backgroundColor: context.isDarkMode ? Colors.green.withValues(alpha: 0.15) : const Color(0xFFE8F5E9),
                   child: Icon(Icons.person,
-                      color: const Color(0xFF4CAF50).withOpacity(0.6),
+                      color: context.isDarkMode ? Colors.greenAccent : const Color(0xFF4CAF50).withValues(alpha: 0.6),
                       size: 60),
                 ),
               ),
@@ -9780,23 +10727,21 @@ class ProfileView extends GetView<ProfileController> {
                 alignment: Alignment.centerLeft,
                 child: Text(
                   profile.fullName,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 24,
                     fontWeight: FontWeight.bold,
-                    color: Color(0xFF1A2E5A),
+                    color: context.textTheme.bodyLarge?.color,
                   ),
                 ),
               ),
               const SizedBox(height: 28),
 
-              // ─── Info Items ───────────────────────────
+              //  Info Items
               _ProfileItem(
                 icon: Icons.email_outlined,
                 label: 'Email'.tr,
                 value: profile.email,
-                onEdit: () {
-                  // TODO: تعديل البريد الإلكتروني
-                },
+                onEdit: () => _showEditDialog(context, 'Email', 'email', profile.email),
               ),
               const SizedBox(height: 12),
 
@@ -9804,9 +10749,8 @@ class ProfileView extends GetView<ProfileController> {
                 icon: Icons.phone_outlined,
                 label: 'Phone Number'.tr,
                 value: profile.phoneNumber,
-                onEdit: () {
-                  // TODO: تعديل رقم الهاتف
-                },
+                // تمرير المفتاح phone_number كما هو مطلوب في الـ API
+                onEdit: () => _showEditDialog(context, 'Phone Number', 'phone_number', profile.phoneNumber),
               ),
               const SizedBox(height: 12),
 
@@ -9814,39 +10758,39 @@ class ProfileView extends GetView<ProfileController> {
                 icon: Icons.location_on_outlined,
                 label: 'Address'.tr,
                 value: profile.address,
-                onEdit: () {
-                  // TODO: تعديل العنوان
-                },
+                onEdit: () => _showEditDialog(context, 'Address', 'address', profile.address),
               ),
               const SizedBox(height: 12),
 
+              // إزالة زر التعديل بتمرير null إلى onEdit
               _ProfileItem(
                 icon: Icons.group_outlined,
                 label: 'Number of Children'.tr,
                 value: profile.childrenCount.toString(),
-                onEdit: () {
-                  // TODO: الانتقال لإدارة الأطفال
-                },
+                onEdit: null,
               ),
               const SizedBox(height: 28),
 
-              // ─── Logout Button ────────────────────────
+              //  Logout Button
               SizedBox(
                 width: double.infinity,
                 height: 54,
                 child: ElevatedButton.icon(
                   onPressed: controller.logout,
-                  icon: const Icon(Icons.logout, color: Color(0xFF1A2E5A)),
-                  label:  Text(
+                  icon: Icon(
+                    Icons.logout,
+                    color: context.isDarkMode ? Colors.redAccent : const Color(0xFF1A2E5A),
+                  ),
+                  label: Text(
                     'Logout'.tr,
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
-                      color: Color(0xFF1A2E5A),
+                      color: context.isDarkMode ? Colors.redAccent : const Color(0xFF1A2E5A),
                     ),
                   ),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFE8EAF6),
+                    backgroundColor: context.isDarkMode ? Colors.red.withValues(alpha: 0.1) : const Color(0xFFE8EAF6),
                     elevation: 0,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(16),
@@ -9863,19 +10807,19 @@ class ProfileView extends GetView<ProfileController> {
   }
 }
 
-// ─── Profile Item ─────────────────────────────────────────────────────────────
+// ─── Profile Item
 
 class _ProfileItem extends StatelessWidget {
   final IconData icon;
   final String label;
   final String value;
-  final VoidCallback onEdit;
+  final VoidCallback? onEdit; // أصبح اختيارياً بقبول القيمة null
 
   const _ProfileItem({
     required this.icon,
     required this.label,
     required this.value,
-    required this.onEdit,
+    this.onEdit, // إزالة required
   });
 
   @override
@@ -9883,61 +10827,68 @@ class _ProfileItem extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: context.theme.cardColor,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color: context.isDarkMode ? Colors.transparent : Colors.black.withValues(alpha: 0.04),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
         ],
       ),
-
       child: Row(
         children: [
           // ─── Icon
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: const Color(0xFFE8F5E9),
+              color: context.isDarkMode ? Colors.green.withValues(alpha: 0.15) : const Color(0xFFE8F5E9),
               borderRadius: BorderRadius.circular(10),
             ),
-            child: Icon(icon, color: const Color(0xFF4CAF50), size: 22),
+            child: Icon(icon, color: context.isDarkMode ? Colors.greenAccent : const Color(0xFF4CAF50), size: 22),
           ),
           const SizedBox(width: 12),
 
           // ─── Label & Value
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                label,
-                style: const TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF1A2E5A),
+          Expanded( // استخدام Expanded لمنع مشاكل المساحات في الشاشات الصغيرة
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                    color: context.textTheme.bodyLarge?.color,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                value,
-                style: TextStyle(
-                  fontSize: 13,
-                  color: Colors.grey.shade600,
+                const SizedBox(height: 4),
+                Text(
+                  value,
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: context.textTheme.bodyMedium?.color,
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
-
-          const Spacer(),
 
           // ─── Edit icon
-          GestureDetector(
-            onTap: onEdit,
-            child: const Icon(Icons.edit_outlined,
-                color: Colors.blue, size: 20),
-          ),
+          // لن يظهر الأيقونة إلا إذا كان onEdit يحتوي على دالة
+          if (onEdit != null)
+            GestureDetector(
+              onTap: onEdit,
+              child: Padding(
+                padding: const EdgeInsets.only(left: 8.0), // إعطاء مساحة نقر أفضل
+                child: Icon(
+                    Icons.edit_outlined,
+                    color: context.isDarkMode ? Colors.blue.shade300 : Colors.blue,
+                    size: 20
+                ),
+              ),
+            ),
         ],
       ),
     );
@@ -10246,262 +11197,276 @@ class CheckoutSummaryView extends GetView<PaymentController> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
       appBar: AppBar(
-        title:  Text(
+        title: Text(
           'Review & Pay'.tr,
           style: TextStyle(
-            color: Colors.black87,
+            color: context.textTheme.bodyLarge?.color,
             fontWeight: FontWeight.bold,
             fontSize: 20,
           ),
         ),
-        backgroundColor: Colors.transparent,
         elevation: 0,
-        iconTheme: const IconThemeData(color: Colors.black87),
+        iconTheme: IconThemeData(color: context.iconColor),
         centerTitle: true,
       ),
       body: Obx(() {
-        // 1.  انتطار بيانات الموعد من  الـ GET  مؤشر تحميل
         if (controller.isDetailsLoading.value) {
-          return const Center(child: CircularProgressIndicator());
+          return Center(child: CircularProgressIndicator(color: context.theme.primaryColor));
         }
 
         final summary = controller.appointmentSummary.value;
         if (summary == null) {
-          return  Center(child: Text("Failed to load appointment data.".tr));
+          return Center(
+            child: Text(
+              "Failed to load appointment data.".tr,
+              style: TextStyle(color: context.textTheme.bodyMedium?.color),
+            ),
+          );
         }
 
-        return Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 10.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // كارت تفاصيل الموعد
-              Container(
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFEDF6FF),
-                  borderRadius: BorderRadius.circular(16),
-                ),
+        // ─── تم إعادة الهيكلة هنا لحل مشكلة الـ Overflow ───
+        return Column(
+          children: [
+            // 1. الجزء القابل للتمرير (المحتوى)
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 10.0),
                 child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        //  بروفايل صورة الطفل
-                        CircleAvatar(
-                          radius: 26,
-                          backgroundColor: Colors.purple.shade100,
-                          backgroundImage: summary.patientImageUrl.isNotEmpty
-                              ? NetworkImage(
-                                  summary.patientImageUrl,
-                                ) //  من الباك إند
-                              : null,
-                          // Fallback في حال عدم توفر صورة
-                          child: summary.patientImageUrl.isEmpty
-                              ? Icon(
-                                  Icons.person,
-                                  color: Colors.purple.shade700,
-                                  size: 30,
-                                )
-                              : null,
-                        ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: Column(
+                    // كارت تفاصيل الموعد
+                    Container(
+                      padding: const EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        color: context.isDarkMode ? context.theme.cardColor : const Color(0xFFEDF6FF),
+                        borderRadius: BorderRadius.circular(16),
+                        border: context.isDarkMode ? Border.all(color: context.theme.dividerColor) : null,
+                      ),
+                      child: Column(
+                        children: [
+                          Row(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(
-                                summary.patientName, // اسم الطفل
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 18,
-                                  color: Colors.black87,
-                                ),
+                              CircleAvatar(
+                                radius: 26,
+                                backgroundColor: context.isDarkMode ? Colors.purple.withOpacity(0.15) : Colors.purple.shade100,
+                                backgroundImage: summary.patientImageUrl.isNotEmpty
+                                    ? NetworkImage(summary.patientImageUrl)
+                                    : null,
+                                child: summary.patientImageUrl.isEmpty
+                                    ? Icon(
+                                  Icons.person,
+                                  color: context.isDarkMode ? Colors.purpleAccent : Colors.purple.shade700,
+                                  size: 30,
+                                )
+                                    : null,
                               ),
-                              const SizedBox(height: 4),
-                              Text(
-                                summary.patientAge, // عمر الطفل
-                                style: TextStyle(
-                                  color: Colors.grey.shade500,
-                                  fontSize: 14,
-                                ),
-                              ),
-                              const SizedBox(height: 8),
-                              Row(
-                                children: [
-                                  CircleAvatar(
-                                    radius: 12,
-                                    backgroundColor: Colors.blue.shade100,
-                                    child: const Icon(
-                                      Icons.medical_services,
-                                      size: 14,
-                                      color: Colors.blue,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 8),
-                                  Expanded(
-                                    child: Text(
-                                      // اسم الطبيب و العيادة
-                                      '${summary.doctorName} - ${summary.departmentName}',
-
+                              const SizedBox(width: 16),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      summary.patientName,
                                       style: TextStyle(
-                                        color: Colors.grey.shade800,
-                                        fontSize: 13,
-                                        fontWeight: FontWeight.w600,
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 18,
+                                        color: context.textTheme.bodyLarge?.color,
                                       ),
                                     ),
-                                  ),
-                                ],
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      summary.patientAge,
+                                      style: TextStyle(
+                                        color: context.textTheme.bodyMedium?.color,
+                                        fontSize: 14,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 8),
+                                    Row(
+                                      children: [
+                                        CircleAvatar(
+                                          radius: 12,
+                                          backgroundColor: context.isDarkMode ? Colors.blue.withOpacity(0.15) : Colors.blue.shade100,
+                                          child: Icon(
+                                            Icons.medical_services,
+                                            size: 14,
+                                            color: context.isDarkMode ? Colors.blueAccent : Colors.blue,
+                                          ),
+                                        ),
+                                        const SizedBox(width: 8),
+                                        Expanded(
+                                          child: Text(
+                                            '${summary.doctorName} - ${summary.departmentName}',
+                                            style: TextStyle(
+                                              color: context.textTheme.bodyLarge?.color,
+                                              fontSize: 13,
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const Icon(
+                                Icons.check_circle,
+                                color: Color(0xFF4CAF50),
+                                size: 28,
                               ),
                             ],
                           ),
-                        ),
-                        const Icon(
-                          Icons.check_circle,
-                          color: Color(0xFF4CAF50),
-                          size: 28,
-                        ),
-                      ],
+                          const SizedBox(height: 16),
+                          Divider(
+                            height: 30,
+                            color: context.theme.dividerColor,
+                            thickness: 1,
+                          ),
+                          PaymentSummaryRow(
+                            label: 'Date & Time'.tr,
+                            value: summary.dateTime,
+                          ),
+                          const SizedBox(height: 12),
+                          PaymentSummaryRow(
+                            label: 'Consultation Fee'.tr,
+                            value: '${summary.price} ${summary.currency}',
+                          ),
+                          Divider(
+                            height: 30,
+                            color: context.theme.dividerColor,
+                            thickness: 1,
+                          ),
+                          PaymentSummaryRow(
+                            label: 'Total'.tr,
+                            value: '${summary.price} ${summary.currency}',
+                            isTotal: true,
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    const SizedBox(height: 30),
+                    Text(
+                      'Choose how to pay'.tr,
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: context.textTheme.bodyLarge?.color,
+                      ),
                     ),
                     const SizedBox(height: 16),
-                    const Divider(
-                      height: 30,
-                      color: Colors.black12,
-                      thickness: 1,
-                    ),
-                    PaymentSummaryRow(
-                      label: 'Date & Time'.tr,
-                      value: summary.dateTime, // التاريخ و الوقت
-                    ),
-                    const SizedBox(height: 12),
-                    PaymentSummaryRow(
-                      label: 'Consultation Fee'.tr,
-                      value:
-                          '${summary.price} ${summary.currency}', // السعر و العملة
-                    ),
-                    const Divider(
-                      height: 30,
-                      color: Colors.black12,
-                      thickness: 1,
-                    ),
-                    PaymentSummaryRow(
-                      label: 'Total'.tr,
-                      value: '${summary.price} ${summary.currency}', // الإجمالي
 
-                      isTotal: true,
+                    // طرق الدفع
+                    Column(
+                      children: [
+                        PaymentOptionCard(
+                          title: 'Mada'.tr,
+                          value: 1,
+                          groupValue: controller.selectedCardMethod.value,
+                          onTap: () => controller.setCardMethod(1),
+                          trailingWidget: Image.asset(
+                            'assets/images/mada_logo.png',
+                            height: 22,
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        PaymentOptionCard(
+                          title: 'Credit Card (Visa/Mastercard)'.tr,
+                          value: 2,
+                          groupValue: controller.selectedCardMethod.value,
+                          onTap: () => controller.setCardMethod(2),
+                          trailingWidget: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Image.asset(
+                                'assets/images/mastercard_logo.png',
+                                height: 24,
+                              ),
+                              const SizedBox(width: 8),
+                              Image.asset('assets/images/visa_logo.png', height: 18),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        PaymentOptionCard(
+                          title: 'Apple Pay'.tr,
+                          value: 3,
+                          groupValue: controller.selectedCardMethod.value,
+                          onTap: () => controller.setCardMethod(3),
+                          trailingWidget: Image.asset(
+                            'assets/images/apple_pay_logo.png',
+                            height: 24,
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        PaymentOptionCard(
+                          title: 'STC Pay'.tr,
+                          value: 4,
+                          groupValue: controller.selectedCardMethod.value,
+                          onTap: () => controller.setCardMethod(4),
+                          trailingWidget: Image.asset(
+                            'assets/images/stc-pay-logo.png',
+                            height: 24,
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
               ),
+            ),
 
-              const SizedBox(height: 30),
-               Text(
-                'Choose how to pay'.tr,
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black87,
+            // 2. الجزء السفلي الثابت (زر الدفع)
+            SafeArea(
+              child: Container(
+                padding: const EdgeInsets.fromLTRB(20, 10, 20, 20),
+                decoration: BoxDecoration(
+                  color: context.theme.scaffoldBackgroundColor,
+                  boxShadow: [
+                    if (!context.isDarkMode)
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.05),
+                        blurRadius: 10,
+                        offset: const Offset(0, -4),
+                      )
+                  ],
+                ),
+                child: SizedBox(
+                  width: double.infinity,
+                  height: 54,
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: context.theme.primaryColor,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      elevation: 0,
+                    ),
+                    onPressed: controller.isLoading.value
+                        ? null
+                        : () => controller.processPayment(),
+                    child: controller.isLoading.value
+                        ? const CircularProgressIndicator(color: Colors.white)
+                        : Text(
+                      'Pay'.tr + ' ${summary.price} ${summary.currency}',
+                      style: const TextStyle(
+                        fontSize: 18,
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
                 ),
               ),
-              const SizedBox(height: 16),
-
-              //  طرق الدفع الثابتة
-              Column(
-                children: [
-                  PaymentOptionCard(
-                    title: 'Mada'.tr,
-                    value: 1,
-                    groupValue: controller.selectedCardMethod.value,
-                    onTap: () => controller.setCardMethod(1),
-                    trailingWidget: Image.asset(
-                      'assets/images/mada_logo.png',
-                      height: 22,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  PaymentOptionCard(
-                    title: 'Credit Card (Visa/Mastercard)'.tr,
-                    value: 2,
-                    groupValue: controller.selectedCardMethod.value,
-                    onTap: () => controller.setCardMethod(2),
-                    trailingWidget: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Image.asset(
-                          'assets/images/mastercard_logo.png',
-                          height: 24,
-                        ),
-                        const SizedBox(width: 8),
-                        Image.asset('assets/images/visa_logo.png', height: 18),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  PaymentOptionCard(
-                    title: 'Apple Pay'.tr,
-                    value: 3,
-                    groupValue: controller.selectedCardMethod.value,
-                    onTap: () => controller.setCardMethod(3),
-                    trailingWidget: Image.asset(
-                      'assets/images/apple_pay_logo.png',
-                      height: 24,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  PaymentOptionCard(
-                    title: 'STC Pay'.tr,
-                    value: 4,
-                    groupValue: controller.selectedCardMethod.value,
-                    onTap: () => controller.setCardMethod(4),
-                    trailingWidget: Image.asset(
-                      'assets/images/stc-pay-logo.png',
-                      height: 24,
-                    ),
-                  ),
-                ],
-              ),
-
-              const Spacer(),
-
-              // زر الدفع
-              SizedBox(
-                width: double.infinity,
-                height: 30,
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF1976D2),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    elevation: 0,
-                  ),
-                  onPressed: controller.isLoading.value
-                      ? null
-                      : () => controller.processPayment(),
-                  child: controller.isLoading.value
-                      ? const CircularProgressIndicator(color: Colors.white)
-                      : Text(
-                    'Pay'.tr + ' ${summary.price} ${summary.currency}',
-                          // النص مع الفاتورة القادمة من السيرفر
-                          style: const TextStyle(
-                            fontSize: 18,
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                ),
-              ),
-              const SizedBox(height: 30),
-            ],
-          ),
+            ),
+          ],
         );
       }),
     );
   }
 }
-
 ```
 
 ### File: lib\views\payment\payment_method_view.dart
@@ -10521,19 +11486,19 @@ class PaymentMethodView extends GetView<PaymentController> {
     controller.selectedPaymentMethod.value = 2;
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      // ❌ تم إزالة backgroundColor ليقرأ خلفية النظام تلقائياً
       appBar: AppBar(
         title: Text(
           'Finalize Appointment'.tr,
           style: TextStyle(
-            color: Colors.black87,
+            color: context.textTheme.bodyLarge?.color, // ─── نص متكيف ───
             fontWeight: FontWeight.bold,
             fontSize: 20,
           ),
         ),
         backgroundColor: Colors.transparent,
         elevation: 0,
-        iconTheme: const IconThemeData(color: Colors.black87),
+        iconTheme: IconThemeData(color: context.iconColor), // ─── أيقونة متكيفة ───
         centerTitle: true,
       ),
       body: Padding(
@@ -10555,12 +11520,10 @@ class PaymentMethodView extends GetView<PaymentController> {
               subtitle: 'Pay online to confirm booking'.tr,
               value: 2,
               groupValue: 2,
-
               onTap: () {},
-
-              trailingWidget: const Icon(
+              trailingWidget: Icon(
                 Icons.credit_card_outlined,
-                color: Color(0xFF1976D2),
+                color: context.theme.primaryColor, // ─── لون الأيقونة متكيف ───
                 size: 32,
               ),
             ),
@@ -10572,7 +11535,7 @@ class PaymentMethodView extends GetView<PaymentController> {
               height: 55,
               child: ElevatedButton(
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF1976D2),
+                  backgroundColor: context.theme.primaryColor, // ─── اللون الأساسي للزر متكيف ───
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
@@ -10581,9 +11544,9 @@ class PaymentMethodView extends GetView<PaymentController> {
                 onPressed: controller.proceedToCheckout,
                 child: Text(
                   'Confirm & Proceed'.tr,
-                  style: TextStyle(
+                  style: const TextStyle(
                     fontSize: 18,
-                    color: Colors.white,
+                    color: Colors.white, // يبقى أبيض ليكون بارزاً داخل الزر الأساسي
                     fontWeight: FontWeight.bold,
                   ),
                 ),
@@ -10596,7 +11559,6 @@ class PaymentMethodView extends GetView<PaymentController> {
     );
   }
 }
-
 ```
 
 ### File: lib\views\payment\payment_success_view.dart
@@ -10614,7 +11576,7 @@ class PaymentSuccessView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      // ❌ تم إزالة backgroundColor ليقرأ خلفية النظام تلقائياً
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(24.0),
@@ -10633,19 +11595,21 @@ class PaymentSuccessView extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 24,
                   fontWeight: FontWeight.bold,
-                  color: Colors.black87,
+                  color: context.textTheme.bodyLarge?.color, // ─── نص أساسي متكيف ───
                 ),
               ),
               const SizedBox(height: 8),
               Text(
                 'Your appointment is confirmed'.tr,
-                style: TextStyle(fontSize: 16, color: Colors.grey.shade600),
+                style: TextStyle(
+                  fontSize: 16,
+                  color: context.textTheme.bodyMedium?.color, // ─── نص ثانوي متكيف ───
+                ),
               ),
 
               const SizedBox(height: 40),
 
-              //  ملخص الفاتورة
-              // 👈 استقبال البيانات من الـ arguments
+              // ملخص الفاتورة
               Builder(
                 builder: (context) {
                   final args = Get.arguments as Map<String, dynamic>?;
@@ -10655,7 +11619,8 @@ class PaymentSuccessView extends StatelessWidget {
                   return Container(
                     padding: const EdgeInsets.all(20),
                     decoration: BoxDecoration(
-                      border: Border.all(color: Colors.grey.shade200),
+                      // ─── لون إطار البطاقة متكيف ───
+                      border: Border.all(color: context.theme.dividerColor),
                       borderRadius: BorderRadius.circular(16),
                     ),
                     child: Column(
@@ -10672,10 +11637,12 @@ class PaymentSuccessView extends StatelessWidget {
                         const SizedBox(height: 12),
                         InvoiceRow(
                           label: 'Amount'.tr,
-                          value:
-                              '${summary?.price ?? 0} ${summary?.currency ?? ''}',
+                          value: '${summary?.price ?? 0} ${summary?.currency ?? ''}',
                         ),
-                        const Divider(height: 30),
+                        Divider(
+                          height: 30,
+                          color: context.theme.dividerColor, // ─── خط فاصل متكيف ───
+                        ),
                         InvoiceRow(
                           label: 'Transaction ID'.tr,
                           value: '#$transId',
@@ -10694,7 +11661,7 @@ class PaymentSuccessView extends StatelessWidget {
                 height: 55,
                 child: ElevatedButton(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.blue.shade700,
+                    backgroundColor: context.theme.primaryColor, // ─── لون الزر الأساسي متكيف ───
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
@@ -10711,7 +11678,7 @@ class PaymentSuccessView extends StatelessWidget {
                   },
                   child: Text(
                     'Back to Home'.tr,
-                    style: TextStyle(fontSize: 18, color: Colors.white),
+                    style: const TextStyle(fontSize: 18, color: Colors.white),
                   ),
                 ),
               ),
@@ -10731,7 +11698,7 @@ class PaymentSuccessView extends StatelessWidget {
                   'View My Appointments'.tr,
                   style: TextStyle(
                     fontSize: 16,
-                    color: Colors.blue.shade700,
+                    color: context.theme.primaryColor, // ─── لون النص متكيف ───
                     fontWeight: FontWeight.bold,
                   ),
                 ),
@@ -10744,7 +11711,6 @@ class PaymentSuccessView extends StatelessWidget {
     );
   }
 }
-
 ```
 
 ### File: lib\views\settings\favorite_doctors_view.dart
@@ -10767,12 +11733,12 @@ class FavoriteDoctorsView extends StatelessWidget {
     doctorController.loadFavoriteDoctorIds();
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F9FD),
+      // ❌ تم إزالة backgroundColor ليقرأ خلفية النظام تلقائياً
       appBar: AppBar(
         title: Text(
           'favorite_doctors'.tr,
-          style: const TextStyle(
-            color: Color(0xFF1D2755),
+          style: TextStyle(
+            color: context.textTheme.bodyLarge?.color, // ─── نص متكيف ───
             fontWeight: FontWeight.bold,
             fontSize: 20,
           ),
@@ -10781,7 +11747,8 @@ class FavoriteDoctorsView extends StatelessWidget {
         elevation: 0,
         centerTitle: true,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios, color: Colors.blue),
+          icon: Icon(Icons.arrow_back_ios, color: context.iconColor),
+          // ─── أيقونة متكيفة ───
           onPressed: () => Get.back(),
         ),
       ),
@@ -10797,13 +11764,15 @@ class FavoriteDoctorsView extends StatelessWidget {
                   Icon(
                     Icons.favorite_border_rounded,
                     size: 64,
-                    color: Colors.grey.shade300,
+                    color: context.theme.dividerColor, // ─── أيقونة متكيفة ───
                   ),
                   const SizedBox(height: 16),
                   Text(
                     'No doctors available in this department.'.tr,
-
-                    style: TextStyle(color: Colors.grey.shade400, fontSize: 14),
+                    style: TextStyle(
+                      color: context.textTheme.bodyMedium?.color,
+                      fontSize: 14,
+                    ), // ─── نص متكيف ───
                   ),
                 ],
               ),
@@ -10817,13 +11786,10 @@ class FavoriteDoctorsView extends StatelessWidget {
               final doctor = favorites[index];
               return _FavoriteDoctorCard(
                 doctor: doctor,
-
                 onCardTap: () {
                   appointmentController.selectDoctor(doctor);
-
                   Get.toNamed('/choose-child');
                 },
-
                 onFavoriteTap: () => doctorController.toggleFavorite(doctor.id),
               );
             },
@@ -10853,11 +11819,14 @@ class _FavoriteDoctorCard extends StatelessWidget {
         margin: const EdgeInsets.only(bottom: 12),
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: context.theme.cardColor, // ─── خلفية البطاقة متكيفة ───
           borderRadius: BorderRadius.circular(18),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.04),
+              color: context.isDarkMode
+                  ? Colors.transparent
+                  : Colors.black.withValues(alpha: 0.04),
+              // ─── إخفاء الظل في الوضع الليلي ───
               blurRadius: 12,
               offset: const Offset(0, 4),
             ),
@@ -10868,70 +11837,64 @@ class _FavoriteDoctorCard extends StatelessWidget {
             Container(
               width: 56,
               height: 56,
-              decoration: const BoxDecoration(
-                color: Color(0xFFF0F4FF),
+              decoration: BoxDecoration(
+                color: context.isDarkMode
+                    ? Colors.blue.withOpacity(0.15)
+                    : const Color(0xFFF0F4FF), // ─── خلفية الأفاتار متكيفة ───
                 shape: BoxShape.circle,
               ),
               clipBehavior: Clip.antiAlias,
-              child: doctor.profilePicture != null
+              child:
+                  doctor.profilePicture != null &&
+                      doctor.profilePicture!.isNotEmpty
                   ? Image.network(
                       doctor.profilePicture!,
                       fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => const Icon(
+                      errorBuilder: (_, __, ___) => Icon(
                         Icons.person_rounded,
-                        color: Colors.blue,
+                        color: context.theme.primaryColor,
+                        // ─── أيقونة متكيفة ───
                         size: 30,
                       ),
                     )
-                  : const Icon(
+                  : Icon(
                       Icons.person_rounded,
-                      color: Colors.blue,
+                      color:
+                          context.theme.primaryColor, // ─── أيقونة متكيفة ───
                       size: 30,
                     ),
             ),
             const SizedBox(width: 14),
-            // بيانات الطبيب
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
                     doctor.fullName,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 15,
                       fontWeight: FontWeight.bold,
-                      color: Color(0xFF1D2755),
+                      color: context
+                          .textTheme
+                          .bodyLarge
+                          ?.color, // ─── نص متكيف ───
                     ),
                   ),
                   const SizedBox(height: 3),
+                  // 🌟 الإصلاح: قراءة النص المباشر والآمن للقسم المرتجع من البوستمان وترجمته ديناميكياً
                   Text(
-                    'Specialist'.tr,
-                    style: const TextStyle(fontSize: 12.5, color: Colors.grey),
+                    (doctor.departmentName != null &&
+                            doctor.departmentName!.isNotEmpty)
+                        ? doctor.departmentName!.tr
+                        : 'Specialist'.tr,
+                    style: TextStyle(
+                      fontSize: 12.5,
+                      color: context.textTheme.bodyMedium?.color,
+                    ), // ─── نص متكيف ───
                   ),
-                  if (doctor.rating != null) ...[
-                    const SizedBox(height: 6),
-                    Row(
-                      children: [
-                        const Icon(
-                          Icons.star_rounded,
-                          color: Color(0xFFFBBF24),
-                          size: 16,
-                        ),
-                        const SizedBox(width: 3),
-                        Text(
-                          doctor.rating!.toStringAsFixed(1),
-                          style: const TextStyle(
-                            fontSize: 12.5,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
                 ],
               ),
             ),
-
             GestureDetector(
               onTap: onFavoriteTap,
               child: const Padding(
@@ -10954,7 +11917,6 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../controllers/settings_controller.dart';
 
-
 import '../../widgets/settings/settings_section.dart';
 import '../../widgets/settings/settings_tile.dart';
 
@@ -10966,20 +11928,20 @@ class SettingsView extends StatelessWidget {
     final controller = Get.put(SettingsController());
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F9FD),
+      // ❌ تم إزالة backgroundColor ليقرأ خلفية النظام التلقائية (بيضاء/داكنة)
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
         centerTitle: true,
         title: Text(
           'settings'.tr,
-          style: const TextStyle(
-            color: Color(0xFF1D2755),
+          style: TextStyle(
+            color: context.textTheme.bodyLarge?.color, // ─── لون النص متكيف ───
             fontWeight: FontWeight.bold,
           ),
         ),
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios, color: Colors.blue),
+          icon: Icon(Icons.arrow_back_ios, color: context.iconColor), // ─── أيقونة متكيفة ───
           onPressed: () => Get.back(),
         ),
       ),
@@ -10993,7 +11955,7 @@ class SettingsView extends StatelessWidget {
               title: 'preferences'.tr,
               children: [
                 Obx(
-                  () => SettingsTile(
+                      () => SettingsTile(
                     icon: Icons.language,
                     title: 'language'.tr,
                     subtitle: controller.currentLanguage.value == 'ar'
@@ -11002,12 +11964,14 @@ class SettingsView extends StatelessWidget {
                     onTap: () => _showLanguageBottomSheet(context, controller),
                   ),
                 ),
-                SettingsTile(
+                Obx(() => SettingsTile(
                   icon: Icons.dark_mode_outlined,
                   title: 'theme'.tr,
-                  subtitle: 'light_mode'.tr,
-                  onTap: () {},
-                ),
+                  subtitle: controller.isDarkMode.value ? 'Dark Mode' : 'Light Mode',
+                  onTap: () {
+                    controller.toggleTheme();
+                  },
+                )),
                 SettingsTile(
                   icon: Icons.favorite_border_rounded,
                   title: 'favorite_doctors'.tr,
@@ -11060,15 +12024,16 @@ class SettingsView extends StatelessWidget {
   }
 
   void _showLanguageBottomSheet(
-    BuildContext context,
-    SettingsController controller,
-  ) {
+      BuildContext context,
+      SettingsController controller,
+      ) {
     Get.bottomSheet(
       Container(
         padding: const EdgeInsets.all(20),
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
+        decoration: BoxDecoration(
+          // ─── لون خلفية النافذة المنبثقة متكيف ───
+          color: context.theme.cardColor,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(25)),
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -11076,16 +12041,17 @@ class SettingsView extends StatelessWidget {
           children: [
             Text(
               'change_language'.tr,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
-                color: Color(0xFF1D2755),
+                // ─── لون العنوان متكيف ───
+                color: context.textTheme.bodyLarge?.color,
               ),
             ),
             const SizedBox(height: 20),
 
             Obx(
-              () => RadioGroup<String>(
+                  () => RadioGroup<String>(
                 groupValue: controller.currentLanguage.value,
                 onChanged: (value) {
                   if (value != null) {
@@ -11096,28 +12062,38 @@ class SettingsView extends StatelessWidget {
                 child: Column(
                   children: [
                     RadioListTile<String>(
-                      title: const Text(
+                      title: Text(
                         'English',
-                        style: TextStyle(fontWeight: FontWeight.w600),
+                        style: TextStyle(
+                          fontWeight: FontWeight.w600,
+                          // ─── لون الخيار متكيف ───
+                          color: context.textTheme.bodyLarge?.color,
+                        ),
                       ),
                       value: 'en',
-                      activeColor: Colors.blue,
+                      activeColor: context.theme.primaryColor, // ─── لون التحديد متكيف ───
                     ),
                     RadioListTile<String>(
-                      title: const Text(
+                      title: Text(
                         'العربية',
-                        style: TextStyle(fontWeight: FontWeight.w600),
+                        style: TextStyle(
+                          fontWeight: FontWeight.w600,
+                          color: context.textTheme.bodyLarge?.color,
+                        ),
                       ),
                       value: 'ar',
-                      activeColor: Colors.blue,
+                      activeColor: context.theme.primaryColor,
                     ),
                     RadioListTile<String>(
-                      title: const Text(
+                      title: Text(
                         'System Default (لغة النظام)',
-                        style: TextStyle(fontWeight: FontWeight.w600),
+                        style: TextStyle(
+                          fontWeight: FontWeight.w600,
+                          color: context.textTheme.bodyLarge?.color,
+                        ),
                       ),
                       value: 'system',
-                      activeColor: Colors.blue,
+                      activeColor: context.theme.primaryColor,
                     ),
                   ],
                 ),
@@ -11129,7 +12105,6 @@ class SettingsView extends StatelessWidget {
     );
   }
 }
-
 ```
 
 ### File: lib\widgets\activation_helpers.dart
@@ -11223,11 +12198,12 @@ class PasswordRequirementRow extends StatelessWidget {
 ```dart
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import '../core/booking_theme.dart';
 
 PreferredSizeWidget bookingAppBar({required String subtitle}) {
   return AppBar(
-    backgroundColor: kBookingBackground,
+    // 1. استخدام context هنا يتطلب تعديل طفيف لنجعله دالة تأخذ context
+    // ولكن بما أن الـ AppBar دالة خارجية، سنستخدم Get.context
+    backgroundColor: Get.theme.scaffoldBackgroundColor,
     elevation: 0,
     scrolledUnderElevation: 0,
     toolbarHeight: 72,
@@ -11238,19 +12214,22 @@ PreferredSizeWidget bookingAppBar({required String subtitle}) {
         borderRadius: BorderRadius.circular(12),
         child: Container(
           decoration: BoxDecoration(
-            color: Colors.white,
+            // 2. استخدام لون البطاقة المتكيف بدلاً من الأبيض الثابت
+            color: Get.theme.cardColor,
             borderRadius: BorderRadius.circular(12),
             boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.05),
-                blurRadius: 8,
-                offset: const Offset(0, 2),
-              ),
+              if (!Get.isDarkMode) // إخفاء الظل في الوضع الليلي
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.05),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
             ],
           ),
-          child: const Icon(
+          child: Icon(
             Icons.chevron_left_rounded,
-            color: kBookingTextPrimary,
+            // 3. لون أيقونة الرجوع متكيف
+            color: Get.textTheme.bodyLarge?.color,
             size: 26,
           ),
         ),
@@ -11259,10 +12238,11 @@ PreferredSizeWidget bookingAppBar({required String subtitle}) {
     title: Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-         Text(
+        Text(
           'Book New Appointment'.tr,
           style: TextStyle(
-            color: kBookingTextPrimary,
+            // 4. ألوان النصوص متكيفة
+            color: Get.textTheme.bodyLarge?.color,
             fontSize: 16,
             fontWeight: FontWeight.w700,
           ),
@@ -11270,8 +12250,8 @@ PreferredSizeWidget bookingAppBar({required String subtitle}) {
         const SizedBox(height: 2),
         Text(
           subtitle,
-          style: const TextStyle(
-            color: kBookingTextSecondary,
+          style: TextStyle(
+            color: Get.textTheme.bodyMedium?.color,
             fontSize: 12.5,
             fontWeight: FontWeight.w500,
           ),
@@ -11281,7 +12261,6 @@ PreferredSizeWidget bookingAppBar({required String subtitle}) {
     centerTitle: true,
   );
 }
-
 ```
 
 ### File: lib\widgets\booking_calendar.dart
@@ -11289,21 +12268,11 @@ PreferredSizeWidget bookingAppBar({required String subtitle}) {
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
-const _kPrimary = Color(0xFF3B82F6);
-const _kUnavailable = Color(0xFFEF4444);
-const _kTextPrimary = Color(0xFF1F2937);
-const _kTextSecondary = Color(0xFF6B7280);
-const _kTextDisabled = Color(0xFFD1D5DB);
-const _kNavButtonBg = Color(0xFFF3F4F6);
-
-
 class BookingCalendar extends StatefulWidget {
   final DateTime? selectedDate;
   final DateTime minDate;
   final DateTime? maxDate;
   final ValueChanged<DateTime> onDateSelected;
-
-
   final Set<int> workingWeekdays;
 
   const BookingCalendar({
@@ -11324,18 +12293,8 @@ class _BookingCalendarState extends State<BookingCalendar> {
   bool _slideForward = true;
 
   static const _monthNames = [
-    'January',
-    'February',
-    'March',
-    'April',
-    'May',
-    'June',
-    'July',
-    'August',
-    'September',
-    'October',
-    'November',
-    'December',
+    'January', 'February', 'March', 'April', 'May', 'June',
+    'July', 'August', 'September', 'October', 'November', 'December',
   ];
 
   static const _weekdayLabels = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -11378,10 +12337,7 @@ class _BookingCalendarState extends State<BookingCalendar> {
   void _jumpToToday() {
     final now = DateTime.now();
     final target = DateTime(now.year, now.month);
-    if (target.year == _currentMonth.year &&
-        target.month == _currentMonth.month) {
-      return;
-    }
+    if (target.year == _currentMonth.year && target.month == _currentMonth.month) return;
     setState(() {
       _slideForward = target.isAfter(_currentMonth);
       _currentMonth = target;
@@ -11396,21 +12352,23 @@ class _BookingCalendarState extends State<BookingCalendar> {
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 18, 16, 12),
       decoration: BoxDecoration(
-        color: Colors.white,
+        // ─── خلفية متكيفة ───
+        color: context.theme.cardColor,
         borderRadius: BorderRadius.circular(22),
         boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 16,
-            offset: const Offset(0, 6),
-          ),
+          if (!context.isDarkMode) // إخفاء الظل ليلاً
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 16,
+              offset: const Offset(0, 6),
+            ),
         ],
       ),
       child: Column(
         children: [
-          _buildHeader(),
+          _buildHeader(context),
           const SizedBox(height: 16),
-          _buildWeekdayLabels(),
+          _buildWeekdayLabels(context),
           const SizedBox(height: 8),
           ClipRect(
             child: AnimatedSwitcher(
@@ -11422,16 +12380,11 @@ class _BookingCalendarState extends State<BookingCalendar> {
                   begin: Offset(_slideForward ? 0.12 : -0.12, 0),
                   end: Offset.zero,
                 ).animate(animation);
-                return SlideTransition(
-                  position: slide,
-                  child: FadeTransition(opacity: animation, child: child),
-                );
+                return SlideTransition(position: slide, child: FadeTransition(opacity: animation, child: child));
               },
               child: KeyedSubtree(
-                key: ValueKey(
-                  '${_currentMonth.year}-${_currentMonth.month}',
-                ),
-                child: _buildGrid(),
+                key: ValueKey('${_currentMonth.year}-${_currentMonth.month}'),
+                child: _buildGrid(context),
               ),
             ),
           ),
@@ -11440,10 +12393,9 @@ class _BookingCalendarState extends State<BookingCalendar> {
     );
   }
 
-  Widget _buildHeader() {
+  Widget _buildHeader(BuildContext context) {
     final now = DateTime.now();
-    final onCurrentMonth = _currentMonth.year == now.year &&
-        _currentMonth.month == now.month;
+    final onCurrentMonth = _currentMonth.year == now.year && _currentMonth.month == now.month;
 
     return Row(
       children: [
@@ -11454,31 +12406,22 @@ class _BookingCalendarState extends State<BookingCalendar> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  '${_monthNames[_currentMonth.month - 1]} ${_currentMonth.year}',
-                  style: const TextStyle(
+                  '${_monthNames[_currentMonth.month - 1].tr} ${_currentMonth.year}',
+                  style: TextStyle(
                     fontSize: 17,
                     fontWeight: FontWeight.w800,
-                    color: _kTextPrimary,
-                    letterSpacing: 0.1,
+                    color: context.textTheme.bodyLarge?.color, // ─── نص متكيف ───
                   ),
                 ),
                 AnimatedSwitcher(
                   duration: const Duration(milliseconds: 200),
-                  transitionBuilder: (child, animation) => FadeTransition(
-                    opacity: animation,
-                    child: SizeTransition(
-                      axis: Axis.horizontal,
-                      sizeFactor: animation,
-                      child: child,
-                    ),
-                  ),
                   child: onCurrentMonth
                       ? const SizedBox.shrink(key: ValueKey('no-pill'))
                       : Padding(
-                          key: const ValueKey('today-pill'),
-                          padding: const EdgeInsets.only(left: 8),
-                          child: _TodayPill(onTap: _jumpToToday),
-                        ),
+                    key: const ValueKey('today-pill'),
+                    padding: const EdgeInsets.only(left: 8),
+                    child: _TodayPill(onTap: _jumpToToday),
+                  ),
                 ),
               ],
             ),
@@ -11489,43 +12432,29 @@ class _BookingCalendarState extends State<BookingCalendar> {
     );
   }
 
-
-  Widget _buildWeekdayLabels() {
+  Widget _buildWeekdayLabels(BuildContext context) {
     return Row(
-      children: _weekdayLabels
-          .map(
-            (l) => Expanded(
-              child: Center(
-                child: Text(
-                  l,
-                  style: const TextStyle(
-                    fontSize: 11.5,
-                    fontWeight: FontWeight.w600,
-                    color: _kTextSecondary,
-                    letterSpacing: 0.4,
-                  ),
-                ),
-              ),
+      children: _weekdayLabels.map((l) => Expanded(
+        child: Center(
+          child: Text(
+            l.tr,
+            style: TextStyle(
+              fontSize: 11.5,
+              fontWeight: FontWeight.w600,
+              color: context.textTheme.bodyMedium?.color, // ─── نص متكيف ───
             ),
-          )
-          .toList(),
+          ),
+        ),
+      )).toList(),
     );
   }
 
-  Widget _buildGrid() {
+  Widget _buildGrid(BuildContext context) {
     final firstOfMonth = DateTime(_currentMonth.year, _currentMonth.month, 1);
     final firstWeekday = firstOfMonth.weekday % 7;
-    final daysInMonth = DateTime(
-      _currentMonth.year,
-      _currentMonth.month + 1,
-      0,
-    ).day;
+    final daysInMonth = DateTime(_currentMonth.year, _currentMonth.month + 1, 0).day;
     final today = DateTime.now();
-    final minNormalized = DateTime(
-      widget.minDate.year,
-      widget.minDate.month,
-      widget.minDate.day,
-    );
+    final minNormalized = DateTime(widget.minDate.year, widget.minDate.month, widget.minDate.day);
 
     final totalCells = firstWeekday + daysInMonth;
     final rows = (totalCells / 7).ceil();
@@ -11541,18 +12470,11 @@ class _BookingCalendarState extends State<BookingCalendar> {
                 return const Expanded(child: SizedBox(height: 44));
               }
               final day = cellIndex - firstWeekday + 1;
-              final date = DateTime(
-                _currentMonth.year,
-                _currentMonth.month,
-                day,
-              );
-              final isSelected = widget.selectedDate != null &&
-                  _sameDay(date, widget.selectedDate!);
+              final date = DateTime(_currentMonth.year, _currentMonth.month, day);
+              final isSelected = widget.selectedDate != null && _sameDay(date, widget.selectedDate!);
               final isToday = _sameDay(date, today);
               final isPast = date.isBefore(minNormalized);
-              final isUnavailable = !isPast &&
-                  widget.workingWeekdays.isNotEmpty &&
-                  !widget.workingWeekdays.contains(date.weekday);
+              final isUnavailable = !isPast && widget.workingWeekdays.isNotEmpty && !widget.workingWeekdays.contains(date.weekday);
 
               return Expanded(
                 child: _DayCell(
@@ -11561,9 +12483,7 @@ class _BookingCalendarState extends State<BookingCalendar> {
                   isToday: isToday,
                   isPast: isPast,
                   isUnavailable: isUnavailable,
-                  onTap: (isPast || isUnavailable)
-                      ? null
-                      : () => widget.onDateSelected(date),
+                  onTap: (isPast || isUnavailable) ? null : () => widget.onDateSelected(date),
                 ),
               );
             }),
@@ -11582,86 +12502,34 @@ class _DayCell extends StatelessWidget {
   final bool isUnavailable;
   final VoidCallback? onTap;
 
-  const _DayCell({
-    required this.day,
-    required this.isSelected,
-    required this.isToday,
-    required this.isPast,
-    required this.isUnavailable,
-    required this.onTap,
-  });
+  const _DayCell({required this.day, required this.isSelected, required this.isToday, required this.isPast, required this.isUnavailable, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
-    final Color textColor = isSelected
-        ? Colors.white
-        : isPast
-            ? _kTextDisabled
-            : isUnavailable
-                ? _kTextDisabled
-                : isToday
-                    ? _kPrimary
-                    : _kTextPrimary;
+    // الألوان هنا أصبحت تستخدم السمات مباشرة
+    final Color primary = context.theme.primaryColor;
+    final Color textColor = isSelected ? Colors.white : (isPast || isUnavailable) ? context.theme.dividerColor : context.textTheme.bodyLarge!.color!;
 
     return GestureDetector(
       onTap: onTap,
       behavior: HitTestBehavior.opaque,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 220),
-        curve: Curves.easeOut,
         height: 44,
         margin: const EdgeInsets.all(2),
         alignment: Alignment.center,
         decoration: BoxDecoration(
-          color: isSelected ? _kPrimary : Colors.transparent,
+          color: isSelected ? primary : Colors.transparent,
           shape: BoxShape.circle,
-          boxShadow: isSelected
-              ? [
-                  BoxShadow(
-                    color: _kPrimary.withOpacity(0.32),
-                    blurRadius: 12,
-                    offset: const Offset(0, 4),
-                  ),
-                ]
-              : null,
         ),
         child: Stack(
           alignment: Alignment.center,
           children: [
-            Text(
-              '$day',
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: isSelected || isToday
-                    ? FontWeight.w700
-                    : FontWeight.w500,
-                color: textColor,
-              ),
-            ),
+            Text('$day', style: TextStyle(fontSize: 14, fontWeight: isSelected || isToday ? FontWeight.w700 : FontWeight.w500, color: textColor)),
             if (isUnavailable && !isSelected)
-              Positioned(
-                bottom: 7,
-                child: Container(
-                  width: 14,
-                  height: 2.5,
-                  decoration: BoxDecoration(
-                    color: _kUnavailable,
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-              )
-            else if (isToday && !isSelected)
-              Positioned(
-                bottom: 7,
-                child: Container(
-                  width: 4,
-                  height: 4,
-                  decoration: const BoxDecoration(
-                    color: _kPrimary,
-                    shape: BoxShape.circle,
-                  ),
-                ),
-              ),
+              Positioned(bottom: 7, child: Container(width: 14, height: 2.5, decoration: BoxDecoration(color: Colors.redAccent, borderRadius: BorderRadius.circular(2)))),
+            if (isToday && !isSelected)
+              Positioned(bottom: 7, child: Container(width: 4, height: 4, decoration: BoxDecoration(color: primary, shape: BoxShape.circle))),
           ],
         ),
       ),
@@ -11672,26 +12540,17 @@ class _DayCell extends StatelessWidget {
 class _NavButton extends StatelessWidget {
   final IconData icon;
   final VoidCallback onTap;
-
   const _NavButton({required this.icon, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(10),
-        child: Container(
-          width: 36,
-          height: 36,
-          decoration: BoxDecoration(
-            color: _kNavButtonBg,
-            borderRadius: BorderRadius.circular(10),
-          ),
-          alignment: Alignment.center,
-          child: Icon(icon, color: _kTextPrimary, size: 22),
-        ),
+    return InkWell(
+      onTap: onTap,
+      child: Container(
+        width: 36, height: 36,
+        decoration: BoxDecoration(color: context.theme.scaffoldBackgroundColor, borderRadius: BorderRadius.circular(10)),
+        alignment: Alignment.center,
+        child: Icon(icon, color: context.textTheme.bodyLarge?.color, size: 22),
       ),
     );
   }
@@ -11703,32 +12562,16 @@ class _TodayPill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(20),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-          decoration: BoxDecoration(
-            color: _kPrimary.withOpacity(0.12),
-            borderRadius: BorderRadius.circular(20),
-          ),
-          child:  Text(
-            'Today'.tr,
-            style: TextStyle(
-              fontSize: 11.5,
-              fontWeight: FontWeight.w700,
-              color: _kPrimary,
-              letterSpacing: 0.2,
-            ),
-          ),
-        ),
+    return InkWell(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+        decoration: BoxDecoration(color: context.theme.primaryColor.withOpacity(0.12), borderRadius: BorderRadius.circular(20)),
+        child: Text('Today'.tr, style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w700, color: context.theme.primaryColor)),
       ),
     );
   }
 }
-
 ```
 
 ### File: lib\widgets\custom_text_field.dart
@@ -11770,16 +12613,23 @@ class CustomTextField extends StatelessWidget {
     final bool hasLabel = label != null;
     final isRtl = Get.locale?.languageCode == 'ar';
 
+    // ─── استخراج الثيم المحلي بدلاً من الجلوبال ───
+    final theme = Theme.of(context);
+
     return TextField(
       controller: controller,
       obscureText: isPassword,
       keyboardType: keyboardType,
       textAlign: isRtl ? TextAlign.right : TextAlign.left,
       textDirection: isRtl ? TextDirection.rtl : TextDirection.ltr,
+
+      // ─── ضبط لون النص المكتوب ───
+      style: TextStyle(color: theme.textTheme.bodyLarge?.color),
       decoration: InputDecoration(
         hintText: hintText,
         hintStyle: TextStyle(
-          color: Colors.grey.shade400,
+          // ─── ضبط لون التلميح (Hint) ───
+          color: theme.textTheme.bodyMedium?.color ?? theme.hintColor,
           fontSize: 13,
         ),
 
@@ -11798,7 +12648,8 @@ class CustomTextField extends StatelessWidget {
               if (labelIcon != null) ...[
                 Icon(
                   labelIcon,
-                  color: Colors.grey.shade500,
+                  // ─── ضبط لون أيقونة الـ Label ───
+                  color: theme.iconTheme.color,
                   size: 20,
                 ),
                 const SizedBox(width: 8),
@@ -11807,10 +12658,11 @@ class CustomTextField extends StatelessWidget {
               Text(
                 label!,
                 textAlign: TextAlign.left,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
-                  color: Colors.black87,
+                  // ─── ضبط لون نص الـ Label ───
+                  color: theme.textTheme.bodyLarge?.color,
                 ),
               ),
 
@@ -11824,7 +12676,8 @@ class CustomTextField extends StatelessWidget {
         suffixIcon: suffixIcon,
 
         filled: true,
-        fillColor: Colors.white,
+        // ─── قراءة لون الخلفية من الثيم المحلي ───
+        fillColor: theme.scaffoldBackgroundColor,
 
         contentPadding: const EdgeInsets.symmetric(
           horizontal: 16,
@@ -11834,21 +12687,24 @@ class CustomTextField extends StatelessWidget {
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide(
-            color: Colors.grey.shade300,
+            // ─── ضبط لون الإطار الطبيعي ───
+            color: theme.dividerColor,
           ),
         ),
 
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide(
-            color: Colors.grey.shade300,
+            // ─── ضبط لون الإطار المفعل ───
+            color: theme.dividerColor,
           ),
         ),
 
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(
-            color: Colors.blue,
+          borderSide: BorderSide(
+            // ─── ضبط لون الإطار عند التركيز (Focus) ───
+            color: theme.primaryColor,
             width: 2,
           ),
         ),
@@ -11874,7 +12730,8 @@ class PrimaryButton extends StatelessWidget {
       height: 54,
       child: ElevatedButton(
         style: ElevatedButton.styleFrom(
-          backgroundColor: Colors.blue,
+          // ─── استخدام اللون الأساسي من الثيم المحلي ───
+          backgroundColor: Theme.of(context).primaryColor,
           elevation: 0,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(14),
@@ -11906,13 +12763,15 @@ class OutlinedPrimaryButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return SizedBox(
       width: double.infinity,
       height: 54,
       child: OutlinedButton(
         style: OutlinedButton.styleFrom(
-          foregroundColor: Colors.blue,
-          side: const BorderSide(color: Colors.blue),
+          // ─── استخدام اللون الأساسي من الثيم المحلي ───
+          foregroundColor: theme.primaryColor,
+          side: BorderSide(color: theme.primaryColor),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(14),
           ),
@@ -11964,14 +12823,18 @@ class _OtpBoxState extends State<OtpBox> {
   @override
   Widget build(BuildContext context) {
     final isFocused = widget.focusNode.hasFocus;
+    final theme = Theme.of(context);
+
     return Container(
       width: 64,
       height: 64,
       decoration: BoxDecoration(
-        color: Colors.white,
+        // ─── قراءة لون الصندوق المتكيف من الثيم المحلي ───
+        color: theme.scaffoldBackgroundColor,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: isFocused ? Colors.blue : Colors.grey.shade300,
+          // ─── استخدام ألوان الثيم المحلي لتبديل الإطار عند التركيز ───
+          color: isFocused ? theme.primaryColor : theme.dividerColor,
           width: isFocused ? 2 : 1,
         ),
       ),
@@ -11982,10 +12845,11 @@ class _OtpBoxState extends State<OtpBox> {
         keyboardType: TextInputType.number,
         maxLength: 1,
         inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-        style: const TextStyle(
+        style: TextStyle(
           fontSize: 24,
           fontWeight: FontWeight.bold,
-          color: Colors.black87,
+          // ─── لون الرقم المدخل يتكيف مع الثيم المحلي ───
+          color: theme.textTheme.bodyLarge?.color,
         ),
         decoration: const InputDecoration(
           counterText: '',
@@ -12014,15 +12878,15 @@ class AddGrowthSheet extends StatelessWidget {
     final controller = Get.find<ChildGrowthController>();
 
     return Container(
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      decoration: BoxDecoration(
+        // ─── خلفية متكيفة للوضع الليلي والنهاري ───
+        color: context.theme.cardColor,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
       ),
       padding: EdgeInsets.only(
         top: 20,
         left: 20,
         right: 20,
-        // تأمين حقول الإدخال عند صعود لوحة المفاتيح (Keyboard Avoidance)
         bottom: MediaQuery.of(context).viewInsets.bottom + 20,
       ),
       child: SingleChildScrollView(
@@ -12030,127 +12894,64 @@ class AddGrowthSheet extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // شريط السحب العلوي للتصميم الأنيق
             Center(
               child: Container(
                 width: 45,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: Colors.grey.shade300,
+                  color: context.theme.dividerColor,
                   borderRadius: BorderRadius.circular(10),
                 ),
               ),
             ),
             const SizedBox(height: 20),
 
-            // عنوان النافذة المنبثقة
             Text(
-              'Save Measurement'.tr,
-              style: const TextStyle(
+              'Add Measurement'.tr,
+              style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
-                color: Color(0xFF1A2E5A),
+                // ─── لون العنوان متكيف ───
+                color: context.textTheme.bodyLarge?.color,
               ),
             ),
             const SizedBox(height: 20),
 
-            // 1. حقل إدخال الوزن (كيلوجرام)
-            Text(
-              'Weight (kg)'.tr,
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-                color: Colors.grey.shade700,
-              ),
-            ),
-            const SizedBox(height: 8),
-            TextField(
+            // حقول الإدخال
+            _buildInputField(
+              label: 'Weight (kg)'.tr,
               controller: controller.weightController,
-              keyboardType: const TextInputType.numberWithOptions(
-                decimal: true,
-              ),
-              decoration: InputDecoration(
-                hintText: '0.0',
-                prefixIcon: const Icon(Icons.scale_outlined, size: 20),
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 14,
-                ),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(14),
-                  borderSide: BorderSide(color: Colors.grey.shade200),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(14),
-                  borderSide: BorderSide(color: Colors.grey.shade200),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(14),
-                  borderSide: const BorderSide(color: Colors.blue),
-                ),
-              ),
+              icon: Icons.scale_outlined,
+              context: context,
             ),
             const SizedBox(height: 16),
 
-            // 2. حقل إدخال الطول (سنتيمتر)
-            Text(
-              'Height (cm)'.tr,
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-                color: Colors.grey.shade700,
-              ),
-            ),
-            const SizedBox(height: 8),
-            TextField(
+            _buildInputField(
+              label: 'Height (cm)'.tr,
               controller: controller.heightController,
-              keyboardType: const TextInputType.numberWithOptions(
-                decimal: true,
-              ),
-              decoration: InputDecoration(
-                hintText: '0.0',
-                prefixIcon: const Icon(Icons.straighten_outlined, size: 20),
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 14,
-                ),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(14),
-                  borderSide: BorderSide(color: Colors.grey.shade200),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(14),
-                  borderSide: BorderSide(color: Colors.grey.shade200),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(14),
-                  borderSide: const BorderSide(color: Colors.blue),
-                ),
-              ),
+              icon: Icons.straighten_outlined,
+              context: context,
             ),
             const SizedBox(height: 16),
 
-            // 3. حقل اختيار تاريخ القياس (Date Picker Trigger)
+            // اختيار التاريخ
             Text(
               'Record Date'.tr,
               style: TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.w600,
-                color: Colors.grey.shade700,
+                color: context.textTheme.bodyMedium?.color,
               ),
             ),
             const SizedBox(height: 8),
             Obx(
-              () => GestureDetector(
+                  () => GestureDetector(
                 onTap: () => controller.pickRecordDate(context),
                 child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 14,
-                  ),
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: Colors.grey.shade200),
+                    border: Border.all(color: context.theme.dividerColor),
                   ),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -12161,16 +12962,12 @@ class AddGrowthSheet extends StatelessWidget {
                             : controller.selectedDate.value,
                         style: TextStyle(
                           color: controller.selectedDate.value.isEmpty
-                              ? Colors.grey.shade400
-                              : Colors.black,
+                              ? context.theme.hintColor
+                              : context.textTheme.bodyLarge?.color,
                           fontSize: 14,
                         ),
                       ),
-                      Icon(
-                        Icons.calendar_month_outlined,
-                        color: Colors.grey.shade500,
-                        size: 20,
-                      ),
+                      Icon(Icons.calendar_month_outlined, color: context.theme.hintColor, size: 20),
                     ],
                   ),
                 ),
@@ -12178,33 +12975,66 @@ class AddGrowthSheet extends StatelessWidget {
             ),
             const SizedBox(height: 28),
 
-            // 4. زر حفظ القياس النهائي المتصل بالـ API
+            // زر الحفظ
             SizedBox(
               width: double.infinity,
               height: 52,
               child: ElevatedButton(
                 onPressed: () => controller.addMeasurement(),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF1A2E5A),
-                  // لون المشروع الداكن الموحد
+                  backgroundColor: context.theme.primaryColor,
                   foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14),
-                  ),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                   elevation: 0,
                 ),
                 child: Text(
                   'Save Measurement'.tr,
-                  style: const TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
                 ),
               ),
             ),
           ],
         ),
       ),
+    );
+  }
+
+  /// مساعد لبناء حقول الإدخال بشكل متناسق ومتكيف
+  Widget _buildInputField({
+    required String label,
+    required TextEditingController controller,
+    required IconData icon,
+    required BuildContext context,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: context.textTheme.bodyMedium?.color)),
+        const SizedBox(height: 8),
+        TextField(
+          controller: controller,
+          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+          style: TextStyle(color: context.textTheme.bodyLarge?.color),
+          decoration: InputDecoration(
+            hintText: '0.0',
+            hintStyle: TextStyle(color: context.theme.hintColor),
+            prefixIcon: Icon(icon, size: 20, color: context.theme.primaryColor),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(14),
+              borderSide: BorderSide(color: context.theme.dividerColor),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(14),
+              borderSide: BorderSide(color: context.theme.dividerColor),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(14),
+              borderSide: BorderSide(color: context.theme.primaryColor),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }
@@ -12233,14 +13063,16 @@ class GrowthChartWidget extends StatelessWidget {
       height: 320,
       padding: const EdgeInsets.fromLTRB(12, 20, 20, 12),
       decoration: BoxDecoration(
-        color: Colors.white,
+        // ─── لون خلفية البطاقة متكيف ───
+        color: context.theme.cardColor,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.grey.shade100),
+        // ─── لون إطار البطاقة متكيف ───
+        border: Border.all(color: context.theme.dividerColor),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildLegend(),
+          _buildLegend(context),
           const SizedBox(height: 16),
           Expanded(child: LineChart(_buildChartData(context, isRtl))),
         ],
@@ -12248,8 +13080,8 @@ class GrowthChartWidget extends StatelessWidget {
     );
   }
 
-  /// بناء دليل الألوان والخطوط أعلى المخطط (Legend)
-  Widget _buildLegend() {
+  /// الألوان والخطوط أعلى المخطط (Legend)
+  Widget _buildLegend(BuildContext context) {
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       child: Row(
@@ -12277,35 +13109,38 @@ class GrowthChartWidget extends StatelessWidget {
     );
   }
 
-  /// إعداد وهيكلة البيانات الرياضية للمخطط البياني
   LineChartData _buildChartData(BuildContext context, bool isRtl) {
-    // 1. إنشاء نقاط خط منظمة الصحة العالمية (المثالي)
+    // 1. خط منظمة الصحة العالمية (المثالي)
     final List<FlSpot> idealSpots = data.whoStandards
         .map((e) => FlSpot(e.ageInMonths.toDouble(), e.whoIdeal))
         .toList();
 
-    // 2. إنشاء نقاط خط منظمة الصحة العالمية (الأقصى)
+    // 2. خط منظمة الصحة العالمية (الأقصى)
     final List<FlSpot> maxSpots = data.whoStandards
         .map((e) => FlSpot(e.ageInMonths.toDouble(), e.whoMaxWeight))
         .toList();
 
-    // 3. إنشاء نقاط خط منظمة الصحة العالمية (الأدنى)
+    // 3. خط منظمة الصحة العالمية (الأدنى)
     final List<FlSpot> minSpots = data.whoStandards
         .map((e) => FlSpot(e.ageInMonths.toDouble(), e.whoMinWeight))
         .toList();
 
-    // 4. إنشاء نقاط خط نمو الطفل الفعلي (المرتب تصاعدياً حسب الأشهر)
+    // 4. خط نمو الطفل الفعلي
     final List<GrowthRecordModel> sortedHistory = List.from(data.growthHistory)
       ..sort((a, b) => a.ageInMonths.compareTo(b.ageInMonths));
 
     final List<FlSpot> childSpots = sortedHistory
         .map((e) => FlSpot(e.ageInMonths.toDouble(), e.weight))
         .toList();
-    // 🌟 حساب الحد الأقصى للعمر والوزن ديناميكياً لكي يتمدد المخطط مع الأطفال الأكبر سناً
-    final double maxAgeInData = sortedHistory.isNotEmpty ? sortedHistory.last.ageInMonths.toDouble() : 0;
-    final double maxWeightInData = sortedHistory.isNotEmpty ? sortedHistory.map((e) => e.weight).reduce(math.max) : 0;
 
-    final double calculatedMaxX = math.max(36.0, maxAgeInData + 2); // إضافة هامش أمامي
+    final double maxAgeInData = sortedHistory.isNotEmpty
+        ? sortedHistory.last.ageInMonths.toDouble()
+        : 0;
+    final double maxWeightInData = sortedHistory.isNotEmpty
+        ? sortedHistory.map((e) => e.weight).reduce(math.max)
+        : 0;
+
+    final double calculatedMaxX = math.max(36.0, maxAgeInData + 2);
     final double calculatedMaxY = math.max(20.0, maxWeightInData + 5);
 
     return LineChartData(
@@ -12315,10 +13150,11 @@ class GrowthChartWidget extends StatelessWidget {
         drawVerticalLine: true,
         horizontalInterval: 5,
         verticalInterval: 6,
+        // ─── ألوان خطوط الشبكة الأفقية والعمودية متكيفة ───
         getDrawingHorizontalLine: (value) =>
-            FlLine(color: Colors.grey.shade100, strokeWidth: 1),
+            FlLine(color: context.theme.dividerColor, strokeWidth: 1),
         getDrawingVerticalLine: (value) =>
-            FlLine(color: Colors.grey.shade100, strokeWidth: 1),
+            FlLine(color: context.theme.dividerColor, strokeWidth: 1),
       ),
       titlesData: FlTitlesData(
         show: true,
@@ -12331,7 +13167,8 @@ class GrowthChartWidget extends StatelessWidget {
             'Age (Months)'.tr,
             style: TextStyle(
               fontSize: 11,
-              color: Colors.grey.shade600,
+              // ─── لون عناوين المحاور متكيف ───
+              color: context.textTheme.bodyMedium?.color,
               fontWeight: FontWeight.bold,
             ),
           ),
@@ -12343,7 +13180,8 @@ class GrowthChartWidget extends StatelessWidget {
               padding: const EdgeInsets.only(top: 6),
               child: Text(
                 value.toInt().toString(),
-                style: TextStyle(color: Colors.grey.shade500, fontSize: 11),
+                // ─── أرقام المحاور متكيفة ───
+                style: TextStyle(color: context.textTheme.bodyMedium?.color, fontSize: 11),
               ),
             ),
           ),
@@ -12353,7 +13191,8 @@ class GrowthChartWidget extends StatelessWidget {
             'Weight (kg)'.tr,
             style: TextStyle(
               fontSize: 11,
-              color: Colors.grey.shade600,
+              // ─── لون عناوين المحاور متكيف ───
+              color: context.textTheme.bodyMedium?.color,
               fontWeight: FontWeight.bold,
             ),
           ),
@@ -12363,7 +13202,8 @@ class GrowthChartWidget extends StatelessWidget {
             interval: 5,
             getTitlesWidget: (value, meta) => Text(
               value.toInt().toString(),
-              style: TextStyle(color: Colors.grey.shade500, fontSize: 11),
+              // ─── أرقام المحاور متكيفة ───
+              style: TextStyle(color: context.textTheme.bodyMedium?.color, fontSize: 11),
             ),
           ),
         ),
@@ -12371,12 +13211,9 @@ class GrowthChartWidget extends StatelessWidget {
       borderData: FlBorderData(show: false),
       minX: 0,
       maxX: calculatedMaxX,
-      // تمثيل المخطط حتى عمر 3 سنوات (36 شهراً) كمعيار مرجعي
       minY: 0,
       maxY: calculatedMaxY,
-      // أقصى وزن متوقع للأطفال في هذا السن
       lineBarsData: [
-        // خط الحد الأدنى (منقط باللون الأحمر الخفيف)
         LineChartBarData(
           spots: minSpots,
           isCurved: true,
@@ -12386,7 +13223,6 @@ class GrowthChartWidget extends StatelessWidget {
           dotData: const FlDotData(show: false),
           dashArray: [4, 4],
         ),
-        // خط الحد الأقصى (منقط باللون الأحمر الخفيف)
         LineChartBarData(
           spots: maxSpots,
           isCurved: true,
@@ -12396,7 +13232,6 @@ class GrowthChartWidget extends StatelessWidget {
           dotData: const FlDotData(show: false),
           dashArray: [4, 4],
         ),
-        // خط المعدل المثالي لمنظمة الصحة العالمية (منقط باللون الأخضر)
         LineChartBarData(
           spots: idealSpots,
           isCurved: true,
@@ -12406,7 +13241,7 @@ class GrowthChartWidget extends StatelessWidget {
           dotData: const FlDotData(show: false),
           dashArray: [4, 4],
         ),
-        // خط وزن الطفل الفعلي (بارز، سميك، بلون أزرق متصل مع نقاط ارتكاز دائرية)
+        // خط نمو الطفل الفعلي
         LineChartBarData(
           spots: childSpots,
           isCurved: false,
@@ -12420,19 +13255,19 @@ class GrowthChartWidget extends StatelessWidget {
                   radius: 5,
                   color: Colors.blue.shade800,
                   strokeWidth: 2,
-                  strokeColor: Colors.white,
+                  // ─── لون الإطار الأبيض للنقطة يصبح متكيفاً ───
+                  strokeColor: context.theme.cardColor,
                 ),
           ),
         ),
       ],
-      // تخصيص نافذة الـ Tooltip المنبثقة عند لمس النقاط بشكل مطابق تماماً للصورة
       lineTouchData: LineTouchData(
         touchTooltipData: LineTouchTooltipData(
-          getTooltipColor: (touchedSpot) => const Color(0xFF212121),
+          // ─── لون نافذة التلميح متكيف (أفتح قليلاً في الوضع الليلي) ───
+          getTooltipColor: (touchedSpot) => context.isDarkMode ? const Color(0xFF303030) : const Color(0xFF212121),
           getTooltipItems: (List<LineBarSpot> touchedSpots) {
             return touchedSpots.map((barSpot) {
               if (barSpot.barIndex == 3) {
-                // التفاعل مع خط الطفل الفعلي فقط
                 final index = barSpot.spotIndex;
                 if (index < sortedHistory.length) {
                   final record = sortedHistory[index];
@@ -12476,7 +13311,7 @@ class _LegendItem extends StatelessWidget {
           Row(
             children: List.generate(
               3,
-              (index) => Container(
+                  (index) => Container(
                 width: 5,
                 height: 2,
                 margin: const EdgeInsets.symmetric(horizontal: 1),
@@ -12491,7 +13326,8 @@ class _LegendItem extends StatelessWidget {
           label,
           style: TextStyle(
             fontSize: 12,
-            color: Colors.grey.shade700,
+            // ─── لون نص الدليل متكيف ───
+            color: context.textTheme.bodyMedium?.color,
             fontWeight: FontWeight.w600,
           ),
         ),
@@ -12519,7 +13355,7 @@ class GrowthHistoryList extends StatelessWidget {
   Widget build(BuildContext context) {
     final controller = Get.find<ChildGrowthController>();
 
-    // 1. ترتيب السجلات تنازلياً (الأحدث أولاً) وفقاً للتصميم
+    // 1. ترتيب السجلات تنازلياً (الأحدث أولاً)
     final List<GrowthRecordModel> sortedHistory = List.from(data.growthHistory)
       ..sort((a, b) => b.ageInMonths.compareTo(a.ageInMonths));
 
@@ -12529,8 +13365,8 @@ class GrowthHistoryList extends StatelessWidget {
           padding: const EdgeInsets.symmetric(vertical: 32),
           child: Text(
             'No appointments found'.tr,
-            // إعادة استخدام حقل المفتاح الفارغ الموحد
-            style: TextStyle(color: Colors.grey.shade400, fontSize: 14),
+            // ─── نص ثانوي متكيف ───
+            style: TextStyle(color: context.textTheme.bodyMedium?.color, fontSize: 14),
           ),
         ),
       );
@@ -12539,7 +13375,6 @@ class GrowthHistoryList extends StatelessWidget {
     return ListView.separated(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
-      // لتعمل بسلاسة داخل شاشة التمرير الأساسية
       itemCount: sortedHistory.length,
       separatorBuilder: (context, index) => const SizedBox(height: 12),
       itemBuilder: (context, index) {
@@ -12558,97 +13393,113 @@ class _HistoryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // تحويل لون الـ Hex النصي القادم من السيرفر إلى كائن Color مع تأمين الافتراضي
     Color badgeColor;
     try {
       badgeColor = Color(int.parse(record.statusColor.replaceAll('#', '0xFF')));
     } catch (_) {
-      badgeColor = const Color(0xFF4CAF50); // الافتراضي الأخضر
+      badgeColor = const Color(0xFF4CAF50);
     }
 
     return Container(
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.white,
+        // ─── لون البطاقة متكيف ───
+        color: context.theme.cardColor,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.02),
+            // ─── إخفاء الظل في الوضع الليلي ───
+            color: context.isDarkMode ? Colors.transparent : Colors.black.withOpacity(0.02),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
         ],
-        border: Border.all(color: Colors.grey.shade100),
+        // ─── إطار البطاقة متكيف ───
+        border: Border.all(color: context.theme.dividerColor),
       ),
       child: Row(
         children: [
-          // أيقونة الميزان/القياس الجانبية المطابقة للتصميم
+          // 1. أيقونة الميزان الجانبية
           Container(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: const Color(0xFFF0F4FF),
+              // ─── خلفية الأيقونة متكيفة للوضع الليلي والنهاري ───
+              color: context.isDarkMode ? Colors.blue.withOpacity(0.15) : const Color(0xFFF0F4FF),
               borderRadius: BorderRadius.circular(12),
             ),
-            child: const Icon(
+            child: Icon(
               Icons.assignment_outlined,
-              color: Colors.blue,
+              // ─── أيقونة متكيفة ───
+              color: context.isDarkMode ? Colors.blue.shade300 : Colors.blue,
               size: 24,
             ),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: 10),
 
-          // تفاصيل القياسات (وزن | طول | عمر دقيق)
+          // 2. عمود تفاصيل الوزن والطول
           Expanded(
+            flex: 3,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
-                  children: [
-                    Text(
-                      '${'Weight'.tr}: ${record.weight} ${'kg'.tr}',
-                      style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 14,
-                        color: Color(0xFF1A2E5A),
+                SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    children: [
+                      Text(
+                        '${'Weight'.tr}: ${record.weight} ${'kg'.tr}',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 13,
+                          // ─── نص أساسي متكيف ───
+                          color: context.textTheme.bodyLarge?.color,
+                        ),
                       ),
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      '|  ${'Height'.tr}: ${record.height} ${'cm'.tr}',
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: Colors.grey.shade600,
-                        fontWeight: FontWeight.w500,
+                      const SizedBox(width: 4),
+                      Text(
+                        '|  ${'Height'.tr}: ${record.height} ${'cm'.tr}',
+                        style: TextStyle(
+                          fontSize: 12,
+                          // ─── نص ثانوي متكيف ───
+                          color: context.textTheme.bodyMedium?.color,
+                          fontWeight: FontWeight.w500,
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-                const SizedBox(height: 6),
+                const SizedBox(height: 4),
                 Row(
                   children: [
                     Text(
                       record.date,
                       style: TextStyle(
-                        fontSize: 11,
-                        color: Colors.grey.shade500,
+                        fontSize: 10,
+                        // ─── نص ثانوي متكيف ───
+                        color: context.textTheme.bodyMedium?.color,
                       ),
                     ),
-                    const SizedBox(width: 8),
+                    const SizedBox(width: 6),
                     Container(
-                      width: 4,
-                      height: 4,
+                      width: 3,
+                      height: 3,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        color: Colors.grey.shade300,
+                        // ─── لون النقطة الفاصلة متكيف ───
+                        color: context.theme.dividerColor,
                       ),
                     ),
-                    const SizedBox(width: 8),
-                    Text(
-                      '${'Age'.tr} ${record.ageInMonths.toInt()} ${'months_old'.tr}', // تدوير الكسور لعمر صحيح
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: Colors.grey.shade500,
-                        fontWeight: FontWeight.w500,
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        '${'Age'.tr} ${record.ageInMonths.toInt()} ${'months_old'.tr}',
+                        style: TextStyle(
+                          fontSize: 10,
+                          // ─── نص ثانوي متكيف ───
+                          color: context.textTheme.bodyMedium?.color,
+                          fontWeight: FontWeight.w500,
+                        ),
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
                   ],
@@ -12656,37 +13507,66 @@ class _HistoryCard extends StatelessWidget {
               ],
             ),
           ),
+          const SizedBox(width: 6),
 
-          // شارة التقييم الطبي وزر الحذف
+          // 3. قسم الشارة التفاعلية وزر الحذف
           Expanded(
+            flex: 2,
             child: Row(
-              crossAxisAlignment: CrossAxisAlignment.center,
+              mainAxisAlignment: MainAxisAlignment.end,
               children: [
                 Expanded(
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 6,
-                    ),
-                    decoration: BoxDecoration(
-                      color: badgeColor.withOpacity(0.12),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Text(
-                      record.statusText.tr, // ترجمة التقييم الطبي ديناميكياً
-                      style: TextStyle(
-                        color: badgeColor,
-                        fontSize: 11,
-                        fontWeight: FontWeight.bold,
+                  child: GestureDetector(
+                    onTap: () => _showStatusDetailsDialog(context, badgeColor),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 6,
+                        vertical: 6,
                       ),
-                      overflow: TextOverflow.ellipsis,
-                      maxLines: 1,
+                      decoration: BoxDecoration(
+                        // ─── جعل الشارة أكثر شفافية لتناسب الوضعين ───
+                        color: badgeColor.withOpacity(0.12),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Expanded(
+                            child: Text(
+                              record.statusText.contains('ينصح')
+                                  ? 'Needs Review'.tr
+                                  : record.statusText.tr,
+                              style: TextStyle(
+                                color: badgeColor,
+                                fontSize: 9,
+                                fontWeight: FontWeight.bold,
+                              ),
+                              textAlign: TextAlign.center,
+                              overflow: TextOverflow.ellipsis,
+                              maxLines: 1,
+                            ),
+                          ),
+                          const SizedBox(width: 2),
+                          Icon(
+                            Icons.info_outline_rounded,
+                            color: badgeColor,
+                            size: 10,
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ),
-                const SizedBox(width: 8),
-                IconButton(icon: Icon(Icons.delete_outline_rounded, color: Colors.red.shade400, size: 22),
-                  onPressed: () => _confirmDelete(context, record.id),),
+                const SizedBox(width: 6),
+                GestureDetector(
+                  onTap: () => _confirmDelete(context, record.id),
+                  child: Icon(
+                    Icons.delete_outline_rounded,
+                    // ─── لون أيقونة الحذف متكيف ───
+                    color: context.isDarkMode ? Colors.redAccent : Colors.red.shade400,
+                    size: 20,
+                  ),
+                ),
               ],
             ),
           ),
@@ -12695,22 +13575,95 @@ class _HistoryCard extends StatelessWidget {
     );
   }
 
-  /// مربع حوار GetX لتأكيد عملية الحذف القسري
+  void _showStatusDetailsDialog(BuildContext context, Color color) {
+    Get.dialog(
+      AlertDialog(
+        // ─── خلفية نافذة الحوار متكيفة ───
+        backgroundColor: context.theme.cardColor,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Row(
+          children: [
+            Icon(Icons.analytics_outlined, color: color, size: 24),
+            const SizedBox(width: 8),
+            Text(
+              'Medical Assessment'.tr,
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 16,
+                // ─── نص العنوان متكيف ───
+                color: context.textTheme.bodyLarge?.color,
+              ),
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: color.withOpacity(0.08),
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: color.withOpacity(0.2)),
+              ),
+              child: Text(
+                record.statusText,
+                style: TextStyle(
+                  fontSize: 14,
+                  height: 1.5,
+                  fontWeight: FontWeight.w500,
+                  // ─── نص التفاصيل متكيف ───
+                  color: context.textTheme.bodyLarge?.color,
+                ),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Get.back(),
+            child: Text(
+              'Close'.tr,
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                // ─── لون الزر متكيف ───
+                color: context.theme.primaryColor,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   void _confirmDelete(BuildContext context, int growthId) {
     Get.dialog(
       AlertDialog(
+        // ─── خلفية نافذة التأكيد متكيفة ───
+        backgroundColor: context.theme.cardColor,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: Text(
           'Delete'.tr,
-          style: const TextStyle(fontWeight: FontWeight.bold),
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            // ─── نص العنوان متكيف ───
+            color: context.textTheme.bodyLarge?.color,
+          ),
         ),
-        content: Text('Are you sure you want to delete this record?'.tr),
+        content: Text(
+          'Are you sure you want to delete this record?'.tr,
+          // ─── نص المحتوى متكيف ───
+          style: TextStyle(color: context.textTheme.bodyLarge?.color),
+        ),
         actions: [
           TextButton(
             onPressed: () => Get.back(),
             child: Text(
               'Cancel'.tr,
-              style: TextStyle(color: Colors.grey.shade600),
+              // ─── لون زر الإلغاء متكيف ───
+              style: TextStyle(color: context.textTheme.bodyMedium?.color),
             ),
           ),
           TextButton(
@@ -12720,8 +13673,9 @@ class _HistoryCard extends StatelessWidget {
             },
             child: Text(
               'Delete'.tr,
-              style: const TextStyle(
-                color: Colors.red,
+              style: TextStyle(
+                // ─── لون زر الحذف متكيف ───
+                color: context.isDarkMode ? Colors.redAccent : Colors.red,
                 fontWeight: FontWeight.bold,
               ),
             ),
@@ -12746,11 +13700,7 @@ class MainBottomNav extends StatelessWidget {
 
   static const List<_NavItem> _items = [
     _NavItem(label: 'More', icon: Icons.more_horiz, route: '/more'),
-    _NavItem(
-      label: 'Records',
-      icon: Icons.folder_outlined,
-      route: '/records',
-    ),
+    _NavItem(label: 'Records', icon: Icons.folder_outlined, route: '/records'),
     _NavItem(label: 'Home', icon: Icons.home_rounded, route: '/home'),
   ];
 
@@ -12759,13 +13709,16 @@ class MainBottomNav extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
       decoration: BoxDecoration(
-        color: Colors.white,
+        // ─── لون الخلفية متكيف (ليلي/نهاري) ───
+        color: context.theme.cardColor,
         boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.06),
-            blurRadius: 10,
-            offset: const Offset(0, -2),
-          ),
+          // إخفاء الظل في الوضع الليلي لمظهر أنظف
+          if (!context.isDarkMode)
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.06),
+              blurRadius: 10,
+              offset: const Offset(0, -2),
+            ),
         ],
       ),
       child: Row(
@@ -12773,6 +13726,11 @@ class MainBottomNav extends StatelessWidget {
         children: _items.asMap().entries.map((entry) {
           final bool isSelected = entry.key == currentIndex;
           final item = entry.value;
+
+          // تحديد الألوان بناءً على الحالة والوضع الليلي
+          final Color activeColor = context.theme.primaryColor;
+          final Color inactiveColor = context.theme.dividerColor;
+
           return GestureDetector(
             onTap: () {
               if (isSelected) return;
@@ -12783,9 +13741,7 @@ class MainBottomNav extends StatelessWidget {
               children: [
                 Icon(
                   item.icon,
-                  color: isSelected
-                      ? const Color(0xFF3B9EFF)
-                      : Colors.grey.shade400,
+                  color: isSelected ? activeColor : inactiveColor,
                   size: 26,
                 ),
                 const SizedBox(height: 4),
@@ -12793,12 +13749,8 @@ class MainBottomNav extends StatelessWidget {
                   item.label.tr,
                   style: TextStyle(
                     fontSize: 11,
-                    color: isSelected
-                        ? const Color(0xFF3B9EFF)
-                        : Colors.grey.shade400,
-                    fontWeight: isSelected
-                        ? FontWeight.bold
-                        : FontWeight.normal,
+                    color: isSelected ? activeColor : inactiveColor,
+                    fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
                   ),
                 ),
               ],
@@ -12821,12 +13773,12 @@ class _NavItem {
     required this.route,
   });
 }
-
 ```
 
 ### File: lib\widgets\payment_widgets.dart
 ```dart
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 
 class PaymentMethodCard extends StatelessWidget {
   final String title;
@@ -12854,9 +13806,12 @@ class PaymentMethodCard extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
-          color: isSelected ? const Color(0xFFF4F9FF) : Colors.white,
+          // ─── تكييف اللون بناءً على الاختيار والوضع الليلي ───
+          color: isSelected
+              ? context.theme.primaryColor.withOpacity(0.1)
+              : context.theme.cardColor,
           border: Border.all(
-              color: isSelected ? const Color(0xFF1976D2) : Colors.grey.shade300,
+              color: isSelected ? context.theme.primaryColor : context.theme.dividerColor,
               width: isSelected ? 2 : 1
           ),
           borderRadius: BorderRadius.circular(16),
@@ -12867,13 +13822,19 @@ class PaymentMethodCard extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(title, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: isSelected ? const Color(0xFF1976D2) : Colors.black87)),
+                  Text(title,
+                      style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: isSelected ? context.theme.primaryColor : context.textTheme.bodyLarge?.color
+                      )
+                  ),
                   const SizedBox(height: 6),
-                  Text(subtitle, style: TextStyle(fontSize: 14, color: Colors.grey.shade500)),
+                  Text(subtitle, style: TextStyle(fontSize: 14, color: context.textTheme.bodyMedium?.color)),
                 ],
               ),
             ),
-            ?trailingWidget,
+            if (trailingWidget != null) trailingWidget!,
           ],
         ),
       ),
@@ -12905,19 +13866,23 @@ class PaymentOptionCard extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: context.theme.cardColor,
           border: Border.all(
-              color: isSelected ? const Color(0xFF1976D2) : Colors.grey.shade300,
+              color: isSelected ? context.theme.primaryColor : context.theme.dividerColor,
               width: isSelected ? 2 : 1
           ),
           borderRadius: BorderRadius.circular(12),
         ),
         child: Row(
           children: [
-            Icon(isSelected ? Icons.radio_button_checked : Icons.radio_button_unchecked, color: isSelected ? const Color(0xFF1976D2) : Colors.grey.shade400, size: 24),
+            Icon(
+                isSelected ? Icons.radio_button_checked : Icons.radio_button_unchecked,
+                color: isSelected ? context.theme.primaryColor : context.theme.dividerColor,
+                size: 24
+            ),
             const SizedBox(width: 16),
-            Expanded(child: Text(title, style: const TextStyle(fontSize: 16, color: Colors.black87, fontWeight: FontWeight.w500))),
-            ?trailingWidget,
+            Expanded(child: Text(title, style: TextStyle(fontSize: 16, color: context.textTheme.bodyLarge?.color, fontWeight: FontWeight.w500))),
+            if (trailingWidget != null) trailingWidget!,
           ],
         ),
       ),
@@ -12942,8 +13907,20 @@ class PaymentSummaryRow extends StatelessWidget {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(label, style: TextStyle(color: isTotal ? Colors.black87 : Colors.grey.shade600, fontWeight: isTotal ? FontWeight.bold : FontWeight.w500, fontSize: isTotal ? 16 : 14)),
-        Text(value, style: TextStyle(color: isTotal ? const Color(0xFF1976D2) : Colors.black87, fontWeight: FontWeight.bold, fontSize: isTotal ? 18 : 15)),
+        Text(label,
+            style: TextStyle(
+                color: isTotal ? context.textTheme.bodyLarge?.color : context.textTheme.bodyMedium?.color,
+                fontWeight: isTotal ? FontWeight.bold : FontWeight.w500,
+                fontSize: isTotal ? 16 : 14
+            )
+        ),
+        Text(value,
+            style: TextStyle(
+                color: isTotal ? context.theme.primaryColor : context.textTheme.bodyLarge?.color,
+                fontWeight: FontWeight.bold,
+                fontSize: isTotal ? 18 : 15
+            )
+        ),
       ],
     );
   }
@@ -12966,14 +13943,10 @@ class InvoiceRow extends StatelessWidget {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(
-            label,
-            style: TextStyle(color: Colors.grey.shade600, fontSize: 14)
-        ),
-        Text(
-            value,
+        Text(label, style: TextStyle(color: context.textTheme.bodyMedium?.color, fontSize: 14)),
+        Text(value,
             style: TextStyle(
-                color: Colors.black87,
+                color: context.textTheme.bodyLarge?.color,
                 fontWeight: isBold ? FontWeight.bold : FontWeight.w500,
                 fontSize: 14
             )
@@ -12987,6 +13960,7 @@ class InvoiceRow extends StatelessWidget {
 ### File: lib\widgets\settings\settings_section.dart
 ```dart
 import 'package:flutter/material.dart';
+import 'package:get/get.dart'; // ─── تمت إضافته للوصول إلى السمة ───
 
 class SettingsSection extends StatelessWidget {
   final String title;
@@ -13007,18 +13981,21 @@ class SettingsSection extends StatelessWidget {
           padding: const EdgeInsets.only(bottom: 10, right: 10, left: 10),
           child: Text(
             title,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.bold,
-              color: Color(0xFF1D2755),
+              // ─── لون العنوان متكيف ───
+              color: context.textTheme.bodyLarge?.color,
             ),
           ),
         ),
         Container(
           decoration: BoxDecoration(
-            color: Colors.white,
+            // ─── خلفية القسم متكيفة ───
+            color: context.theme.cardColor,
             borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: Colors.grey.shade200),
+            // ─── إطار القسم متكيف ───
+            border: Border.all(color: context.theme.dividerColor),
           ),
           child: Column(children: children),
         ),
@@ -13026,12 +14003,12 @@ class SettingsSection extends StatelessWidget {
     );
   }
 }
-
 ```
 
 ### File: lib\widgets\settings\settings_tile.dart
 ```dart
 import 'package:flutter/material.dart';
+import 'package:get/get.dart'; // ─── تمت إضافته للوصول إلى السمة ───
 
 class SettingsTile extends StatelessWidget {
   final IconData icon;
@@ -13062,7 +14039,10 @@ class SettingsTile extends StatelessWidget {
           ),
           leading: Icon(
             icon,
-            color: isLogout ? Colors.red : Colors.blue,
+            // ─── تكييف لون الأيقونة (أحمر مريح ليلاً لتسجيل الخروج، ولون أساسي للبقية) ───
+            color: isLogout
+                ? (context.isDarkMode ? Colors.redAccent : Colors.red)
+                : context.theme.primaryColor,
             size: 28,
           ),
           title: Text(
@@ -13070,17 +14050,22 @@ class SettingsTile extends StatelessWidget {
             style: TextStyle(
               fontWeight: FontWeight.bold,
               fontSize: 15,
-              color: isLogout ? Colors.red : const Color(0xFF1D2755),
+              // ─── تكييف لون العنوان ───
+              color: isLogout
+                  ? (context.isDarkMode ? Colors.redAccent : Colors.red)
+                  : context.textTheme.bodyLarge?.color,
             ),
           ),
           subtitle: Text(
             subtitle,
-            style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
+            // ─── تكييف لون النص الثانوي ───
+            style: TextStyle(fontSize: 12, color: context.textTheme.bodyMedium?.color),
           ),
-          trailing: const Icon(
+          trailing: Icon(
             Icons.arrow_forward_ios,
             size: 16,
-            color: Colors.grey,
+            // ─── تكييف لون السهم ───
+            color: context.theme.dividerColor,
           ),
           onTap: onTap,
         ),
@@ -13088,7 +14073,8 @@ class SettingsTile extends StatelessWidget {
           Divider(
             height: 1,
             thickness: 1,
-            color: Colors.grey.shade100,
+            // ─── تكييف لون الفاصل ───
+            color: context.theme.dividerColor,
             indent: 60,
             endIndent: 20,
           ),
@@ -13096,7 +14082,6 @@ class SettingsTile extends StatelessWidget {
     );
   }
 }
-
 ```
 
 ### File: lib\widgets\upcoming_appointments_section.dart
@@ -13105,12 +14090,12 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 
-import '../controllers/appointment/my_appointments_controller.dart';
-import '../models/appointment/appointment_model.dart';
+import '../../controllers/appointment/my_appointments_controller.dart';
+import '../../models/appointment/appointment_model.dart';
 
 final _fakeAppointments = List<AppointmentModel>.generate(
   2,
-  (i) => AppointmentModel(
+      (i) => AppointmentModel(
     id: (-i - 1).toString(),
     childId: -1,
     doctorId: -1,
@@ -13125,7 +14110,6 @@ final _fakeAppointments = List<AppointmentModel>.generate(
 
 class UpcomingAppointmentsSection extends StatelessWidget {
   final MyAppointmentsController controller;
-
   final int maxItems;
 
   const UpcomingAppointmentsSection({
@@ -13146,23 +14130,20 @@ class UpcomingAppointmentsSection extends StatelessWidget {
             style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.bold,
-              color: Colors.black87,
+              color: context.textTheme.bodyLarge?.color, // ─── نص متكيف ───
             ),
           ),
         ),
         const SizedBox(height: 14),
         Obx(() {
           final isLoading = controller.isLoading;
-
           final appointments = isLoading
               ? _fakeAppointments
               : (controller.upcoming.toList()..sort(
-                      (a, b) => '${a.date} ${a.time}'.compareTo(
-                        '${b.date} ${b.time}',
-                      ),
-                    ))
-                    .take(maxItems)
-                    .toList();
+                (a, b) => '${a.date} ${a.time}'.compareTo('${b.date} ${b.time}'),
+          ))
+              .take(maxItems)
+              .toList();
 
           if (!isLoading && appointments.isEmpty) {
             return const _EmptyAppointmentsCard();
@@ -13172,12 +14153,10 @@ class UpcomingAppointmentsSection extends StatelessWidget {
             enabled: isLoading,
             child: Column(
               children: appointments
-                  .map(
-                    (apt) => Padding(
-                      padding: const EdgeInsets.only(bottom: 12),
-                      child: _AppointmentCard(appointment: apt),
-                    ),
-                  )
+                  .map((apt) => Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: _AppointmentCard(appointment: apt),
+              ))
                   .toList(),
             ),
           );
@@ -13187,7 +14166,6 @@ class UpcomingAppointmentsSection extends StatelessWidget {
   }
 }
 
-/// Placeholder shown when the user has no upcoming appointments.
 class _EmptyAppointmentsCard extends StatelessWidget {
   const _EmptyAppointmentsCard();
 
@@ -13197,24 +14175,16 @@ class _EmptyAppointmentsCard extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: context.theme.cardColor, // ─── خلفية البطاقة متكيفة ───
         borderRadius: BorderRadius.circular(16),
       ),
       child: Column(
         children: [
-          Icon(
-            Icons.event_available_outlined,
-            color: Colors.grey.shade400,
-            size: 28,
-          ),
+          Icon(Icons.event_available_outlined, color: context.theme.dividerColor, size: 28),
           const SizedBox(height: 8),
           Text(
             'No upcoming appointments'.tr,
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
-              color: Colors.black87,
-            ),
+            style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: context.textTheme.bodyMedium?.color),
           ),
         ],
       ),
@@ -13224,59 +14194,49 @@ class _EmptyAppointmentsCard extends StatelessWidget {
 
 class _AppointmentCard extends StatelessWidget {
   final AppointmentModel appointment;
-
   const _AppointmentCard({required this.appointment});
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: () {
-        // TODO: Get.toNamed('/appointment-details', arguments: appointment)
-      },
+      onTap: () {},
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: context.theme.cardColor, // ─── خلفية البطاقة متكيفة ───
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.05),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
-            ),
+            if (!context.isDarkMode) // ─── إخفاء الظل في الوضع الليلي ───
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.05),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
+              ),
           ],
         ),
         child: Row(
           children: [
             Expanded(
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
                     appointment.doctorName ?? '${'Doctor'.tr} #${appointment.doctorId}',
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.black87,
-                    ),
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: context.textTheme.bodyLarge?.color),
                   ),
                   const SizedBox(height: 4),
                   Text(
                     appointment.childName ?? '${'Child'.tr} #${appointment.childId}',
-                    style: TextStyle(fontSize: 13, color: Colors.grey.shade500),
+                    style: TextStyle(fontSize: 13, color: context.textTheme.bodyMedium?.color),
                   ),
                   const SizedBox(height: 10),
                   Row(
-                    mainAxisAlignment: MainAxisAlignment.end,
                     children: [
                       _StatusPill(status: appointment.status),
                       const SizedBox(width: 8),
                       Text(
                         '${appointment.date} • ${appointment.time}',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.grey.shade600,
-                        ),
+                        style: TextStyle(fontSize: 12, color: context.textTheme.bodyMedium?.color),
                       ),
                     ],
                   ),
@@ -13285,13 +14245,12 @@ class _AppointmentCard extends StatelessWidget {
             ),
             const SizedBox(width: 14),
             Container(
-              width: 60,
-              height: 60,
+              width: 60, height: 60,
               decoration: BoxDecoration(
-                color: Colors.grey.shade200,
+                color: context.theme.scaffoldBackgroundColor, // ─── لون الخلفية متكيف ───
                 borderRadius: BorderRadius.circular(14),
               ),
-              child: Icon(Icons.person, color: Colors.grey.shade400, size: 30),
+              child: Icon(Icons.person, color: context.theme.dividerColor, size: 30),
             ),
           ],
         ),
@@ -13302,49 +14261,40 @@ class _AppointmentCard extends StatelessWidget {
 
 class _StatusPill extends StatelessWidget {
   final String status;
-
   const _StatusPill({required this.status});
 
   @override
   Widget build(BuildContext context) {
     final normalized = status.toLowerCase();
-    late final Color bg;
-    late final Color fg;
+
+    // ─── تكييف ألوان الشارات للوضع الليلي والنهاري ───
+    final bool isDark = context.isDarkMode;
+    Color bg, fg;
+
     switch (normalized) {
       case 'confirmed':
-        bg = Colors.green.shade50;
+        bg = isDark ? Colors.green.shade900.withOpacity(0.3) : Colors.green.shade50;
         fg = Colors.green.shade600;
         break;
       case 'cancelled':
       case 'canceled':
-        bg = Colors.red.shade50;
+        bg = isDark ? Colors.red.shade900.withOpacity(0.3) : Colors.red.shade50;
         fg = Colors.red.shade600;
         break;
-      case 'pending':
       default:
-        bg = Colors.orange.shade50;
+        bg = isDark ? Colors.orange.shade900.withOpacity(0.3) : Colors.orange.shade50;
         fg = Colors.orange.shade700;
         break;
     }
 
-    // Capitalize the first letter for display ("pending" → "Pending").
-    final label = status.isEmpty
-        ? 'Pending'
-        : status[0].toUpperCase() + status.substring(1);
+    final label = status.isEmpty ? 'Pending' : status[0].toUpperCase() + status.substring(1);
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
-      decoration: BoxDecoration(
-        color: bg,
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Text(
-        label,
-        style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: fg),
-      ),
+      decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(20)),
+      child: Text(label, style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: fg)),
     );
   }
 }
-
 ```
 

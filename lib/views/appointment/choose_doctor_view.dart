@@ -10,10 +10,12 @@ import '../../widgets/booking_app_bar.dart';
 // 🌟 المعطيات المزيفة
 final _fakeDoctors = List<DoctorModel>.generate(
   5,
-      (i) => DoctorModel(
+  (i) => DoctorModel(
     id: -i - 1,
     firstName: 'Doctor',
     lastName: 'Loading',
+    email: '',
+    address: '',
     departmentName: 'Loading...',
     isFavorite: false,
   ),
@@ -28,7 +30,8 @@ class ChooseDoctorView extends StatefulWidget {
 
 class _ChooseDoctorViewState extends State<ChooseDoctorView> {
   final DoctorController doctorController = Get.find<DoctorController>();
-  final AppointmentController appointmentController = Get.find<AppointmentController>();
+  final AppointmentController appointmentController =
+      Get.find<AppointmentController>();
 
   int? selectedDoctorId;
 
@@ -60,7 +63,9 @@ class _ChooseDoctorViewState extends State<ChooseDoctorView> {
   Widget build(BuildContext context) {
     return Scaffold(
       // ❌ تم إزالة backgroundColor ليقرأ خلفية النظام تلقائياً
-      appBar: bookingAppBar(subtitle: '${'Choose Doctor'.tr} - $specialty'),
+      appBar: bookingAppBar(
+        subtitle: '${'Choose Doctor'.tr} - ${specialty.tr}',
+      ),
       body: SafeArea(
         child: Column(
           children: [
@@ -86,7 +91,10 @@ class _ChooseDoctorViewState extends State<ChooseDoctorView> {
               'No doctors available in this department.'.tr,
               textAlign: TextAlign.center,
               // ─── لون النص متكيف ───
-              style: TextStyle(color: context.textTheme.bodyMedium?.color, fontSize: 14),
+              style: TextStyle(
+                color: context.textTheme.bodyMedium?.color,
+                fontSize: 14,
+              ),
             ),
           ),
         );
@@ -101,7 +109,7 @@ class _ChooseDoctorViewState extends State<ChooseDoctorView> {
             final doctor = doctors[index];
 
             return Obx(
-                  () => _DoctorCard(
+              () => _DoctorCard(
                 doctor: doctor,
                 specialty: specialty,
                 isSelected: selectedDoctorId == doctor.id,
@@ -129,7 +137,9 @@ class _ChooseDoctorViewState extends State<ChooseDoctorView> {
           style: ElevatedButton.styleFrom(
             // ─── استخدام اللون الأساسي من السمة ───
             backgroundColor: context.theme.primaryColor,
-            disabledBackgroundColor: context.theme.primaryColor.withValues(alpha: 0.4),
+            disabledBackgroundColor: context.theme.primaryColor.withValues(
+              alpha: 0.4,
+            ),
             elevation: 0,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(16),
@@ -187,7 +197,9 @@ class _DoctorCard extends StatelessWidget {
           boxShadow: [
             BoxShadow(
               // ─── إخفاء الظل في الوضع الليلي ───
-              color: context.isDarkMode ? Colors.transparent : Colors.black.withValues(alpha: isSelected ? 0.06 : 0.04),
+              color: context.isDarkMode
+                  ? Colors.transparent
+                  : Colors.black.withValues(alpha: isSelected ? 0.06 : 0.04),
               blurRadius: 12,
               offset: const Offset(0, 4),
             ),
@@ -212,8 +224,9 @@ class _DoctorCard extends StatelessWidget {
                   ),
                   const SizedBox(height: 3),
                   Text(
-                    doctor.departmentName.isNotEmpty
-                        ? doctor.departmentName.tr
+                    (doctor.departmentName != null &&
+                            doctor.departmentName!.isNotEmpty)
+                        ? doctor.departmentName!.tr
                         : '$specialty ${'Specialist'.tr}',
                     style: TextStyle(
                       fontSize: 12.5,
@@ -231,7 +244,9 @@ class _DoctorCard extends StatelessWidget {
                 child: Icon(
                   isFavorite ? Icons.favorite : Icons.favorite_border,
                   // ─── لون أيقونة المفضلة متكيف (أحمر للمفضلة، ورمادي/داكن لغير المفضلة) ───
-                  color: isFavorite ? Colors.redAccent : context.theme.dividerColor,
+                  color: isFavorite
+                      ? Colors.redAccent
+                      : context.theme.dividerColor,
                   size: 24,
                 ),
               ),
@@ -247,6 +262,7 @@ class _DoctorCard extends StatelessWidget {
 
 class _Avatar extends StatelessWidget {
   final String? url;
+
   const _Avatar({required this.url});
 
   @override
@@ -256,16 +272,18 @@ class _Avatar extends StatelessWidget {
       height: 56,
       decoration: BoxDecoration(
         // ─── لون خلفية الأفاتار متكيف (شفاف وأزرق ليلاً، باستيل أزرق نهاراً) ───
-        color: context.isDarkMode ? Colors.blue.withOpacity(0.15) : const Color(0xFFE3F2FD),
+        color: context.isDarkMode
+            ? Colors.blue.withOpacity(0.15)
+            : const Color(0xFFE3F2FD),
         shape: BoxShape.circle,
       ),
       clipBehavior: Clip.antiAlias,
       child: url != null && url!.isNotEmpty
           ? Image.network(
-        url!,
-        fit: BoxFit.cover,
-        errorBuilder: (_, _, _) => const _FallbackPersonIcon(),
-      )
+              url!,
+              fit: BoxFit.cover,
+              errorBuilder: (_, _, _) => const _FallbackPersonIcon(),
+            )
           : const _FallbackPersonIcon(),
     );
   }
@@ -278,13 +296,18 @@ class _FallbackPersonIcon extends StatelessWidget {
   Widget build(BuildContext context) {
     return Center(
       // ─── لون الأيقونة البديلة متكيف ───
-      child: Icon(Icons.person_rounded, color: context.theme.primaryColor, size: 30),
+      child: Icon(
+        Icons.person_rounded,
+        color: context.theme.primaryColor,
+        size: 30,
+      ),
     );
   }
 }
 
 class _SelectionDot extends StatelessWidget {
   final bool selected;
+
   const _SelectionDot({required this.selected});
 
   @override
@@ -297,9 +320,16 @@ class _SelectionDot extends StatelessWidget {
         color: selected ? context.theme.primaryColor : Colors.transparent,
         shape: BoxShape.circle,
         // ─── إطار الدائرة متكيف ───
-        border: Border.all(color: selected ? context.theme.primaryColor : context.theme.dividerColor, width: 1.5),
+        border: Border.all(
+          color: selected
+              ? context.theme.primaryColor
+              : context.theme.dividerColor,
+          width: 1.5,
+        ),
       ),
-      child: selected ? const Icon(Icons.check_rounded, color: Colors.white, size: 16) : null,
+      child: selected
+          ? const Icon(Icons.check_rounded, color: Colors.white, size: 16)
+          : null,
     );
   }
 }

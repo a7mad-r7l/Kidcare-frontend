@@ -4,13 +4,12 @@ import 'package:skeletonizer/skeletonizer.dart';
 
 import '../../controllers/appointment/appointment_controller.dart';
 import '../../controllers/appointment/child_controller.dart';
-import '../../core/booking_theme.dart';
 import '../../models/appointment/child_model.dart';
 import '../../widgets/booking_app_bar.dart';
 
 final _fakeChildren = List<ChildModel>.generate(
   3,
-  (i) => ChildModel(
+      (i) => ChildModel(
     id: -i - 1,
     parentId: -1,
     firstName: 'Child',
@@ -20,11 +19,7 @@ final _fakeChildren = List<ChildModel>.generate(
   ),
 );
 
-const _kPrimary = kBookingPrimary;
-const _kBackground = kBookingBackground;
-const _kTextPrimary = kBookingTextPrimary;
-const _kTextSecondary = kBookingTextSecondary;
-const _kBorder = kBookingBorder;
+// تم إزالة الألوان الثابتة الخاصة بالخلفية والنصوص لأننا سنعتمد على الـ Theme
 const _kBoyTint = Color(0xFFE7F7E9);
 const _kGirlTint = Color(0xFFFFE7EE);
 const _kSelectedBorder = Color(0xFF22C55E);
@@ -39,7 +34,7 @@ class ChooseChildView extends StatefulWidget {
 class _ChooseChildViewState extends State<ChooseChildView> {
   final ChildController childController = Get.find<ChildController>();
   final AppointmentController appointmentController =
-      Get.find<AppointmentController>();
+  Get.find<AppointmentController>();
 
   int? selectedChildId;
 
@@ -47,16 +42,44 @@ class _ChooseChildViewState extends State<ChooseChildView> {
     setState(() => selectedChildId = child.id);
     appointmentController.selectChild(child);
   }
-
-  void _onNextPressed() {
+  Future<void> _onNextPressed() async {
     if (selectedChildId == null) return;
-    Get.toNamed('/choose-date-time');
+
+    // 1. التحقق مما إذا كان المستخدم قادماً من واجهة الحجز السريع
+    final args = Get.arguments as Map<String, dynamic>?;
+    final isQuickBook = args?['is_quick_book'] ?? false;
+
+    if (isQuickBook) {
+      // 2. البحث عن كائن الطفل (ChildModel) الذي يطابق الـ ID المختار
+      // (تأكد أن اسم مصفوفة الأطفال هو children أو استبدلها بالاسم الصحيح في childController)
+      final selectedChildModel = childController.children.firstWhereOrNull(
+            (c) => c.id == selectedChildId,
+      );
+
+      if (selectedChildModel != null) {
+        // 3. حقن كائن الطفل كاملاً في متحكم الحجز ليتجاوز شرط الـ Validation
+        appointmentController.selectChild(selectedChildModel);
+
+        // 4. استدعاء دالة الحجز
+        final bool success = await appointmentController.bookAppointment();
+
+        if (success) {
+          final appointmentId = appointmentController.bookedAppointmentId.value!;
+          Get.offNamed('/payment-method', arguments: appointmentId);
+        } else {
+          print('--- فشل الحجز محلياً: يرجى التحقق من بيانات DoctorModel ---');
+        }
+      }
+    } else {
+      // المسار الطبيعي
+      Get.toNamed('/choose-date-time');
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: _kBackground,
+      // ❌ تم إزالة backgroundColor ليقرأ من النظام (AppThemes)
       appBar: bookingAppBar(subtitle: 'Choose Child'.tr),
       body: SafeArea(
         child: Column(
@@ -64,18 +87,19 @@ class _ChooseChildViewState extends State<ChooseChildView> {
             Expanded(
               child: Obx(() {
                 final isLoading = childController.isLoading;
-                final children =
-                    isLoading ? _fakeChildren : childController.children;
+                final children = isLoading
+                    ? _fakeChildren
+                    : childController.children;
 
                 if (!isLoading && children.isEmpty) {
-                  return  Center(
+                  return Center(
                     child: Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 32),
+                      padding: const EdgeInsets.symmetric(horizontal: 32),
                       child: Text(
                         "You haven't added any children yet.".tr,
                         textAlign: TextAlign.center,
                         style: TextStyle(
-                          color: _kTextSecondary,
+                          color: context.textTheme.bodyMedium?.color, // ─── نص متكيف ───
                           fontSize: 14,
                         ),
                       ),
@@ -93,22 +117,21 @@ class _ChooseChildViewState extends State<ChooseChildView> {
                       return _ChildCard(
                         child: child,
                         isSelected: selectedChildId == child.id,
-                        onTap:
-                            isLoading ? () {} : () => _onChildTapped(child),
+                        onTap: isLoading ? () {} : () => _onChildTapped(child),
                       );
                     },
                   ),
                 );
               }),
             ),
-            _buildNextButton(),
+            _buildNextButton(context),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildNextButton() {
+  Widget _buildNextButton(BuildContext context) {
     final enabled = selectedChildId != null;
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
@@ -117,17 +140,17 @@ class _ChooseChildViewState extends State<ChooseChildView> {
         height: 54,
         child: ElevatedButton(
           style: ElevatedButton.styleFrom(
-            backgroundColor: _kPrimary,
-            disabledBackgroundColor: _kPrimary.withValues(alpha: 0.4),
+            backgroundColor: context.theme.primaryColor, // ─── استخدام اللون الأساسي من السمة ───
+            disabledBackgroundColor: context.theme.primaryColor.withValues(alpha: 0.4),
             elevation: 0,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(16),
             ),
           ),
           onPressed: enabled ? _onNextPressed : null,
-          child:  Text(
+          child: Text(
             'Next'.tr,
-            style: TextStyle(
+            style: const TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w700,
               color: Colors.white,
@@ -153,7 +176,11 @@ class _ChildCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isMale = child.gender == 'male';
-    final tint = isMale ? _kBoyTint : _kGirlTint;
+
+    // ─── تكييف الألوان الخلفية للبطاقة المحددة حسب الوضع (ليلي/نهاري) ───
+    final Color lightTint = isMale ? _kBoyTint : _kGirlTint;
+    final Color darkTint = isMale ? Colors.blue.withValues(alpha: 0.15) : Colors.pinkAccent.withValues(alpha: 0.15);
+    final Color tint = context.isDarkMode ? darkTint : lightTint;
 
     return GestureDetector(
       onTap: onTap,
@@ -162,21 +189,23 @@ class _ChildCard extends StatelessWidget {
         margin: const EdgeInsets.only(bottom: 14),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         decoration: BoxDecoration(
-          color: isSelected ? tint : Colors.white,
+          // ─── تكييف خلفية البطاقة ───
+          color: isSelected ? tint : context.theme.cardColor,
           borderRadius: BorderRadius.circular(18),
           border: Border.all(
-            color: isSelected ? _kSelectedBorder : _kBorder,
+            // ─── تكييف لون الإطار ───
+            color: isSelected ? _kSelectedBorder : context.theme.dividerColor,
             width: isSelected ? 2 : 1,
           ),
-          boxShadow: isSelected
+          boxShadow: isSelected || context.isDarkMode // إخفاء الظل في الوضع الليلي أو عند التحديد
               ? null
               : [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.03),
-                    blurRadius: 10,
-                    offset: const Offset(0, 3),
-                  ),
-                ],
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.03),
+              blurRadius: 10,
+              offset: const Offset(0, 3),
+            ),
+          ],
         ),
         child: Row(
           children: [
@@ -188,18 +217,18 @@ class _ChildCard extends StatelessWidget {
                 children: [
                   Text(
                     child.fullName,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w700,
-                      color: _kTextPrimary,
+                      color: context.textTheme.bodyLarge?.color, // ─── نص متكيف ───
                     ),
                   ),
                   const SizedBox(height: 3),
                   Text(
                     '${child.ageYears} ${'years'.tr}',
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 13,
-                      color: _kTextSecondary,
+                      color: context.textTheme.bodyMedium?.color, // ─── نص متكيف ───
                     ),
                   ),
                 ],
@@ -230,10 +259,10 @@ class _ChildAvatar extends StatelessWidget {
       clipBehavior: Clip.antiAlias,
       child: child.image != null
           ? Image.network(
-              child.image!,
-              fit: BoxFit.cover,
-              errorBuilder: (_, _, _) => _localFallback(isMale),
-            )
+        child.image!,
+        fit: BoxFit.cover,
+        errorBuilder: (_, _, _) => _localFallback(isMale),
+      )
           : _localFallback(isMale),
     );
   }
@@ -250,6 +279,7 @@ class _ChildAvatar extends StatelessWidget {
 
 class _SelectionIndicator extends StatelessWidget {
   final bool selected;
+
   const _SelectionIndicator({required this.selected});
 
   @override
@@ -259,10 +289,12 @@ class _SelectionIndicator extends StatelessWidget {
       width: 26,
       height: 26,
       decoration: BoxDecoration(
-        color: selected ? _kSelectedBorder : Colors.white,
+        // ─── تكييف خلفية المؤشر ───
+        color: selected ? _kSelectedBorder : context.theme.scaffoldBackgroundColor,
         shape: BoxShape.circle,
         border: Border.all(
-          color: selected ? _kSelectedBorder : _kBorder,
+          // ─── تكييف إطار المؤشر ───
+          color: selected ? _kSelectedBorder : context.theme.dividerColor,
           width: 1.5,
         ),
       ),
@@ -272,4 +304,3 @@ class _SelectionIndicator extends StatelessWidget {
     );
   }
 }
-

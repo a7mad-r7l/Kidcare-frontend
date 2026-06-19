@@ -79,7 +79,7 @@ class AddChildController extends BaseController {
   }
 
   Future<void> addChild() async {
-    // التحقق من الحقول الإلزامية فقط (Mandatory Fields)
+    // 1. التحقق من الحقول الإلزامية (Client-Side Validation)
     if (firstNameController.text.isEmpty || lastNameController.text.isEmpty) {
       Get.snackbar(
         'Required Fields'.tr,
@@ -106,14 +106,15 @@ class AddChildController extends BaseController {
       return;
     }
 
+    // التحقق من العمر (ألا يتجاوز 6 سنوات)
     final birthDate = DateTime.tryParse(selectedBirthDate.value);
     if (birthDate != null) {
       final now = DateTime.now();
       final ageLimitDate = DateTime(now.year - 6, now.month, now.day);
       if (birthDate.isBefore(ageLimitDate)) {
         Get.snackbar(
-          'Invalid Age',
-          'Child age cannot exceed 6 years.',
+          'Invalid Age'.tr,
+          'Child age cannot exceed 6 years.'.tr,
           backgroundColor: Colors.grey.shade700,
           colorText: Colors.white,
           snackPosition: SnackPosition.TOP,
@@ -137,29 +138,30 @@ class AddChildController extends BaseController {
       return;
     }
 
-    // ─── منطق معالجة الحقول الاختيارية (Optional Fields Sanitization) ───
-    // إذا قام المستخدم بترك الحقل فارغاً، نقوم بتمرير نص افتراضي نظيف للسيرفر
+    // 2. معالجة الحقول الاختيارية (Data Sanitization)
     final String medicalHistory = medicalHistoryController.text.trim().isEmpty
-        ? 'No medical history'
+        ? 'No medical history'.tr
         : medicalHistoryController.text.trim();
 
     final String allergies = allergiesController.text.trim().isEmpty
-        ? 'No allergies'
+        ? 'No allergies'.tr
         : allergiesController.text.trim();
 
     showLoading();
     try {
+      // 3. إرسال الطلب للـ API عبر الـ Repository
       await addChildRepo.addChild(
         firstName: firstNameController.text.trim(),
         lastName: lastNameController.text.trim(),
         gender: selectedGender.value,
         birthDate: selectedBirthDate.value,
         bloodType: selectedBloodType.value,
-        medicalHistory: medicalHistory, // تمرير القيمة المعالجة
-        allergies: allergies,           // تمرير القيمة المعالجة
+        medicalHistory: medicalHistory,
+        allergies: allergies,
         image: selectedImage.value,
       );
 
+      // 4. عرض رسالة النجاح
       Get.snackbar(
         'Success'.tr,
         'Child added successfully!'.tr,
@@ -168,11 +170,13 @@ class AddChildController extends BaseController {
         snackPosition: SnackPosition.TOP,
         margin: const EdgeInsets.all(15),
       );
+
+      // تأخير بسيط ليتمكن المستخدم من قراءة رسالة النجاح
       await Future.delayed(const Duration(seconds: 1));
-      Get.back();
-      if (Get.isRegistered<HomeController>()) {
-        Get.find<HomeController>().fetchChildren();
-      }
+
+      // 5. التوجيه الشامل للرئيسية لضمان تحديث البيانات ومسح الـ Stack
+      Get.offAllNamed('/home');
+
     } catch (e) {
       handleError(e);
     } finally {

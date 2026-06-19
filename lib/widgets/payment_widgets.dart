@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 
 class PaymentMethodCard extends StatelessWidget {
   final String title;
@@ -26,9 +27,12 @@ class PaymentMethodCard extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
-          color: isSelected ? const Color(0xFFF4F9FF) : Colors.white,
+          // ─── تكييف اللون بناءً على الاختيار والوضع الليلي ───
+          color: isSelected
+              ? context.theme.primaryColor.withOpacity(0.1)
+              : context.theme.cardColor,
           border: Border.all(
-              color: isSelected ? const Color(0xFF1976D2) : Colors.grey.shade300,
+              color: isSelected ? context.theme.primaryColor : context.theme.dividerColor,
               width: isSelected ? 2 : 1
           ),
           borderRadius: BorderRadius.circular(16),
@@ -39,13 +43,19 @@ class PaymentMethodCard extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(title, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: isSelected ? const Color(0xFF1976D2) : Colors.black87)),
+                  Text(title,
+                      style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: isSelected ? context.theme.primaryColor : context.textTheme.bodyLarge?.color
+                      )
+                  ),
                   const SizedBox(height: 6),
-                  Text(subtitle, style: TextStyle(fontSize: 14, color: Colors.grey.shade500)),
+                  Text(subtitle, style: TextStyle(fontSize: 14, color: context.textTheme.bodyMedium?.color)),
                 ],
               ),
             ),
-            ?trailingWidget,
+            if (trailingWidget != null) trailingWidget!,
           ],
         ),
       ),
@@ -77,19 +87,23 @@ class PaymentOptionCard extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: context.theme.cardColor,
           border: Border.all(
-              color: isSelected ? const Color(0xFF1976D2) : Colors.grey.shade300,
+              color: isSelected ? context.theme.primaryColor : context.theme.dividerColor,
               width: isSelected ? 2 : 1
           ),
           borderRadius: BorderRadius.circular(12),
         ),
         child: Row(
           children: [
-            Icon(isSelected ? Icons.radio_button_checked : Icons.radio_button_unchecked, color: isSelected ? const Color(0xFF1976D2) : Colors.grey.shade400, size: 24),
+            Icon(
+                isSelected ? Icons.radio_button_checked : Icons.radio_button_unchecked,
+                color: isSelected ? context.theme.primaryColor : context.theme.dividerColor,
+                size: 24
+            ),
             const SizedBox(width: 16),
-            Expanded(child: Text(title, style: const TextStyle(fontSize: 16, color: Colors.black87, fontWeight: FontWeight.w500))),
-            ?trailingWidget,
+            Expanded(child: Text(title, style: TextStyle(fontSize: 16, color: context.textTheme.bodyLarge?.color, fontWeight: FontWeight.w500))),
+            if (trailingWidget != null) trailingWidget!,
           ],
         ),
       ),
@@ -114,8 +128,20 @@ class PaymentSummaryRow extends StatelessWidget {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(label, style: TextStyle(color: isTotal ? Colors.black87 : Colors.grey.shade600, fontWeight: isTotal ? FontWeight.bold : FontWeight.w500, fontSize: isTotal ? 16 : 14)),
-        Text(value, style: TextStyle(color: isTotal ? const Color(0xFF1976D2) : Colors.black87, fontWeight: FontWeight.bold, fontSize: isTotal ? 18 : 15)),
+        Text(label,
+            style: TextStyle(
+                color: isTotal ? context.textTheme.bodyLarge?.color : context.textTheme.bodyMedium?.color,
+                fontWeight: isTotal ? FontWeight.bold : FontWeight.w500,
+                fontSize: isTotal ? 16 : 14
+            )
+        ),
+        Text(value,
+            style: TextStyle(
+                color: isTotal ? context.theme.primaryColor : context.textTheme.bodyLarge?.color,
+                fontWeight: FontWeight.bold,
+                fontSize: isTotal ? 18 : 15
+            )
+        ),
       ],
     );
   }
@@ -138,14 +164,10 @@ class InvoiceRow extends StatelessWidget {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(
-            label,
-            style: TextStyle(color: Colors.grey.shade600, fontSize: 14)
-        ),
-        Text(
-            value,
+        Text(label, style: TextStyle(color: context.textTheme.bodyMedium?.color, fontSize: 14)),
+        Text(value,
             style: TextStyle(
-                color: Colors.black87,
+                color: context.textTheme.bodyLarge?.color,
                 fontWeight: isBold ? FontWeight.bold : FontWeight.w500,
                 fontSize: 14
             )

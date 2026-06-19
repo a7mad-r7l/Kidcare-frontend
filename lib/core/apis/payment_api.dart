@@ -4,6 +4,7 @@ import 'package:get/get.dart';
 import '../constants.dart';
 
 class PaymentApi {
+
   // 1.   تفاصيل الموعد
   Future<String> getAppointmentSummary(
     String token,

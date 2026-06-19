@@ -12,6 +12,9 @@ android {
     ndkVersion = "28.2.13676358"
 
     compileOptions {
+        // 🌟 الخطوة 1: تفعيل ميزة فك التضارب للمكتبات الأساسية لحل مشكلة الإشعارات
+        isCoreLibraryDesugaringEnabled = true
+
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
@@ -25,7 +28,7 @@ android {
         applicationId = "com.example.kidcare_app"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
-        minSdk = flutter.minSdkVersion
+        minSdk = 24 // تحديد الحد الأدنى الصريح ليتوافق مع مكتبة الإشعارات الحديثة
         targetSdk = 36
         versionCode = flutter.versionCode
         versionName = flutter.versionName
@@ -42,4 +45,9 @@ android {
 
 flutter {
     source = "../.."
+}
+
+// 🌟 الخطوة 2: إضافة قسم الـ dependencies المفقود في أسفل الملف وحقن حزمة جوجل لحل المشكلة
+dependencies {
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.3")
 }

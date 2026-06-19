@@ -3,19 +3,48 @@ import '../../apis/appointment/doctor_api.dart';
 import '../../helper/secure_storage_service.dart';
 import '../../../models/appointment/doctor_model.dart';
 import '../../../models/appointment/doctor_availability_model.dart';
+import '../../../models/appointment/closest_appointment_model.dart';
 
 class DoctorRepo {
   final DoctorApi _api;
 
   DoctorRepo({DoctorApi? api}) : _api = api ?? DoctorApi();
 
+  Future<List<ClosestAppointmentModel>> fetchClosestAppointments(int departmentId) async {
+    final token = await SecureStorage.getToken();
+    final response = await _api.getClosestAppointments(token, departmentId);
+    final decoded = jsonDecode(response);
+
+    if (decoded is Map && decoded['status'] == 'success') {
+      final List data = decoded['data'] ?? [];
+      return data.map((e) => ClosestAppointmentModel.fromJson(e as Map<String, dynamic>)).toList();
+    }
+
+    final msg = (decoded is Map && decoded['message'] != null)
+        ? decoded['message'].toString()
+        : 'Failed to load closest appointments';
+    throw Exception(msg);
+  }
+
   Future<List<DoctorModel>> fetchByDepartment(int departmentId) async {
     final token = await SecureStorage.getToken();
     final response = await _api.getByDepartment(token, departmentId);
     final decoded = jsonDecode(response);
 
+    // 🌟 تحصين دفاعي: استخراج المصفوفة بأمان سواء أتت خام أو مغلفة بداخل مفتاح بسبب اللغات
+    List<dynamic> listToMap = [];
     if (decoded is List) {
-      return decoded
+      listToMap = decoded;
+    } else if (decoded is Map) {
+      if (decoded['doctors'] is List) {
+        listToMap = decoded['doctors'];
+      } else if (decoded['data'] is List) {
+        listToMap = decoded['data'];
+      }
+    }
+
+    if (listToMap.isNotEmpty || (decoded is Map && decoded['status'] == 'success')) {
+      return listToMap
           .map((j) => DoctorModel.fromJson(j as Map<String, dynamic>))
           .toList();
     }
@@ -35,7 +64,7 @@ class DoctorRepo {
       final raw = decoded['data'] is Map<String, dynamic>
           ? decoded['data'] as Map<String, dynamic>
           : decoded;
-      if (raw['id'] != null) return DoctorModel.fromJson(raw);
+      return DoctorModel.fromJson(raw);
     }
 
     final msg = (decoded is Map && decoded['message'] != null)
@@ -44,30 +73,27 @@ class DoctorRepo {
     throw Exception(msg);
   }
 
-  Future<List<DoctorAvailabilityModel>> fetchWeeklyAvailability(
-    int doctorId,
-  ) async {
+  Future<List<DoctorAvailabilityModel>> fetchWeeklyAvailability(int doctorId) async {
     final token = await SecureStorage.getToken();
     final response = await _api.getAvailabilities(token, doctorId);
     final decoded = jsonDecode(response);
 
+    List<dynamic> listToMap = [];
     if (decoded is List) {
-      return decoded
-          .map(
-            (j) =>
-                DoctorAvailabilityModel.fromJson(j as Map<String, dynamic>),
-          )
-          .toList();
+      listToMap = decoded;
+    } else if (decoded is Map) {
+      if (decoded['availabilities'] is List) {
+        listToMap = decoded['availabilities'];
+      } else if (decoded['data'] is List) {
+        listToMap = decoded['data'];
+      }
     }
 
-    final msg = (decoded is Map && decoded['message'] != null)
-        ? decoded['message'].toString()
-        : 'Failed to load availability';
-    throw Exception(msg);
+    return listToMap
+        .map((j) => DoctorAvailabilityModel.fromJson(j as Map<String, dynamic>))
+        .toList();
   }
 
-  /// Returns the list of available time slots for a doctor on a given date.
-  /// An empty list is a valid result (backend returns `times: []`) — not an error.
   Future<List<String>> fetchSlots(int doctorId, String date) async {
     final token = await SecureStorage.getToken();
     final response = await _api.getAvailableTimes(token, doctorId, date);
@@ -78,10 +104,11 @@ class DoctorRepo {
         (decoded['times'] as List).map((e) => e.toString()),
       );
     }
-
-    final msg = (decoded is Map && decoded['message'] != null)
-        ? decoded['message'].toString()
-        : 'Failed to load available times';
-    throw Exception(msg);
+    if (decoded is Map && decoded['data'] is Map && decoded['data']['times'] is List) {
+      return List<String>.from(
+        (decoded['data']['times'] as List).map((e) => e.toString()),
+      );
+    }
+    return [];
   }
 }

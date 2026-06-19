@@ -4,29 +4,22 @@ import 'package:skeletonizer/skeletonizer.dart';
 
 import '../../controllers/appointment/appointment_controller.dart';
 import '../../controllers/appointment/doctor_controller.dart';
-import '../../core/booking_theme.dart';
 import '../../models/appointment/doctor_model.dart';
 import '../../widgets/booking_app_bar.dart';
 
+// 🌟 المعطيات المزيفة
 final _fakeDoctors = List<DoctorModel>.generate(
   5,
-      (i) => DoctorModel(
+  (i) => DoctorModel(
     id: -i - 1,
-    departmentId: -1,
     firstName: 'Doctor',
     lastName: 'Loading',
     email: '',
     address: '',
-    rating: 4.5,
+    departmentName: 'Loading...',
+    isFavorite: false,
   ),
 );
-
-const _kPrimary = kBookingPrimary;
-const _kBackground = kBookingBackground;
-const _kTextPrimary = kBookingTextPrimary;
-const _kTextSecondary = kBookingTextSecondary;
-const _kBorder = kBookingBorder;
-const _kAvatarTint = kBookingAvatarTint;
 
 class ChooseDoctorView extends StatefulWidget {
   const ChooseDoctorView({super.key});
@@ -37,10 +30,10 @@ class ChooseDoctorView extends StatefulWidget {
 
 class _ChooseDoctorViewState extends State<ChooseDoctorView> {
   final DoctorController doctorController = Get.find<DoctorController>();
-  final AppointmentController appointmentController = Get.find<AppointmentController>();
+  final AppointmentController appointmentController =
+      Get.find<AppointmentController>();
 
   int? selectedDoctorId;
-
 
   late final int departmentId;
   late final String specialty;
@@ -49,11 +42,9 @@ class _ChooseDoctorViewState extends State<ChooseDoctorView> {
   void initState() {
     super.initState();
 
-
     final args = Get.arguments as Map<String, dynamic>?;
     departmentId = args?['departmentId'] ?? 1;
     specialty = args?['specialty'] ?? 'General Pediatrics';
-
 
     doctorController.loadDoctors(departmentId);
   }
@@ -71,16 +62,16 @@ class _ChooseDoctorViewState extends State<ChooseDoctorView> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: _kBackground,
-
-      appBar: bookingAppBar(subtitle: '${'Choose Doctor'.tr} - $specialty'),
+      // ❌ تم إزالة backgroundColor ليقرأ خلفية النظام تلقائياً
+      appBar: bookingAppBar(
+        subtitle: '${'Choose Doctor'.tr} - ${specialty.tr}',
+      ),
       body: SafeArea(
         child: Column(
           children: [
-
             const SizedBox(height: 16),
             Expanded(child: _buildDoctorList()),
-            _buildNextButton(),
+            _buildNextButton(context),
           ],
         ),
       ),
@@ -99,7 +90,11 @@ class _ChooseDoctorViewState extends State<ChooseDoctorView> {
             child: Text(
               'No doctors available in this department.'.tr,
               textAlign: TextAlign.center,
-              style: const TextStyle(color: _kTextSecondary, fontSize: 14),
+              // ─── لون النص متكيف ───
+              style: TextStyle(
+                color: context.textTheme.bodyMedium?.color,
+                fontSize: 14,
+              ),
             ),
           ),
         );
@@ -113,9 +108,8 @@ class _ChooseDoctorViewState extends State<ChooseDoctorView> {
           itemBuilder: (context, index) {
             final doctor = doctors[index];
 
-
             return Obx(
-                  () => _DoctorCard(
+              () => _DoctorCard(
                 doctor: doctor,
                 specialty: specialty,
                 isSelected: selectedDoctorId == doctor.id,
@@ -132,7 +126,7 @@ class _ChooseDoctorViewState extends State<ChooseDoctorView> {
     });
   }
 
-  Widget _buildNextButton() {
+  Widget _buildNextButton(BuildContext context) {
     final enabled = selectedDoctorId != null;
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
@@ -141,8 +135,11 @@ class _ChooseDoctorViewState extends State<ChooseDoctorView> {
         height: 54,
         child: ElevatedButton(
           style: ElevatedButton.styleFrom(
-            backgroundColor: _kPrimary,
-            disabledBackgroundColor: _kPrimary.withValues(alpha: 0.4),
+            // ─── استخدام اللون الأساسي من السمة ───
+            backgroundColor: context.theme.primaryColor,
+            disabledBackgroundColor: context.theme.primaryColor.withValues(
+              alpha: 0.4,
+            ),
             elevation: 0,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(16),
@@ -189,15 +186,20 @@ class _DoctorCard extends StatelessWidget {
         margin: const EdgeInsets.only(bottom: 12),
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: Colors.white,
+          // ─── خلفية البطاقة متكيفة ───
+          color: context.theme.cardColor,
           borderRadius: BorderRadius.circular(18),
           border: Border.all(
-            color: isSelected ? _kPrimary : Colors.transparent,
+            // ─── لون الإطار متكيف عند التحديد ───
+            color: isSelected ? context.theme.primaryColor : Colors.transparent,
             width: 2,
           ),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: isSelected ? 0.06 : 0.04),
+              // ─── إخفاء الظل في الوضع الليلي ───
+              color: context.isDarkMode
+                  ? Colors.transparent
+                  : Colors.black.withValues(alpha: isSelected ? 0.06 : 0.04),
               blurRadius: 12,
               offset: const Offset(0, 4),
             ),
@@ -213,62 +215,38 @@ class _DoctorCard extends StatelessWidget {
                 children: [
                   Text(
                     doctor.fullName,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 15,
                       fontWeight: FontWeight.w700,
-                      color: _kTextPrimary,
+                      // ─── نص الاسم متكيف ───
+                      color: context.textTheme.bodyLarge?.color,
                     ),
                   ),
-                  if (specialty.isNotEmpty) ...[
-                    const SizedBox(height: 3),
-                    Text(
-                      '$specialty ${'Specialist'.tr}',
-                      style: const TextStyle(
-                        fontSize: 12.5,
-                        color: _kTextSecondary,
-                      ),
+                  const SizedBox(height: 3),
+                  Text(
+                    (doctor.departmentName != null &&
+                            doctor.departmentName!.isNotEmpty)
+                        ? doctor.departmentName!.tr
+                        : '$specialty ${'Specialist'.tr}',
+                    style: TextStyle(
+                      fontSize: 12.5,
+                      // ─── نص التخصص متكيف ───
+                      color: context.textTheme.bodyMedium?.color,
                     ),
-                  ],
-                  if (doctor.rating != null) ...[
-                    const SizedBox(height: 8),
-                    Row(
-                      children: [
-                        const Icon(
-                          Icons.star_rounded,
-                          color: Color(0xFFFBBF24),
-                          size: 16,
-                        ),
-                        const SizedBox(width: 3),
-                        Text(
-                          doctor.rating!.toStringAsFixed(1),
-                          style: const TextStyle(
-                            fontSize: 12.5,
-                            fontWeight: FontWeight.w700,
-                            color: _kTextPrimary,
-                          ),
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          'rating'.tr,
-                          style: const TextStyle(
-                            fontSize: 12,
-                            color: _kTextSecondary,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
+                  ),
                 ],
               ),
             ),
-
             GestureDetector(
               onTap: onFavoriteTap,
               child: Padding(
                 padding: const EdgeInsets.all(8.0),
                 child: Icon(
                   isFavorite ? Icons.favorite : Icons.favorite_border,
-                  color: isFavorite ? Colors.redAccent : Colors.grey.shade400,
+                  // ─── لون أيقونة المفضلة متكيف (أحمر للمفضلة، ورمادي/داكن لغير المفضلة) ───
+                  color: isFavorite
+                      ? Colors.redAccent
+                      : context.theme.dividerColor,
                   size: 24,
                 ),
               ),
@@ -292,17 +270,20 @@ class _Avatar extends StatelessWidget {
     return Container(
       width: 56,
       height: 56,
-      decoration: const BoxDecoration(
-        color: _kAvatarTint,
+      decoration: BoxDecoration(
+        // ─── لون خلفية الأفاتار متكيف (شفاف وأزرق ليلاً، باستيل أزرق نهاراً) ───
+        color: context.isDarkMode
+            ? Colors.blue.withOpacity(0.15)
+            : const Color(0xFFE3F2FD),
         shape: BoxShape.circle,
       ),
       clipBehavior: Clip.antiAlias,
-      child: url != null
+      child: url != null && url!.isNotEmpty
           ? Image.network(
-        url!,
-        fit: BoxFit.cover,
-        errorBuilder: (_, _, _) => const _FallbackPersonIcon(),
-      )
+              url!,
+              fit: BoxFit.cover,
+              errorBuilder: (_, _, _) => const _FallbackPersonIcon(),
+            )
           : const _FallbackPersonIcon(),
     );
   }
@@ -313,8 +294,13 @@ class _FallbackPersonIcon extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Center(
-      child: Icon(Icons.person_rounded, color: _kPrimary, size: 30),
+    return Center(
+      // ─── لون الأيقونة البديلة متكيف ───
+      child: Icon(
+        Icons.person_rounded,
+        color: context.theme.primaryColor,
+        size: 30,
+      ),
     );
   }
 }
@@ -331,9 +317,15 @@ class _SelectionDot extends StatelessWidget {
       width: 24,
       height: 24,
       decoration: BoxDecoration(
-        color: selected ? _kPrimary : Colors.transparent,
+        color: selected ? context.theme.primaryColor : Colors.transparent,
         shape: BoxShape.circle,
-        border: Border.all(color: selected ? _kPrimary : _kBorder, width: 1.5),
+        // ─── إطار الدائرة متكيف ───
+        border: Border.all(
+          color: selected
+              ? context.theme.primaryColor
+              : context.theme.dividerColor,
+          width: 1.5,
+        ),
       ),
       child: selected
           ? const Icon(Icons.check_rounded, color: Colors.white, size: 16)

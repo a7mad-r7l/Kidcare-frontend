@@ -22,6 +22,7 @@ class AppointmentsRepo {
     return list.map((e) => AppointmentsModel.fromJson(e)).toList();
   }
 
+
   Future<List<AppointmentsModel>> getAllUpcoming() async {
     final response = await _api.getAllUpcoming();
     return _parseResponse(response);

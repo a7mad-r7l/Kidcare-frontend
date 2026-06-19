@@ -13,19 +13,19 @@ class PaymentMethodView extends GetView<PaymentController> {
     controller.selectedPaymentMethod.value = 2;
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      // ❌ تم إزالة backgroundColor ليقرأ خلفية النظام تلقائياً
       appBar: AppBar(
         title: Text(
           'Finalize Appointment'.tr,
           style: TextStyle(
-            color: Colors.black87,
+            color: context.textTheme.bodyLarge?.color, // ─── نص متكيف ───
             fontWeight: FontWeight.bold,
             fontSize: 20,
           ),
         ),
         backgroundColor: Colors.transparent,
         elevation: 0,
-        iconTheme: const IconThemeData(color: Colors.black87),
+        iconTheme: IconThemeData(color: context.iconColor), // ─── أيقونة متكيفة ───
         centerTitle: true,
       ),
       body: Padding(
@@ -47,12 +47,10 @@ class PaymentMethodView extends GetView<PaymentController> {
               subtitle: 'Pay online to confirm booking'.tr,
               value: 2,
               groupValue: 2,
-
               onTap: () {},
-
-              trailingWidget: const Icon(
+              trailingWidget: Icon(
                 Icons.credit_card_outlined,
-                color: Color(0xFF1976D2),
+                color: context.theme.primaryColor, // ─── لون الأيقونة متكيف ───
                 size: 32,
               ),
             ),
@@ -64,7 +62,7 @@ class PaymentMethodView extends GetView<PaymentController> {
               height: 55,
               child: ElevatedButton(
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF1976D2),
+                  backgroundColor: context.theme.primaryColor, // ─── اللون الأساسي للزر متكيف ───
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
@@ -73,9 +71,9 @@ class PaymentMethodView extends GetView<PaymentController> {
                 onPressed: controller.proceedToCheckout,
                 child: Text(
                   'Confirm & Proceed'.tr,
-                  style: TextStyle(
+                  style: const TextStyle(
                     fontSize: 18,
-                    color: Colors.white,
+                    color: Colors.white, // يبقى أبيض ليكون بارزاً داخل الزر الأساسي
                     fontWeight: FontWeight.bold,
                   ),
                 ),

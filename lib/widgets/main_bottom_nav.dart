@@ -8,11 +8,7 @@ class MainBottomNav extends StatelessWidget {
 
   static const List<_NavItem> _items = [
     _NavItem(label: 'More', icon: Icons.more_horiz, route: '/more'),
-    _NavItem(
-      label: 'Records',
-      icon: Icons.folder_outlined,
-      route: '/records',
-    ),
+    _NavItem(label: 'Records', icon: Icons.folder_outlined, route: '/records'),
     _NavItem(label: 'Home', icon: Icons.home_rounded, route: '/home'),
   ];
 
@@ -21,13 +17,16 @@ class MainBottomNav extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
       decoration: BoxDecoration(
-        color: Colors.white,
+        // ─── لون الخلفية متكيف (ليلي/نهاري) ───
+        color: context.theme.cardColor,
         boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.06),
-            blurRadius: 10,
-            offset: const Offset(0, -2),
-          ),
+          // إخفاء الظل في الوضع الليلي لمظهر أنظف
+          if (!context.isDarkMode)
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.06),
+              blurRadius: 10,
+              offset: const Offset(0, -2),
+            ),
         ],
       ),
       child: Row(
@@ -35,6 +34,11 @@ class MainBottomNav extends StatelessWidget {
         children: _items.asMap().entries.map((entry) {
           final bool isSelected = entry.key == currentIndex;
           final item = entry.value;
+
+          // تحديد الألوان بناءً على الحالة والوضع الليلي
+          final Color activeColor = context.theme.primaryColor;
+          final Color inactiveColor = context.theme.dividerColor;
+
           return GestureDetector(
             onTap: () {
               if (isSelected) return;
@@ -45,9 +49,7 @@ class MainBottomNav extends StatelessWidget {
               children: [
                 Icon(
                   item.icon,
-                  color: isSelected
-                      ? const Color(0xFF3B9EFF)
-                      : Colors.grey.shade400,
+                  color: isSelected ? activeColor : inactiveColor,
                   size: 26,
                 ),
                 const SizedBox(height: 4),
@@ -55,12 +57,8 @@ class MainBottomNav extends StatelessWidget {
                   item.label.tr,
                   style: TextStyle(
                     fontSize: 11,
-                    color: isSelected
-                        ? const Color(0xFF3B9EFF)
-                        : Colors.grey.shade400,
-                    fontWeight: isSelected
-                        ? FontWeight.bold
-                        : FontWeight.normal,
+                    color: isSelected ? activeColor : inactiveColor,
+                    fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
                   ),
                 ),
               ],

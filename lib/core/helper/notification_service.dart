@@ -1,27 +1,43 @@
+import 'dart:developer';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
-import 'package:flutter/foundation.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:get/get.dart';
 import 'package:http/http.dart' as http;
-import '../helper/secure_storage_service.dart';
+import 'package:kidcare/core/helper/secure_storage_service.dart';
+
 import '../constants.dart';
 
-// 🌟 1.  الخلفية ( Top Level Function)
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
-  //  تهيئة فايربيس ً لأن التطبيق (Terminated)
   await Firebase.initializeApp();
-  debugPrint("Handling a background message: ${message.messageId}");
+  log("📩 إشعار جديد في الخلفية (Background/Terminated): ${message.messageId}");
 }
 
 class NotificationService {
   static final FirebaseMessaging _messaging = FirebaseMessaging.instance;
+  static final FlutterLocalNotificationsPlugin _localNotificationsPlugin =
+      FlutterLocalNotificationsPlugin();
+
+  static const AndroidNotificationChannel _appointmentsChannel =
+      AndroidNotificationChannel(
+        'appointments_channel', // channelId
+        'Appointments Notifications', // channelName
+        description: 'This channel is used for appointments updates.',
+        importance: Importance.max,
+        playSound: true,
+      );
+
+  static const AndroidNotificationChannel _chatChannel =
+      AndroidNotificationChannel(
+        'chat_channel', // channelId
+        'Chat Notifications', // channelName
+        description: 'This channel is used for direct doctor chats.',
+        importance: Importance.max,
+        playSound: true,
+      );
 
   static Future<void> initialize() async {
-    // 1.  الاستماع في الخلفية (Background & Terminated)
-    FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
-
-    // 2. طلب الصلاحيات من المستخدم
     NotificationSettings settings = await _messaging.requestPermission(
       alert: true,
       badge: true,
@@ -29,81 +45,141 @@ class NotificationService {
     );
 
     if (settings.authorizationStatus == AuthorizationStatus.authorized) {
-      debugPrint('🔔 Notification permission granted.');
-
-      // رفع التوكن الحالي
-      await uploadFcmToken();
-
-      //  3. تحديث التوكن التلقائي
-      _messaging.onTokenRefresh.listen((newToken) async {
-        debugPrint('🔄 FCM Token Refreshed: $newToken');
-        await uploadFcmToken(forcedToken: newToken);
-      });
+      log("🔔 تم منح صلاحيات الإشعارات بنجاح من قبل المستخدم.");
     }
 
-    // 4. حالة الـ Foreground (التطبيق مفتوح )
+    await _localNotificationsPlugin
+        .resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin
+        >()
+        ?.createNotificationChannel(_appointmentsChannel);
+
+    await _localNotificationsPlugin
+        .resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin
+        >()
+        ?.createNotificationChannel(_chatChannel);
+
+    const AndroidInitializationSettings initializationSettingsAndroid =
+        AndroidInitializationSettings('@mipmap/ic_launcher');
+    const InitializationSettings initializationSettings =
+        InitializationSettings(android: initializationSettingsAndroid);
+
+    await _localNotificationsPlugin.initialize(
+      initializationSettings,
+      onDidReceiveNotificationResponse: (NotificationResponse response) {
+        if (response.payload != null) {
+          _handleNotificationClick(response.payload!);
+        }
+      },
+    );
+
+    FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+
     FirebaseMessaging.onMessage.listen((RemoteMessage message) {
-      debugPrint('📩 Got a message while in the foreground!');
-      if (message.notification != null) {
-        Get.snackbar(
-          message.notification!.title ?? 'Notification'.tr,
-          message.notification!.body ?? '',
-          snackPosition: SnackPosition.TOP,
-          duration: const Duration(seconds: 4),
-        );
+      log("📥 استلام إشعار حي والتطبيق مفتوح: ${message.notification?.title}");
+      _showLocalNotification(message);
+    });
+
+    FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
+      log("🖱️ تم النقر على الإشعار والتطبيق بالخلفية: ${message.data}");
+      if (message.data.containsKey('type')) {
+        _handleNotificationClick(message.data['type'].toString());
       }
     });
 
-    // 5. حالة الـ Background (التطبيق في الخلفية )
-    FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
-      debugPrint('🔓 Notification clicked! Opened app from background.');
-      _handleNotificationClick(message);
-    });
-
-    //  6. حالة الـ Terminated (التطبيق كان مغلقاً تماماً )
     RemoteMessage? initialMessage = await _messaging.getInitialMessage();
-    if (initialMessage != null) {
-      debugPrint('🚀 App launched from terminated state via notification.');
-      _handleNotificationClick(initialMessage);
+    if (initialMessage != null && initialMessage.data.containsKey('type')) {
+      log("🚀 أقع التطبيق من الصفر بنقرة إشعار: ${initialMessage.data}");
+      _handleNotificationClick(initialMessage.data['type'].toString());
+    }
+
+    await _getAndPrintFCMToken();
+  }
+
+  static Future<void> _getAndPrintFCMToken() async {
+    try {
+      String? token = await _messaging.getToken();
+      if (token != null) {
+        log("🔑 🔑 🔑 MY DEVICE FCM TOKEN = $token");
+
+        // 🌟 إرسال التوكن إلى السيرفر
+        await _saveTokenToBackend(token);
+      }
+    } catch (e) {
+      log("❌ فشل توليد الـ FCM Token: $e");
     }
   }
 
-  //  توجيه المستخدم عند الضغط على الإشعار
-  static void _handleNotificationClick(RemoteMessage message) {
-    // يمكنك لاحقاً قراءة message.data لتوجيه المستخدم لشاشة معينة
-    // حالياً سنوجهه لشاشة المواعيد كافتراضي
-    Get.toNamed('/appointments');
-  }
-
-  //  رفع التوكن للباك إند
-  static Future<void> uploadFcmToken({String? forcedToken}) async {
+  static Future<void> _saveTokenToBackend(String fcmToken) async {
     try {
-      String? fcmToken = forcedToken ?? await _messaging.getToken();
-      debugPrint('🔑 🔑 🔑 MY DEVICE FCM TOKEN = $fcmToken');
-      if (fcmToken == null) return;
-
       String userToken = await SecureStorage.getToken();
+
       if (userToken.isEmpty) return;
 
       final response = await http.post(
-        Uri.parse('$baseUrl/user/update-fcm-token'),
+        Uri.parse('$baseUrl/parent/save-fcm-token'),
         headers: {
           'Accept': 'application/json',
           'Authorization': 'Bearer $userToken',
-          'Accept-Language': Get.locale?.languageCode ?? 'en',
         },
-        body: {
-          'fcm_token': fcmToken,
-        },
+        body: {'fcm_token': fcmToken},
       );
 
-      if (response.statusCode == 200 || response.statusCode == 201) {
-        debugPrint('✅ FCM Token synced with Laravel successfully.');
+      if (response.statusCode == 200) {
+        log("✅ تم حفظ الـ FCM Token في الباك إند بنجاح!");
       } else {
-        debugPrint('⚠️ Failed to sync FCM Token: ${response.body}');
+        log("⚠️ فشل حفظ التوكن في الباك إند: ${response.body}");
       }
     } catch (e) {
-      debugPrint('❌ Error syncing FCM Token: $e');
+      log("❌ خطأ أثناء إرسال التوكن للسيرفر: $e");
+    }
+  }
+
+  static void _showLocalNotification(RemoteMessage message) {
+    RemoteNotification? notification = message.notification;
+    AndroidNotification? android = message.notification?.android;
+
+    if (notification != null && android != null) {
+      String notificationType = message.data['type']?.toString() ?? 'general';
+      AndroidNotificationChannel targetChannel = _appointmentsChannel;
+
+      if (notificationType == 'chat') {
+        targetChannel = _chatChannel;
+      }
+
+      _localNotificationsPlugin.show(
+        notification.hashCode,
+        notification.title,
+        notification.body,
+        NotificationDetails(
+          android: AndroidNotificationDetails(
+            targetChannel.id,
+            targetChannel.name,
+            channelDescription: targetChannel.description,
+            importance: Importance.max,
+            priority: Priority.high,
+            icon: android.smallIcon,
+            playSound: true,
+          ),
+        ),
+        payload: notificationType,
+      );
+    }
+  }
+
+  static void _handleNotificationClick(String type) {
+    log("🔀 جاري توجيه المستخدم بناءً على نوع الإشعار: $type");
+
+    switch (type) {
+      case 'appointment_accepted':
+      case 'appointment_rejected':
+      case 'appointment_reminder':
+        Get.toNamed('/appointments');
+        break;
+      default:
+        Get.toNamed('/home');
+        break;
     }
   }
 }

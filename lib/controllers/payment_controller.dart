@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import 'package:flutter_stripe/flutter_stripe.dart';
 import '../core/repos/payment_repo.dart';
 import '../../models/appointment_details_model.dart';
+import 'home/appointments_controller.dart';
 
 class PaymentController extends GetxController {
   final PaymentRepo repo = PaymentRepo();
@@ -23,7 +24,6 @@ class PaymentController extends GetxController {
   void onInit() {
     super.onInit();
     currentAppointmentId = Get.arguments?.toString() ?? '1';
-
 
     loadAppointmentDetails(currentAppointmentId);
   }
@@ -93,8 +93,25 @@ class PaymentController extends GetxController {
     try {
       await Stripe.instance.presentPaymentSheet();
       isLoading.value = false;
-      Get.offAllNamed('/payment-success', arguments:{ 'summary': appointmentSummary.value,
-        'transaction_id': transactionId.value,});
+
+      // ----------------------------------------------------------------------
+      // 1. إعطاء مهلة للباك إند (Laravel) لتحديث حالة الموعد في قاعدة البيانات
+      await Future.delayed(const Duration(seconds: 2));
+
+      // 2. معالجة تحديث واجهة المواعيد بشكل آمن
+      if (Get.isRegistered<AppointmentsController>()) {
+        Get.find<AppointmentsController>().fetchUpcoming();
+      } else {
+        // إذا كان التنقل قد مسح الكنترولر، نجبر GetX على نسيانه ليبنيه من جديد عند العودة للشاشة
+        Get.delete<AppointmentsController>(force: true);
+      }
+      // ----------------------------------------------------------------------
+
+      Get.offAllNamed('/payment-success', arguments:{
+        'summary': appointmentSummary.value,
+        'transaction_id': transactionId.value,
+      });
+
     } on StripeException catch (e) {
       isLoading.value = false;
       Get.snackbar('Payment Cancelled'.tr, e.error.message ?? 'User cancelled the payment'.tr);

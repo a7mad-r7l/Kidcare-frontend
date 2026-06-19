@@ -6,6 +6,19 @@ import '../../constants.dart';
 class DoctorApi {
   final http.Client client = http.Client();
 
+  // أضف هذه الدالة داخل كلاس DoctorApi
+  Future<String> getClosestAppointments(String token, int departmentId) async {
+    final response = await client.get(
+      Uri.parse('$baseUrl/departments/$departmentId/closest-appointments'),
+      headers: {
+        'Accept': 'application/json',
+        'Authorization': 'Bearer $token',
+        "Accept-Language": Get.locale?.languageCode ?? "en",
+      },
+    );
+    return response.body;
+  }
+
   Future<String> getByDepartment(String token, int departmentId) async {
     final response = await client.get(
       Uri.parse('$baseUrl/departments/$departmentId/doctors'),

@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../controllers/settings_controller.dart';
 
-
 import '../../widgets/settings/settings_section.dart';
 import '../../widgets/settings/settings_tile.dart';
 
@@ -14,20 +13,20 @@ class SettingsView extends StatelessWidget {
     final controller = Get.put(SettingsController());
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F9FD),
+      // ❌ تم إزالة backgroundColor ليقرأ خلفية النظام التلقائية (بيضاء/داكنة)
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
         centerTitle: true,
         title: Text(
           'settings'.tr,
-          style: const TextStyle(
-            color: Color(0xFF1D2755),
+          style: TextStyle(
+            color: context.textTheme.bodyLarge?.color, // ─── لون النص متكيف ───
             fontWeight: FontWeight.bold,
           ),
         ),
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios, color: Colors.blue),
+          icon: Icon(Icons.arrow_back_ios, color: context.iconColor), // ─── أيقونة متكيفة ───
           onPressed: () => Get.back(),
         ),
       ),
@@ -41,7 +40,7 @@ class SettingsView extends StatelessWidget {
               title: 'preferences'.tr,
               children: [
                 Obx(
-                  () => SettingsTile(
+                      () => SettingsTile(
                     icon: Icons.language,
                     title: 'language'.tr,
                     subtitle: controller.currentLanguage.value == 'ar'
@@ -50,12 +49,14 @@ class SettingsView extends StatelessWidget {
                     onTap: () => _showLanguageBottomSheet(context, controller),
                   ),
                 ),
-                SettingsTile(
+                Obx(() => SettingsTile(
                   icon: Icons.dark_mode_outlined,
                   title: 'theme'.tr,
-                  subtitle: 'light_mode'.tr,
-                  onTap: () {},
-                ),
+                  subtitle: controller.isDarkMode.value ? 'Dark Mode' : 'Light Mode',
+                  onTap: () {
+                    controller.toggleTheme();
+                  },
+                )),
                 SettingsTile(
                   icon: Icons.favorite_border_rounded,
                   title: 'favorite_doctors'.tr,
@@ -108,15 +109,16 @@ class SettingsView extends StatelessWidget {
   }
 
   void _showLanguageBottomSheet(
-    BuildContext context,
-    SettingsController controller,
-  ) {
+      BuildContext context,
+      SettingsController controller,
+      ) {
     Get.bottomSheet(
       Container(
         padding: const EdgeInsets.all(20),
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
+        decoration: BoxDecoration(
+          // ─── لون خلفية النافذة المنبثقة متكيف ───
+          color: context.theme.cardColor,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(25)),
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -124,16 +126,17 @@ class SettingsView extends StatelessWidget {
           children: [
             Text(
               'change_language'.tr,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
-                color: Color(0xFF1D2755),
+                // ─── لون العنوان متكيف ───
+                color: context.textTheme.bodyLarge?.color,
               ),
             ),
             const SizedBox(height: 20),
 
             Obx(
-              () => RadioGroup<String>(
+                  () => RadioGroup<String>(
                 groupValue: controller.currentLanguage.value,
                 onChanged: (value) {
                   if (value != null) {
@@ -144,28 +147,38 @@ class SettingsView extends StatelessWidget {
                 child: Column(
                   children: [
                     RadioListTile<String>(
-                      title: const Text(
+                      title: Text(
                         'English',
-                        style: TextStyle(fontWeight: FontWeight.w600),
+                        style: TextStyle(
+                          fontWeight: FontWeight.w600,
+                          // ─── لون الخيار متكيف ───
+                          color: context.textTheme.bodyLarge?.color,
+                        ),
                       ),
                       value: 'en',
-                      activeColor: Colors.blue,
+                      activeColor: context.theme.primaryColor, // ─── لون التحديد متكيف ───
                     ),
                     RadioListTile<String>(
-                      title: const Text(
+                      title: Text(
                         'العربية',
-                        style: TextStyle(fontWeight: FontWeight.w600),
+                        style: TextStyle(
+                          fontWeight: FontWeight.w600,
+                          color: context.textTheme.bodyLarge?.color,
+                        ),
                       ),
                       value: 'ar',
-                      activeColor: Colors.blue,
+                      activeColor: context.theme.primaryColor,
                     ),
                     RadioListTile<String>(
-                      title: const Text(
+                      title: Text(
                         'System Default (لغة النظام)',
-                        style: TextStyle(fontWeight: FontWeight.w600),
+                        style: TextStyle(
+                          fontWeight: FontWeight.w600,
+                          color: context.textTheme.bodyLarge?.color,
+                        ),
                       ),
                       value: 'system',
-                      activeColor: Colors.blue,
+                      activeColor: context.theme.primaryColor,
                     ),
                   ],
                 ),

@@ -35,16 +35,23 @@ class CustomTextField extends StatelessWidget {
     final bool hasLabel = label != null;
     final isRtl = Get.locale?.languageCode == 'ar';
 
+    // ─── استخراج الثيم المحلي بدلاً من الجلوبال ───
+    final theme = Theme.of(context);
+
     return TextField(
       controller: controller,
       obscureText: isPassword,
       keyboardType: keyboardType,
       textAlign: isRtl ? TextAlign.right : TextAlign.left,
       textDirection: isRtl ? TextDirection.rtl : TextDirection.ltr,
+
+      // ─── ضبط لون النص المكتوب ───
+      style: TextStyle(color: theme.textTheme.bodyLarge?.color),
       decoration: InputDecoration(
         hintText: hintText,
         hintStyle: TextStyle(
-          color: Colors.grey.shade400,
+          // ─── ضبط لون التلميح (Hint) ───
+          color: theme.textTheme.bodyMedium?.color ?? theme.hintColor,
           fontSize: 13,
         ),
 
@@ -63,7 +70,8 @@ class CustomTextField extends StatelessWidget {
               if (labelIcon != null) ...[
                 Icon(
                   labelIcon,
-                  color: Colors.grey.shade500,
+                  // ─── ضبط لون أيقونة الـ Label ───
+                  color: theme.iconTheme.color,
                   size: 20,
                 ),
                 const SizedBox(width: 8),
@@ -72,10 +80,11 @@ class CustomTextField extends StatelessWidget {
               Text(
                 label!,
                 textAlign: TextAlign.left,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
-                  color: Colors.black87,
+                  // ─── ضبط لون نص الـ Label ───
+                  color: theme.textTheme.bodyLarge?.color,
                 ),
               ),
 
@@ -89,7 +98,8 @@ class CustomTextField extends StatelessWidget {
         suffixIcon: suffixIcon,
 
         filled: true,
-        fillColor: Colors.white,
+        // ─── قراءة لون الخلفية من الثيم المحلي ───
+        fillColor: theme.scaffoldBackgroundColor,
 
         contentPadding: const EdgeInsets.symmetric(
           horizontal: 16,
@@ -99,21 +109,24 @@ class CustomTextField extends StatelessWidget {
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide(
-            color: Colors.grey.shade300,
+            // ─── ضبط لون الإطار الطبيعي ───
+            color: theme.dividerColor,
           ),
         ),
 
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide(
-            color: Colors.grey.shade300,
+            // ─── ضبط لون الإطار المفعل ───
+            color: theme.dividerColor,
           ),
         ),
 
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(
-            color: Colors.blue,
+          borderSide: BorderSide(
+            // ─── ضبط لون الإطار عند التركيز (Focus) ───
+            color: theme.primaryColor,
             width: 2,
           ),
         ),
@@ -139,7 +152,8 @@ class PrimaryButton extends StatelessWidget {
       height: 54,
       child: ElevatedButton(
         style: ElevatedButton.styleFrom(
-          backgroundColor: Colors.blue,
+          // ─── استخدام اللون الأساسي من الثيم المحلي ───
+          backgroundColor: Theme.of(context).primaryColor,
           elevation: 0,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(14),
@@ -171,13 +185,15 @@ class OutlinedPrimaryButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return SizedBox(
       width: double.infinity,
       height: 54,
       child: OutlinedButton(
         style: OutlinedButton.styleFrom(
-          foregroundColor: Colors.blue,
-          side: const BorderSide(color: Colors.blue),
+          // ─── استخدام اللون الأساسي من الثيم المحلي ───
+          foregroundColor: theme.primaryColor,
+          side: BorderSide(color: theme.primaryColor),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(14),
           ),
@@ -229,14 +245,18 @@ class _OtpBoxState extends State<OtpBox> {
   @override
   Widget build(BuildContext context) {
     final isFocused = widget.focusNode.hasFocus;
+    final theme = Theme.of(context);
+
     return Container(
       width: 64,
       height: 64,
       decoration: BoxDecoration(
-        color: Colors.white,
+        // ─── قراءة لون الصندوق المتكيف من الثيم المحلي ───
+        color: theme.scaffoldBackgroundColor,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: isFocused ? Colors.blue : Colors.grey.shade300,
+          // ─── استخدام ألوان الثيم المحلي لتبديل الإطار عند التركيز ───
+          color: isFocused ? theme.primaryColor : theme.dividerColor,
           width: isFocused ? 2 : 1,
         ),
       ),
@@ -247,10 +267,11 @@ class _OtpBoxState extends State<OtpBox> {
         keyboardType: TextInputType.number,
         maxLength: 1,
         inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-        style: const TextStyle(
+        style: TextStyle(
           fontSize: 24,
           fontWeight: FontWeight.bold,
-          color: Colors.black87,
+          // ─── لون الرقم المدخل يتكيف مع الثيم المحلي ───
+          color: theme.textTheme.bodyLarge?.color,
         ),
         decoration: const InputDecoration(
           counterText: '',

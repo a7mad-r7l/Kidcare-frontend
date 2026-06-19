@@ -1,7 +1,10 @@
 import 'dart:convert';
 
 
+import 'package:http/http.dart' as http;
+
 import '../../apis/appointment/appointment_api.dart';
+import '../../constants.dart';
 import '../../helper/secure_storage_service.dart';
 import '../../../models/appointment/appointment_model.dart';
 
@@ -41,6 +44,32 @@ class AppointmentRepo {
 
 
     throw Exception(_errorMessage(decoded, 'Failed to book appointment'));
+  }
+// دالة مخصصة لضرب مسار الـ POST الخاص بالحجز السريع
+  Future<String> bookQuickAppointmentApi(int doctorId, int childId, String date, String time) async {
+    final token = await SecureStorage.getToken();
+    final response = await http.post(
+      Uri.parse('$baseUrl/appointment'), // مسار الـ POST الذي جربته في Postman
+      headers: {
+        'Accept': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+      body: {
+        'doctor_id': doctorId.toString(),
+        'child_id': childId.toString(),
+        'date': date,
+        'time': time,
+      },
+    );
+
+    final data = jsonDecode(response.body);
+
+    // 201 Created تعني نجاح الحجز كما ظهر معك في Postman
+    if (response.statusCode == 201 && data['status'] == 'success') {
+      return data['appointment_id']; // إرجاع الـ UUID الخاص بالموعد
+    } else {
+      throw Exception(data['message'] ?? 'Failed to book appointment');
+    }
   }
 
   Future<List<AppointmentModel>> listAll() => _fetchList(_api.listAll);

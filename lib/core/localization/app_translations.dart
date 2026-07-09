@@ -60,12 +60,14 @@ class AppTranslations extends Translations {
       'Our Mission': 'Our Mission',
       'Key Features': 'Key Features',
       'Version 1.0.0': 'Version 1.0.0',
-      'app_vision_desc': 'We aim to redefine pediatric healthcare by providing a seamless, integrated digital environment that bridges the gap between parents and specialized doctors, putting your child\'s health and comfort first.',
+      'app_vision_desc':
+          'We aim to redefine pediatric healthcare by providing a seamless, integrated digital environment that bridges the gap between parents and specialized doctors, putting your child\'s health and comfort first.',
 
-      'app_mission_desc': 'Empowering parents through a unified platform that allows them to easily create and manage medical profiles for all their children, book appointments with complete flexibility, and track health records safely and reliably anytime, anywhere.',
+      'app_mission_desc':
+          'Empowering parents through a unified platform that allows them to easily create and manage medical profiles for all their children, book appointments with complete flexibility, and track health records safely and reliably anytime, anywhere.',
 
-      'app_features_desc': '• Comprehensive Family Management: A main account with separate profiles for each child.\n• Smart & Fast Booking: Schedule medical appointments with a single click.\n• Real-Time Tracking: Monitor appointment status (Confirmed, Pending, Cancelled).\n• Secure Digital Payment: Multiple and reliable electronic payment options.\n• Eye-Friendly Design: Interfaces supporting both Dark and Light modes for the best user experience.',
-
+      'app_features_desc':
+          '• Comprehensive Family Management: A main account with separate profiles for each child.\n• Smart & Fast Booking: Schedule medical appointments with a single click.\n• Real-Time Tracking: Monitor appointment status (Confirmed, Pending, Cancelled).\n• Secure Digital Payment: Multiple and reliable electronic payment options.\n• Eye-Friendly Design: Interfaces supporting both Dark and Light modes for the best user experience.',
 
       // --- Activation & OTP Views ---
       'Activate Account': 'Activate Account',
@@ -328,6 +330,11 @@ class AppTranslations extends Translations {
       'Add Measurement': 'Add Measurement',
       'Notifications': 'Notifications',
       'No notifications found': 'No notifications found',
+      'Delete Account': 'Delete Account',
+      'Permanently delete your account from the app':
+          'Permanently delete your account from the app',
+      'Are you sure you want to permanently delete your account? This action cannot be undone.':
+          'Are you sure you want to permanently delete your account? This action cannot be undone.',
     },
 
     // ==========================================================
@@ -442,12 +449,14 @@ class AppTranslations extends Translations {
       'Our Mission': 'رسالتنا',
       'Key Features': 'أبرز المميزات',
       'Version 1.0.0': 'الإصدار 1.0.0',
-      'app_vision_desc': 'نسعى لإعادة صياغة تجربة الرعاية الصحية للأطفال من خلال تقديم بيئة رقمية متكاملة وسهلة الاستخدام، تقرب المسافات بين الآباء والأطباء المتخصصين وتضع راحة وصحة طفلك في المقام الأول.',
+      'app_vision_desc':
+          'نسعى لإعادة صياغة تجربة الرعاية الصحية للأطفال من خلال تقديم بيئة رقمية متكاملة وسهلة الاستخدام، تقرب المسافات بين الآباء والأطباء المتخصصين وتضع راحة وصحة طفلك في المقام الأول.',
 
-      'app_mission_desc': 'تمكين الآباء والأمهات من خلال منصة موحدة تتيح لهم إنشاء وإدارة الملفات الطبية لجميع أطفالهم بسهولة، حجز المواعيد بمرونة تامة، ومتابعة السجلات الصحية بكل أمان وموثوقية في أي وقت ومن أي مكان.',
+      'app_mission_desc':
+          'تمكين الآباء والأمهات من خلال منصة موحدة تتيح لهم إنشاء وإدارة الملفات الطبية لجميع أطفالهم بسهولة، حجز المواعيد بمرونة تامة، ومتابعة السجلات الصحية بكل أمان وموثوقية في أي وقت ومن أي مكان.',
 
-      'app_features_desc': '• إدارة عائلية متكاملة: حساب أساسي يضم ملفات منفصلة لكل طفل.\n• حجز ذكي وسريع: جدولة المواعيد الطبية بضغطة زر.\n• تتبع حي للمواعيد: متابعة حالة الحجز (مؤكد، قيد الانتظار، ملغي).\n• دفع إلكتروني آمن: خيارات دفع متعددة وموثوقة.\n• تصميم مريح للعين: واجهات تدعم الوضعين الليلي والنهاري لضمان أفضل تجربة استخدام.',
-
+      'app_features_desc':
+          '• إدارة عائلية متكاملة: حساب أساسي يضم ملفات منفصلة لكل طفل.\n• حجز ذكي وسريع: جدولة المواعيد الطبية بضغطة زر.\n• تتبع حي للمواعيد: متابعة حالة الحجز (مؤكد، قيد الانتظار، ملغي).\n• دفع إلكتروني آمن: خيارات دفع متعددة وموثوقة.\n• تصميم مريح للعين: واجهات تدعم الوضعين الليلي والنهاري لضمان أفضل تجربة استخدام.',
 
       // --- Add Child & Child Profile ---
       'Child Profile': 'ملف الطفل',
@@ -655,6 +664,11 @@ class AppTranslations extends Translations {
       'Add Measurement': 'إضافة قياس',
       'Notifications': 'الإشعارات',
       'No notifications found': 'لا توجد إشعارات حالياً',
+      'Delete Account': 'حذف الحساب',
+      'Permanently delete your account from the app':
+          'حذف حسابك بشكل دائم من التطبيق',
+      'Are you sure you want to permanently delete your account? This action cannot be undone.':
+          'هل أنت متأكد أنك تريد حذف حسابك نهائياً؟ هذا الإجراء لا يمكن التراجع عنه.',
     },
   };
 }

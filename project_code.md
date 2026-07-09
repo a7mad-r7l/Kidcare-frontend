@@ -168,7 +168,12 @@ class AppointmentController extends BaseController {
 
 ### File: lib\controllers\appointment\child_controller.dart
 ```dart
+import 'dart:convert';
+
 import 'package:get/get.dart';
+import 'package:http/http.dart' as http;
+import '../../core/constants.dart';
+import '../../core/helper/secure_storage_service.dart';
 import '../../core/repos/appointment/child_repo.dart';
 import '../../models/appointment/child_model.dart';
 import '../base_controller.dart';
@@ -185,6 +190,32 @@ class ChildController extends BaseController {
     super.onInit();
     loadChildren();
   }
+  // دالة مخصصة لضرب مسار الـ POST الخاص بالحجز السريع
+  Future<String> bookQuickAppointmentApi(int doctorId, int childId, String date, String time) async {
+    final token = await SecureStorage.getToken();
+    final response = await http.post(
+      Uri.parse('$baseUrl/appointment'), // مسار الـ POST الذي جربته في Postman
+      headers: {
+        'Accept': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+      body: {
+        'doctor_id': doctorId.toString(),
+        'child_id': childId.toString(),
+        'date': date,
+        'time': time,
+      },
+    );
+
+    final data = jsonDecode(response.body);
+
+    // 201 Created تعني نجاح الحجز كما ظهر معك في Postman
+    if (response.statusCode == 201 && data['status'] == 'success') {
+      return data['appointment_id']; // إرجاع الـ UUID الخاص بالموعد
+    } else {
+      throw Exception(data['message'] ?? 'Failed to book appointment');
+    }
+  }
 
   Future<void> loadChildren() async {
     showLoading();
@@ -198,6 +229,78 @@ class ChildController extends BaseController {
   }
 }
 
+```
+
+### File: lib\controllers\appointment\closest_appointments_controller.dart
+```dart
+import 'package:get/get.dart';
+import '../../core/repos/appointment/department_repo.dart';
+import '../../core/repos/appointment/doctor_repo.dart';
+import '../../models/appointment/department_model.dart';
+import '../../models/appointment/closest_appointment_model.dart';
+import '../base_controller.dart';
+
+class ClosestAppointmentsController extends BaseController {
+  final DepartmentRepo departmentRepo;
+  final DoctorRepo doctorRepo;
+
+  ClosestAppointmentsController({
+    required this.departmentRepo,
+    required this.doctorRepo,
+  });
+
+  final departments = <DepartmentModel>[].obs;
+  final selectedDepartmentId = RxnInt();
+  final closestAppointments = <ClosestAppointmentModel>[].obs;
+
+  @override
+  void onInit() {
+    super.onInit();
+    _initData();
+  }
+
+  Future<void> _initData() async {
+    showLoading();
+    try {
+      // 1. جلب الأقسام
+      departments.value = await departmentRepo.fetchAll();
+
+      // 2. تحديد أول قسم افتراضياً وجلب مواعيده
+      if (departments.isNotEmpty) {
+        selectedDepartmentId.value = departments.first.id;
+        await fetchClosestAppointments(departments.first.id);
+      }
+    } catch (e, stackTrace) {
+      // إضافة الطباعة هنا لمعرفة سبب الخطأ عند تهيئة الواجهة
+      print('=== Error in _initData ===');
+      print('Exception: $e');
+      print('StackTrace: $stackTrace');
+      print('==========================');
+
+      handleError(e);
+    } finally {
+      hideLoading();
+    }
+  }
+
+  Future<void> fetchClosestAppointments(int departmentId) async {
+    showLoading();
+    try {
+      selectedDepartmentId.value = departmentId;
+      closestAppointments.value = await doctorRepo.fetchClosestAppointments(departmentId);
+    } catch (e, stackTrace) {
+      // إضافة الطباعة هنا لمعرفة سبب الخطأ عند جلب المواعيد
+      print('=== Error in fetchClosestAppointments ===');
+      print('Exception: $e');
+      print('StackTrace: $stackTrace');
+      print('=========================================');
+
+      handleError(e);
+    } finally {
+      hideLoading();
+    }
+  }
+}
 ```
 
 ### File: lib\controllers\appointment\department_controller.dart
@@ -1807,9 +1910,11 @@ import '../base_controller.dart';
 
 class NotificationHistoryController extends BaseController {
   final NotificationHistoryRepo repo;
+
   NotificationHistoryController({required this.repo});
 
-  final RxList<NotificationHistoryModel> notifications = <NotificationHistoryModel>[].obs;
+  final RxList<NotificationHistoryModel> notifications =
+      <NotificationHistoryModel>[].obs;
 
   @override
   void onInit() {
@@ -1824,11 +1929,12 @@ class NotificationHistoryController extends BaseController {
       notifications.assignAll(result);
     } catch (e) {
       handleError(e);
-    } finally { // 🌟 الإصلاح: تعديل الكلمة إلى لغة البرمجة الافتراضية الصالحة فلاتر
+    } finally {
       hideLoading();
     }
   }
 }
+
 ```
 
 ### File: lib\controllers\home\profile_controller.dart
@@ -1906,6 +2012,7 @@ import 'package:get/get.dart';
 import 'package:flutter_stripe/flutter_stripe.dart';
 import '../core/repos/payment_repo.dart';
 import '../../models/appointment_details_model.dart';
+import 'home/appointments_controller.dart';
 
 class PaymentController extends GetxController {
   final PaymentRepo repo = PaymentRepo();
@@ -1926,7 +2033,6 @@ class PaymentController extends GetxController {
   void onInit() {
     super.onInit();
     currentAppointmentId = Get.arguments?.toString() ?? '1';
-
 
     loadAppointmentDetails(currentAppointmentId);
   }
@@ -1996,8 +2102,25 @@ class PaymentController extends GetxController {
     try {
       await Stripe.instance.presentPaymentSheet();
       isLoading.value = false;
-      Get.offAllNamed('/payment-success', arguments:{ 'summary': appointmentSummary.value,
-        'transaction_id': transactionId.value,});
+
+      // ----------------------------------------------------------------------
+      // 1. إعطاء مهلة للباك إند (Laravel) لتحديث حالة الموعد في قاعدة البيانات
+      await Future.delayed(const Duration(seconds: 2));
+
+      // 2. معالجة تحديث واجهة المواعيد بشكل آمن
+      if (Get.isRegistered<AppointmentsController>()) {
+        Get.find<AppointmentsController>().fetchUpcoming();
+      } else {
+        // إذا كان التنقل قد مسح الكنترولر، نجبر GetX على نسيانه ليبنيه من جديد عند العودة للشاشة
+        Get.delete<AppointmentsController>(force: true);
+      }
+      // ----------------------------------------------------------------------
+
+      Get.offAllNamed('/payment-success', arguments:{
+        'summary': appointmentSummary.value,
+        'transaction_id': transactionId.value,
+      });
+
     } on StripeException catch (e) {
       isLoading.value = false;
       Get.snackbar('Payment Cancelled'.tr, e.error.message ?? 'User cancelled the payment'.tr);
@@ -2014,9 +2137,10 @@ class PaymentController extends GetxController {
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../core/helper/secure_storage_service.dart';
+import '../core/repos/auth/login_repo.dart';
+import 'base_controller.dart';
 
-class SettingsController extends GetxController {
-
+class SettingsController extends BaseController {
   var currentLanguage = 'system'.obs;
   final RxBool isDarkMode = false.obs;
 
@@ -2027,10 +2151,10 @@ class SettingsController extends GetxController {
 
     isDarkMode.value = Get.isDarkMode;
   }
+
   void toggleTheme() {
     isDarkMode.value = !isDarkMode.value;
 
-    // أمر GetX بتطبيق السمة الجديدة فوراً على كامل التطبيق
     Get.changeThemeMode(isDarkMode.value ? ThemeMode.dark : ThemeMode.light);
   }
 
@@ -2041,7 +2165,6 @@ class SettingsController extends GetxController {
       currentLanguage.value = savedLang;
       _applyLocale(savedLang);
     } else {
-
       currentLanguage.value = 'system';
       _applyLocale('system');
     }
@@ -2055,12 +2178,10 @@ class SettingsController extends GetxController {
     _applyLocale(langCode);
   }
 
-
   void _applyLocale(String langCode) {
     Locale targetLocale;
 
     if (langCode == 'system') {
-
       Locale? deviceLocale = Get.deviceLocale;
       if (deviceLocale != null && deviceLocale.languageCode == 'ar') {
         targetLocale = const Locale('ar', 'SA');
@@ -2073,10 +2194,73 @@ class SettingsController extends GetxController {
       targetLocale = const Locale('en', 'US');
     }
 
-
     Get.updateLocale(targetLocale);
   }
+
+  void deleteAccount() {
+    Get.dialog(
+      AlertDialog(
+        backgroundColor: Get.theme.cardColor,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text(
+          'Delete Account'.tr,
+          style: const TextStyle(
+            color: Colors.red,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        content: Text(
+          'Are you sure you want to permanently delete your account? This action cannot be undone.'
+              .tr,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Get.back(),
+            child: Text(
+              'Cancel'.tr,
+              style: TextStyle(color: Get.theme.hintColor),
+            ),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red.shade800,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+            ),
+            onPressed: () async {
+              Get.back();
+              await _confirmDeleteAccount();
+            },
+            child: Text(
+              'Delete'.tr,
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _confirmDeleteAccount() async {
+    showLoading();
+    try {
+      final loginRepo = Get.find<LoginRepo>();
+      final msg = await loginRepo.deletePatientAccount();
+
+      showSuccess(msg);
+
+      await SecureStorage.removeAll();
+      Get.offAllNamed('/login');
+    } catch (e) {
+      handleError(e);
+    } finally {
+      hideLoading();
+    }
+  }
 }
+
 ```
 
 ### File: lib\controllers\theme_controller.dart
@@ -2116,7 +2300,7 @@ class AppointmentApi {
 
   Future<String> create(String token, Map<String, dynamic> body) async {
     final response = await client.post(
-      Uri.parse('$baseUrl/appointment'),
+      Uri.parse('$baseUrl/appointments'),
       headers: {
         'Accept': 'application/json',
         'Authorization': 'Bearer $token',
@@ -2289,6 +2473,19 @@ import '../../constants.dart';
 class DoctorApi {
   final http.Client client = http.Client();
 
+  // أضف هذه الدالة داخل كلاس DoctorApi
+  Future<String> getClosestAppointments(String token, int departmentId) async {
+    final response = await client.get(
+      Uri.parse('$baseUrl/departments/$departmentId/closest-appointments'),
+      headers: {
+        'Accept': 'application/json',
+        'Authorization': 'Bearer $token',
+        "Accept-Language": Get.locale?.languageCode ?? "en",
+      },
+    );
+    return response.body;
+  }
+
   Future<String> getByDepartment(String token, int departmentId) async {
     final response = await client.get(
       Uri.parse('$baseUrl/departments/$departmentId/doctors'),
@@ -2444,6 +2641,7 @@ import 'dart:async';
 import 'package:http/http.dart' as http;
 import 'package:get/get.dart';
 import '../../constants.dart';
+import '../../helper/secure_storage_service.dart';
 
 class LoginApi {
   Future<String> login(String phoneNumber, String password) async {
@@ -2467,6 +2665,22 @@ class LoginApi {
     } catch (e) {
       rethrow;
     }
+  }
+
+  Future<String> deletePatientAccount() async {
+    final token = await SecureStorage.getToken();
+    final response = await http
+        .delete(
+          Uri.parse('$baseUrl/parent/account/terminate'),
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+            'Accept-Language': Get.locale?.languageCode ?? 'en',
+            'Authorization': 'Bearer $token',
+          },
+        )
+        .timeout(const Duration(seconds: 15));
+    return response.body;
   }
 }
 
@@ -2870,14 +3084,12 @@ class HomeChildrenApi {
 
 ### File: lib\core\apis\home\notification_history_api.dart
 ```dart
-import 'dart:convert';
+
 import 'package:http/http.dart' as http;
+import '../../constants.dart';
 import '../../helper/secure_storage_service.dart';
 
 class NotificationHistoryApi {
-  // الـ Base URL المعتمد والموحد في مشروعك
-  final String baseUrl = "https://deputize-daylong-puritan.ngrok-free.dev/api";
-
   Future<http.Response> getNotificationsHistory() async {
     final token = await SecureStorage.getToken();
     final lang = await SecureStorage.getLanguage() ?? 'en';
@@ -2892,6 +3104,7 @@ class NotificationHistoryApi {
     );
   }
 }
+
 ```
 
 ### File: lib\core\apis\home\parent_name_api.dart
@@ -2993,6 +3206,7 @@ import 'package:get/get.dart';
 import '../constants.dart';
 
 class PaymentApi {
+
   // 1.   تفاصيل الموعد
   Future<String> getAppointmentSummary(
     String token,
@@ -3133,8 +3347,11 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:get/get.dart';
+import 'package:http/http.dart' as http;
+import 'package:kidcare/core/helper/secure_storage_service.dart';
 
-// دالة معالجة الإشعارات في الخلفية - يجب أن تكون Top-Level وخارج الكلاس قسرياً في الفايربيس
+import '../constants.dart';
+
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   await Firebase.initializeApp();
@@ -3144,28 +3361,27 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
 class NotificationService {
   static final FirebaseMessaging _messaging = FirebaseMessaging.instance;
   static final FlutterLocalNotificationsPlugin _localNotificationsPlugin =
-  FlutterLocalNotificationsPlugin();
+      FlutterLocalNotificationsPlugin();
 
-  // 🌟 إعداد القنوات المتوافق 100% مع النسخة 17.0.0 المستقرة هندسياً
-  static const AndroidNotificationChannel _appointmentsChannel = AndroidNotificationChannel(
-    'appointments_channel', // channelId
-    'Appointments Notifications', // channelName
-    description: 'This channel is used for appointments updates.',
-    importance: Importance.max,
-    playSound: true,
-  );
+  static const AndroidNotificationChannel _appointmentsChannel =
+      AndroidNotificationChannel(
+        'appointments_channel', // channelId
+        'Appointments Notifications', // channelName
+        description: 'This channel is used for appointments updates.',
+        importance: Importance.max,
+        playSound: true,
+      );
 
-  static const AndroidNotificationChannel _chatChannel = AndroidNotificationChannel(
-    'chat_channel', // channelId
-    'Chat Notifications', // channelName
-    description: 'This channel is used for direct doctor chats.',
-    importance: Importance.max,
-    playSound: true,
-  );
+  static const AndroidNotificationChannel _chatChannel =
+      AndroidNotificationChannel(
+        'chat_channel', // channelId
+        'Chat Notifications', // channelName
+        description: 'This channel is used for direct doctor chats.',
+        importance: Importance.max,
+        playSound: true,
+      );
 
-  /// 🌟 1. الدالة الأساسية لتهيئة الإشعارات بالكامل وتوليد الـ Token
   static Future<void> initialize() async {
-    // طلب صلاحيات الإشعارات من الأهل
     NotificationSettings settings = await _messaging.requestPermission(
       alert: true,
       badge: true,
@@ -3176,41 +3392,39 @@ class NotificationService {
       log("🔔 تم منح صلاحيات الإشعارات بنجاح من قبل المستخدم.");
     }
 
-    // إعداد قنوات أندرويد المحلية داخل الهاتف
     await _localNotificationsPlugin
-        .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
+        .resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin
+        >()
         ?.createNotificationChannel(_appointmentsChannel);
 
     await _localNotificationsPlugin
-        .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
+        .resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin
+        >()
         ?.createNotificationChannel(_chatChannel);
 
-    // إعدادات النقر المبدئية للـ Local Notifications
     const AndroidInitializationSettings initializationSettingsAndroid =
-    AndroidInitializationSettings('@mipmap/ic_launcher');
+        AndroidInitializationSettings('@mipmap/ic_launcher');
     const InitializationSettings initializationSettings =
-    InitializationSettings(android: initializationSettingsAndroid);
+        InitializationSettings(android: initializationSettingsAndroid);
 
     await _localNotificationsPlugin.initialize(
       initializationSettings,
       onDidReceiveNotificationResponse: (NotificationResponse response) {
-        // معالجة النقر على الإشعار والتطبيق مفتوح
         if (response.payload != null) {
           _handleNotificationClick(response.payload!);
         }
       },
     );
 
-    // تعيين معالج الخلفية الشامل
     FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
 
-    // الاستماع للإشعارات والتطبيق يعمل في الواجهة (Foreground)
     FirebaseMessaging.onMessage.listen((RemoteMessage message) {
       log("📥 استلام إشعار حي والتطبيق مفتوح: ${message.notification?.title}");
       _showLocalNotification(message);
     });
 
-    // الاستماع لنقرة الإشعار عندما يكون التطبيق في الخلفية (Background but not terminated)
     FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
       log("🖱️ تم النقر على الإشعار والتطبيق بالخلفية: ${message.data}");
       if (message.data.containsKey('type')) {
@@ -3218,30 +3432,54 @@ class NotificationService {
       }
     });
 
-    // معالجة تشغيل التطبيق من الصفر عن طريق نقرة إشعار (Terminated State)
     RemoteMessage? initialMessage = await _messaging.getInitialMessage();
     if (initialMessage != null && initialMessage.data.containsKey('type')) {
       log("🚀 أقع التطبيق من الصفر بنقرة إشعار: ${initialMessage.data}");
       _handleNotificationClick(initialMessage.data['type'].toString());
     }
 
-    // توليد وطباعة الـ FCM Token الذهبي للربط مع الباك إند
     await _getAndPrintFCMToken();
   }
 
-  /// 🌟 2. توليد التوكن وطباعته في الكونسول
   static Future<void> _getAndPrintFCMToken() async {
     try {
       String? token = await _messaging.getToken();
       if (token != null) {
         log("🔑 🔑 🔑 MY DEVICE FCM TOKEN = $token");
+
+        // 🌟 إرسال التوكن إلى السيرفر
+        await _saveTokenToBackend(token);
       }
     } catch (e) {
       log("❌ فشل توليد الـ FCM Token: $e");
     }
   }
 
-  /// 🌟 3. عرض الإشعار محلياً بناءً على قواعد النسخة 17.0.0 المستقرة
+  static Future<void> _saveTokenToBackend(String fcmToken) async {
+    try {
+      String userToken = await SecureStorage.getToken();
+
+      if (userToken.isEmpty) return;
+
+      final response = await http.post(
+        Uri.parse('$baseUrl/parent/save-fcm-token'),
+        headers: {
+          'Accept': 'application/json',
+          'Authorization': 'Bearer $userToken',
+        },
+        body: {'fcm_token': fcmToken},
+      );
+
+      if (response.statusCode == 200) {
+        log("✅ تم حفظ الـ FCM Token في الباك إند بنجاح!");
+      } else {
+        log("⚠️ فشل حفظ التوكن في الباك إند: ${response.body}");
+      }
+    } catch (e) {
+      log("❌ خطأ أثناء إرسال التوكن للسيرفر: $e");
+    }
+  }
+
   static void _showLocalNotification(RemoteMessage message) {
     RemoteNotification? notification = message.notification;
     AndroidNotification? android = message.notification?.android;
@@ -3260,7 +3498,6 @@ class NotificationService {
         notification.body,
         NotificationDetails(
           android: AndroidNotificationDetails(
-            // في نسخة 17.0.0 نمرر المعاملين الأولين كـ Positional صراحة دون أسماء لمنع التضارب
             targetChannel.id,
             targetChannel.name,
             channelDescription: targetChannel.description,
@@ -3275,7 +3512,6 @@ class NotificationService {
     }
   }
 
-  /// 🌟 4. هندسة التوجيه التلقائي عند نقر الأهل على الإشعار
   static void _handleNotificationClick(String type) {
     log("🔀 جاري توجيه المستخدم بناءً على نوع الإشعار: $type");
 
@@ -3291,6 +3527,7 @@ class NotificationService {
     }
   }
 }
+
 ```
 
 ### File: lib\core\helper\secure_storage_service.dart
@@ -3382,7 +3619,8 @@ class AppTranslations extends Translations {
       'LogIn': 'LogIn',
 
       // --- Sign Up View ---
-      'Create your account to benefit from our services': 'Create your account to benefit from our services',
+      'Create your account to benefit from our services':
+          'Create your account to benefit from our services',
       'Enter your name': 'Enter your name',
       'Name': 'Name',
       'Enter your last name': 'Enter your last name',
@@ -3394,17 +3632,36 @@ class AppTranslations extends Translations {
       'Enter your address in detail': 'Enter your address in detail',
       'Address': 'Address',
       'Enter your password': 'Enter your password',
-      'At least 8 characters with uppercase, lowercase and a number': 'At least 8 characters with uppercase, lowercase and a number',
+      'At least 8 characters with uppercase, lowercase and a number':
+          'At least 8 characters with uppercase, lowercase and a number',
       'Enter your password again': 'Enter your password again',
       'Confirm Password': 'Confirm Password',
       'Create Account': 'Create Account',
       'Already have an account?': 'Already have an account?',
 
+      //read more
+      'About App': 'About App',
+      'Pediatric Clinic Management': 'Pediatric Clinic Management System',
+      'Our Vision': 'Our Vision',
+      'Our Mission': 'Our Mission',
+      'Key Features': 'Key Features',
+      'Version 1.0.0': 'Version 1.0.0',
+      'app_vision_desc':
+          'We aim to redefine pediatric healthcare by providing a seamless, integrated digital environment that bridges the gap between parents and specialized doctors, putting your child\'s health and comfort first.',
+
+      'app_mission_desc':
+          'Empowering parents through a unified platform that allows them to easily create and manage medical profiles for all their children, book appointments with complete flexibility, and track health records safely and reliably anytime, anywhere.',
+
+      'app_features_desc':
+          '• Comprehensive Family Management: A main account with separate profiles for each child.\n• Smart & Fast Booking: Schedule medical appointments with a single click.\n• Real-Time Tracking: Monitor appointment status (Confirmed, Pending, Cancelled).\n• Secure Digital Payment: Multiple and reliable electronic payment options.\n• Eye-Friendly Design: Interfaces supporting both Dark and Light modes for the best user experience.',
+
       // --- Activation & OTP Views ---
       'Activate Account': 'Activate Account',
-      'Enter your phone number registered at the clinic': 'Enter your phone number registered at the clinic',
+      'Enter your phone number registered at the clinic':
+          'Enter your phone number registered at the clinic',
       'phone number': 'phone number',
-      'Please enter your registered phone number': 'Please enter your registered phone number',
+      'Please enter your registered phone number':
+          'Please enter your registered phone number',
       'Send Verification Code': 'Send Verification Code',
       'Verify Your Phone': 'Verify Your Phone',
       'Verify Your Phone Number': 'Verify Your Phone Number',
@@ -3414,23 +3671,28 @@ class AppTranslations extends Translations {
       'Resend in': 'Resend in',
       'Verify and Activate Account': 'Verify and Activate Account',
       'Create New Password': 'Create New Password',
-      'Create a strong password to protect your account': 'Create a strong password to protect your account',
+      'Create a strong password to protect your account':
+          'Create a strong password to protect your account',
       'New Password': 'New Password',
       'Password must contain:': 'Password must contain:',
       'At least 8 characters': 'At least 8 characters',
       'Set Password and Login': 'Set Password and Login',
       'The code is valid for ': 'The code is valid for ',
       ' minutes': ' minutes',
-      'You can resend the code after the countdown ends': 'You can resend the code after the countdown ends',
+      'You can resend the code after the countdown ends':
+          'You can resend the code after the countdown ends',
       'Change Phone Number': 'Change Phone Number',
 
       // --- Forgot Password ---
-      "Don't worry, enter your phone number and we will send you a verification code.": "Don't worry, enter your phone number and we will send you a verification code.",
+      "Don't worry, enter your phone number and we will send you a verification code.":
+          "Don't worry, enter your phone number and we will send you a verification code.",
       'We sent a 4-digit code to': 'We sent a 4-digit code to',
-      'Your new password must be different': 'Your new password must be different',
+      'Your new password must be different':
+          'Your new password must be different',
       'Update Password': 'Update Password',
       'Password Updated!': 'Password Updated!',
-      'Your password has been updated successfully. You can now log in with your new password.': 'Your password has been updated successfully. You can now log in with your new password.',
+      'Your password has been updated successfully. You can now log in with your new password.':
+          'Your password has been updated successfully. You can now log in with your new password.',
       'Back to Login': 'Back to Login',
 
       // --- Home View ---
@@ -3443,9 +3705,10 @@ class AppTranslations extends Translations {
       'Dental Care': 'Dental Care',
       'Psychiatry': 'Psychiatry',
       'About the Clinic': 'About the Clinic',
-      'We provide comprehensive healthcare for your children with the highest quality standards.': 'We provide comprehensive healthcare for your children with the highest quality standards.',
+      'We provide comprehensive healthcare for your children with the highest quality standards.':
+          'We provide comprehensive healthcare for your children with the highest quality standards.',
       'Read More': 'Read More',
-      'Vaccinations' : 'Vaccinations',
+      'Vaccinations': 'Vaccinations',
 
       // --- Add Child & Child Profile ---
       'Child Profile': 'Child Profile',
@@ -3454,8 +3717,8 @@ class AppTranslations extends Translations {
       'Enter first name': 'Enter first name',
       'Enter last name': 'Enter last name',
       'Gender': 'Gender',
-      'Female': 'Female',
-      'Male': 'Male',
+      'Female': 'female',
+      'Male': 'male',
       'Birth Date': 'Birth Date',
       'Select birth date': 'Select birth date',
       'Blood Type': 'Blood Type',
@@ -3470,7 +3733,8 @@ class AppTranslations extends Translations {
       'Medical Prescriptions': 'Medical Prescriptions',
       'Delete Child Profile': 'Delete Child Profile',
       'Delete Child': 'Delete Child',
-      'Are you sure you want to delete this child profile? This action cannot be undone.': 'Are you sure you want to delete this child profile? This action cannot be undone.',
+      'Are you sure you want to delete this child profile? This action cannot be undone.':
+          'Are you sure you want to delete this child profile? This action cannot be undone.',
       'Age': 'Age',
       'Child age cannot exceed 6 years.': 'Child age cannot exceed 6 years.',
 
@@ -3485,20 +3749,25 @@ class AppTranslations extends Translations {
       // --- Booking Flow ---
       'Choose Doctor': 'Choose Doctor',
       'No departments available': 'No departments available',
-      'Pick a department above to see the doctors.': 'Pick a department above to see the doctors.',
-      'No doctors available in this department.': 'No doctors available in this department.',
+      'Pick a department above to see the doctors.':
+          'Pick a department above to see the doctors.',
+      'No doctors available in this department.':
+          'No doctors available in this department.',
       'Specialist': 'Specialist',
       'rating': 'rating',
       'Choose Child': 'Choose Child',
-      "You haven't added any children yet.": "You haven't added any children yet.",
-      ' years': ' years',
+      "You haven't added any children yet.":
+          "You haven't added any children yet.",
+      'years': 'years',
       'Pick Date & Time': 'Pick Date & Time',
       'Available Times': 'Available Times',
-      'Pick a date to see available times.': 'Pick a date to see available times.',
+      'Pick a date to see available times.':
+          'Pick a date to see available times.',
       'No times available for this date.': 'No times available for this date.',
       'Book Appointment': 'Book Appointment',
       'Appointment Booked!': 'Appointment Booked!',
-      'Your appointment has been confirmed.\nSee you soon!': 'Your appointment has been confirmed.\nSee you soon!',
+      'Your appointment has been confirmed.\nSee you soon!':
+          'Your appointment has been confirmed.\nSee you soon!',
       'Dr. ': 'Dr. ',
 
       // --- Payment & Checkout ---
@@ -3566,15 +3835,19 @@ class AppTranslations extends Translations {
       'preferences': 'Preferences',
       'Notice': 'Notice',
       'Please enter phone number': 'Please enter phone number',
-      'Phone number must be 12 numbers (e.g., 9639XXXXXXXX)': 'Phone number must be 12 numbers (e.g., 9639XXXXXXXX)',
+      'Phone number must be 12 numbers (e.g., 9639XXXXXXXX)':
+          'Phone number must be 12 numbers (e.g., 9639XXXXXXXX)',
       'Success': 'Success',
-      'Verification code resent successfully': 'Verification code resent successfully',
+      'Verification code resent successfully':
+          'Verification code resent successfully',
       'Check Code': 'Check Code',
       'Please enter OTP': 'Please enter the verification code',
-      'Please enter the 4-digit code correctly': 'Please enter the 4-digit code correctly',
+      'Please enter the 4-digit code correctly':
+          'Please enter the 4-digit code correctly',
       'Passwords do not match': 'Passwords do not match',
       'Weak Password': 'Weak Password',
-      'Password must be at least 8 characters long': 'Password must be at least 8 characters long',
+      'Password must be at least 8 characters long':
+          'Password must be at least 8 characters long',
       'Account activated successfully': 'Account activated successfully',
       'Please enter a valid phone number': 'Please enter a valid phone number',
       'Please enter the 4-digit code': 'Please enter the 4-digit code',
@@ -3582,15 +3855,21 @@ class AppTranslations extends Translations {
       'Invalid Phone Number': 'Invalid Phone Number',
       'Welcome Back,': 'Welcome Back,',
       'Required': 'Required',
-      'Please enter the verification code': 'Please enter the verification code',
+      'Please enter the verification code':
+          'Please enter the verification code',
       'Invalid Code': 'Invalid Code',
-      'Please enter the complete 4-digit code': 'Please enter the complete 4-digit code',
+      'Please enter the complete 4-digit code':
+          'Please enter the complete 4-digit code',
       'Phone verified successfully!': 'Phone verified successfully!',
       'Code resent successfully!': 'Code resent successfully!',
-      'Something went wrong. Please try again.': 'Something went wrong. Please try again.',
-      'Incorrect phone number or password.': 'Incorrect phone number or password.',
-      'No Internet connection. Please check your network.': 'No Internet connection. Please check your network.',
-      'Request timed out. Please try again.': 'Request timed out. Please try again.',
+      'Something went wrong. Please try again.':
+          'Something went wrong. Please try again.',
+      'Incorrect phone number or password.':
+          'Incorrect phone number or password.',
+      'No Internet connection. Please check your network.':
+          'No Internet connection. Please check your network.',
+      'Request timed out. Please try again.':
+          'Request timed out. Please try again.',
       'Error': 'Error',
       'Info': 'Info',
       'Child deleted successfully!': 'Child deleted successfully!',
@@ -3600,7 +3879,8 @@ class AppTranslations extends Translations {
       'Child added successfully!': 'Child added successfully!',
       'Failed to load profile': 'Failed to load profile',
       'Error Loading Details': 'Error Loading Details',
-      'No appointment data found to process': 'No appointment data found to process',
+      'No appointment data found to process':
+          'No appointment data found to process',
       'KidCare Clinic': 'KidCare Clinic',
       'Payment Error': 'Payment Error',
       'Payment Cancelled': 'Payment Cancelled',
@@ -3608,14 +3888,17 @@ class AppTranslations extends Translations {
       'An unexpected error occurred': 'An unexpected error occurred',
       'favorite_doctors': 'Favorite Doctors',
       'view_favorite_doctors': 'View your favorite doctors',
-      'Session expired. Please login again.': 'Session expired. Please login again.',
+      'Session expired. Please login again.':
+          'Session expired. Please login again.',
       'Weight (kg)': 'Weight (kg)',
       'Height (cm)': 'Height (cm)',
       'Record Date': 'Record Date',
       'Save Measurement': 'Save Measurement',
-      'Please enter valid weight and height': 'Please enter valid weight and height',
+      'Please enter valid weight and height':
+          'Please enter valid weight and height',
       'Measurement saved successfully': 'Measurement saved successfully',
-      'Are you sure you want to delete this record?': 'Are you sure you want to delete this record?',
+      'Are you sure you want to delete this record?':
+          'Are you sure you want to delete this record?',
       'Growth History': 'Growth History',
       'Age (Months)': 'Age (Months)',
       'Ideal Weight (WHO)': 'Ideal Weight (WHO)',
@@ -3633,6 +3916,11 @@ class AppTranslations extends Translations {
       'Add Measurement': 'Add Measurement',
       'Notifications': 'Notifications',
       'No notifications found': 'No notifications found',
+      'Delete Account': 'Delete Account',
+      'Permanently delete your account from the app':
+          'Permanently delete your account from the app',
+      'Are you sure you want to permanently delete your account? This action cannot be undone.':
+          'Are you sure you want to permanently delete your account? This action cannot be undone.',
     },
 
     // ==========================================================
@@ -3665,7 +3953,8 @@ class AppTranslations extends Translations {
       'LogIn': 'تسجيل الدخول',
 
       // --- Sign Up View ---
-      'Create your account to benefit from our services': 'أنشئ حسابك للاستفادة من خدماتنا',
+      'Create your account to benefit from our services':
+          'أنشئ حسابك للاستفادة من خدماتنا',
       'Enter your name': 'أدخل اسمك',
       'Name': 'الاسم',
       'Enter your last name': 'أدخل اسم العائلة',
@@ -3677,7 +3966,8 @@ class AppTranslations extends Translations {
       'Enter your address in detail': 'أدخل عنوانك بالتفصيل',
       'Address': 'العنوان',
       'Enter your password': 'أدخل كلمة المرور',
-      'At least 8 characters with uppercase, lowercase and a number': '8 أحرف على الأقل، تتضمن أحرف كبيرة وصغيرة ورقم',
+      'At least 8 characters with uppercase, lowercase and a number':
+          '8 أحرف على الأقل، تتضمن أحرف كبيرة وصغيرة ورقم',
       'Enter your password again': 'أدخل كلمة المرور مرة أخرى',
       'Confirm Password': 'تأكيد كلمة المرور',
       'Create Account': 'إنشاء الحساب',
@@ -3685,9 +3975,11 @@ class AppTranslations extends Translations {
 
       // --- Activation & OTP Views ---
       'Activate Account': 'تفعيل الحساب',
-      'Enter your phone number registered at the clinic': 'أدخل رقم هاتفك المسجل في العيادة',
+      'Enter your phone number registered at the clinic':
+          'أدخل رقم هاتفك المسجل في العيادة',
       'phone number': 'رقم الهاتف',
-      'Please enter your registered phone number': 'يرجى إدخال رقم هاتفك المسجل',
+      'Please enter your registered phone number':
+          'يرجى إدخال رقم هاتفك المسجل',
       'Send Verification Code': 'إرسال رمز التحقق',
       'Verify Your Phone': 'تحقق من رقم الهاتف',
       'Verify Your Phone Number': 'تحقق من رقم الهاتف',
@@ -3697,23 +3989,28 @@ class AppTranslations extends Translations {
       'Resend in': 'إعادة الإرسال خلال',
       'Verify and Activate Account': 'تحقق وفعل الحساب',
       'Create New Password': 'إنشاء كلمة مرور جديدة',
-      'Create a strong password to protect your account': 'أنشئ كلمة مرور قوية لحماية حسابك',
+      'Create a strong password to protect your account':
+          'أنشئ كلمة مرور قوية لحماية حسابك',
       'New Password': 'كلمة المرور الجديدة',
       'Password must contain:': 'يجب أن تحتوي كلمة المرور على:',
       'At least 8 characters': '8 أحرف على الأقل',
       'Set Password and Login': 'تعيين كلمة المرور وتسجيل الدخول',
       'The code is valid for ': 'الرمز صالح لمدة ',
       ' minutes': ' دقائق',
-      'You can resend the code after the countdown ends': 'يمكنك إعادة إرسال الرمز بعد انتهاء العداد',
+      'You can resend the code after the countdown ends':
+          'يمكنك إعادة إرسال الرمز بعد انتهاء العداد',
       'Change Phone Number': 'تغيير رقم الهاتف',
 
       // --- Forgot Password ---
-      "Don't worry, enter your phone number and we will send you a verification code.": "لا تقلق، أدخل رقم هاتفك وسنرسل لك رمز التحقق.",
+      "Don't worry, enter your phone number and we will send you a verification code.":
+          "لا تقلق، أدخل رقم هاتفك وسنرسل لك رمز التحقق.",
       'We sent a 4-digit code to': 'أرسلنا رمزاً من 4 أرقام إلى',
-      'Your new password must be different': 'يجب أن تكون كلمة المرور جديدة ومختلفة',
+      'Your new password must be different':
+          'يجب أن تكون كلمة المرور جديدة ومختلفة',
       'Update Password': 'تحديث كلمة المرور',
       'Password Updated!': 'تم تحديث كلمة المرور!',
-      'Your password has been updated successfully. You can now log in with your new password.': 'تم تحديث كلمة المرور بنجاح. يمكنك الآن تسجيل الدخول بكلمة المرور الجديدة.',
+      'Your password has been updated successfully. You can now log in with your new password.':
+          'تم تحديث كلمة المرور بنجاح. يمكنك الآن تسجيل الدخول بكلمة المرور الجديدة.',
       'Back to Login': 'العودة لتسجيل الدخول',
 
       // --- Home View ---
@@ -3726,9 +4023,26 @@ class AppTranslations extends Translations {
       'Dental Care': 'عناية الأسنان',
       'Psychiatry': 'الطب النفسي',
       'About the Clinic': 'عن العيادة',
-      'We provide comprehensive healthcare for your children with the highest quality standards.': 'نقدم رعاية صحية شاملة لأطفالك بأعلى معايير الجودة.',
+      'We provide comprehensive healthcare for your children with the highest quality standards.':
+          'نقدم رعاية صحية شاملة لأطفالك بأعلى معايير الجودة.',
       'Read More': 'اقرأ المزيد',
-      'Vaccinations' : 'اللقاحات',
+      'Vaccinations': 'اللقاحات',
+
+      //read more
+      'About App': 'عن التطبيق',
+      'Pediatric Clinic Management': 'نظام إدارة عيادة الأطفال',
+      'Our Vision': 'رؤيتنا',
+      'Our Mission': 'رسالتنا',
+      'Key Features': 'أبرز المميزات',
+      'Version 1.0.0': 'الإصدار 1.0.0',
+      'app_vision_desc':
+          'نسعى لإعادة صياغة تجربة الرعاية الصحية للأطفال من خلال تقديم بيئة رقمية متكاملة وسهلة الاستخدام، تقرب المسافات بين الآباء والأطباء المتخصصين وتضع راحة وصحة طفلك في المقام الأول.',
+
+      'app_mission_desc':
+          'تمكين الآباء والأمهات من خلال منصة موحدة تتيح لهم إنشاء وإدارة الملفات الطبية لجميع أطفالهم بسهولة، حجز المواعيد بمرونة تامة، ومتابعة السجلات الصحية بكل أمان وموثوقية في أي وقت ومن أي مكان.',
+
+      'app_features_desc':
+          '• إدارة عائلية متكاملة: حساب أساسي يضم ملفات منفصلة لكل طفل.\n• حجز ذكي وسريع: جدولة المواعيد الطبية بضغطة زر.\n• تتبع حي للمواعيد: متابعة حالة الحجز (مؤكد، قيد الانتظار، ملغي).\n• دفع إلكتروني آمن: خيارات دفع متعددة وموثوقة.\n• تصميم مريح للعين: واجهات تدعم الوضعين الليلي والنهاري لضمان أفضل تجربة استخدام.',
 
       // --- Add Child & Child Profile ---
       'Child Profile': 'ملف الطفل',
@@ -3737,8 +4051,8 @@ class AppTranslations extends Translations {
       'Enter first name': 'أدخل الاسم الأول',
       'Enter last name': 'أدخل اسم العائلة',
       'Gender': 'الجنس',
-      'Female': 'أنثى',
-      'Male': 'ذكر',
+      'famale': 'أنثى',
+      'male': 'ذكر',
       'Birth Date': 'تاريخ الميلاد',
       'Select birth date': 'اختر تاريخ الميلاد',
       'Blood Type': 'فصيلة الدم',
@@ -3753,9 +4067,11 @@ class AppTranslations extends Translations {
       'Medical Prescriptions': 'الوصفات الطبية',
       'Delete Child Profile': 'حذف ملف الطفل',
       'Delete Child': 'حذف الطفل',
-      'Are you sure you want to delete this child profile? This action cannot be undone.': 'هل أنت متأكد أنك تريد حذف ملف هذا الطفل؟ لا يمكن التراجع عن هذا الإجراء.',
+      'Are you sure you want to delete this child profile? This action cannot be undone.':
+          'هل أنت متأكد أنك تريد حذف ملف هذا الطفل؟ لا يمكن التراجع عن هذا الإجراء.',
       'Age': 'العمر',
-      'Child age cannot exceed 6 years.': 'عمر الطفل لا يمكن أن يتجاوز 6 سنوات.',
+      'Child age cannot exceed 6 years.':
+          'عمر الطفل لا يمكن أن يتجاوز 6 سنوات.',
 
       // --- Appointments List View ---
       'My Appointments': 'مواعيدي',
@@ -3768,20 +4084,24 @@ class AppTranslations extends Translations {
       // --- Booking Flow ---
       'Choose Doctor': 'اختر الطبيب',
       'No departments available': 'لا توجد أقسام متاحة',
-      'Pick a department above to see the doctors.': 'اختر قسماً من الأعلى لرؤية الأطباء.',
-      'No doctors available in this department.': 'لا يوجد أطباء متاحين في هذا القسم.',
+      'Pick a department above to see the doctors.':
+          'اختر قسماً من الأعلى لرؤية الأطباء.',
+      'No doctors available in this department.':
+          'لا يوجد أطباء متاحين في هذا القسم.',
       'Specialist': 'أخصائي',
       'rating': 'تقييم',
       'Choose Child': 'اختر الطفل',
       "You haven't added any children yet.": "لم تقم بإضافة أي أطفال بعد.",
-      ' years': ' سنوات',
+      'years': ' سنوات',
       'Pick Date & Time': 'اختر التاريخ والوقت',
       'Available Times': 'الأوقات المتاحة',
-      'Pick a date to see available times.': 'اختر تاريخاً لرؤية الأوقات المتاحة.',
+      'Pick a date to see available times.':
+          'اختر تاريخاً لرؤية الأوقات المتاحة.',
       'No times available for this date.': 'لا توجد أوقات متاح في هذا التاريخ.',
       'Book Appointment': 'تأكيد الحجز',
       'Appointment Booked!': 'تم حجز الموعد!',
-      'Your appointment has been confirmed.\nSee you soon!': 'تم تأكيد موعدك.\nنراك قريباً!',
+      'Your appointment has been confirmed.\nSee you soon!':
+          'تم تأكيد موعدك.\nنراك قريباً!',
       'Dr. ': 'د. ',
 
       // --- Payment & Checkout ---
@@ -3851,15 +4171,19 @@ class AppTranslations extends Translations {
       'Please fill in all fields': 'يرجى ملء جميع الحقول',
       'Notice': 'تنبيه',
       'Please enter phone number': 'يرجى إدخال رقم الهاتف',
-      'Phone number must be 12 numbers (e.g., 9639XXXXXXXX)': 'يجب أن يتكون رقم الهاتف من 12 رقماً (مثال: 9639XXXXXXXX)',
+      'Phone number must be 12 numbers (e.g., 9639XXXXXXXX)':
+          'يجب أن يتكون رقم الهاتف من 12 رقماً (مثال: 9639XXXXXXXX)',
       'Success': 'نجاح',
-      'Verification code resent successfully': 'تم إعادة إرسال رمز التحقق بنجاح',
+      'Verification code resent successfully':
+          'تم إعادة إرسال رمز التحقق بنجاح',
       'Check Code': 'التحقق من الرمز',
       'Please enter OTP': 'يرجى إدخال رمز التحقق',
-      'Please enter the 4-digit code correctly': 'يرجى إدخال الرمز المكون من 4 أرقام بشكل صحيح',
+      'Please enter the 4-digit code correctly':
+          'يرجى إدخال الرمز المكون من 4 أرقام بشكل صحيح',
       'Passwords do not match': 'كلمتا المرور غير متطابقتين',
       'Weak Password': 'كلمة مرور ضعيفة',
-      'Password must be at least 8 characters long': 'يجب أن تتكون كلمة المرور من 8 أحرف على الأقل',
+      'Password must be at least 8 characters long':
+          'يجب أن تتكون كلمة المرور من 8 أحرف على الأقل',
       'Account activated successfully': 'تم تفعيل الحساب بنجاح',
       'Please enter a valid phone number': 'يرجى إدخال رقم هاتف صحيح',
       'Please enter the 4-digit code': 'يرجى إدخال الرمز المكون من 4 أرقام',
@@ -3869,13 +4193,18 @@ class AppTranslations extends Translations {
       'Required': 'مطلوب',
       'Please enter the verification code': 'يرجى إدخال رمز التحقق',
       'Invalid Code': 'رمز غير صحيح',
-      'Please enter the complete 4-digit code': 'يرجى إدخال رمز التحقق كاملاً المكون من 4 أرقام',
+      'Please enter the complete 4-digit code':
+          'يرجى إدخال رمز التحقق كاملاً المكون من 4 أرقام',
       'Phone verified successfully!': 'تم التحقق من رقم الهاتف بنجاح!',
       'Code resent successfully!': 'تم إعادة إرسال الرمز بنجاح!',
-      'Something went wrong. Please try again.': 'حدث خطأ ما، يرجى المحاولة مرة أخرى.',
-      'Incorrect phone number or password.': 'رقم الهاتف أو كلمة المرور غير صحيحة.',
-      'No Internet connection. Please check your network.': 'لا يوجد اتصال بالإنترنت، يرجى التحقق من الشبكة.',
-      'Request timed out. Please try again.': 'انتهت مهلة الطلب، يرجى المحاولة مجدداً.',
+      'Something went wrong. Please try again.':
+          'حدث خطأ ما، يرجى المحاولة مرة أخرى.',
+      'Incorrect phone number or password.':
+          'رقم الهاتف أو كلمة المرور غير صحيحة.',
+      'No Internet connection. Please check your network.':
+          'لا يوجد اتصال بالإنترنت، يرجى التحقق من الشبكة.',
+      'Request timed out. Please try again.':
+          'انتهت مهلة الطلب، يرجى المحاولة مجدداً.',
       'Error': 'خطأ',
       'Info': 'معلومات',
       'Child deleted successfully!': 'تم حذف ملف الطفل بنجاح!',
@@ -3885,7 +4214,8 @@ class AppTranslations extends Translations {
       'Child added successfully!': 'تم إضافة الطفل بنجاح!',
       'Failed to load profile': 'فشل في تحميل بيانات الملف الشخصي',
       'Error Loading Details': 'خطأ في تحميل التفاصيل',
-      'No appointment data found to process': 'لم يتم العثور على بيانات للموعد لإتمام العملية',
+      'No appointment data found to process':
+          'لم يتم العثور على بيانات للموعد لإتمام العملية',
       'KidCare Clinic': 'عيادة كيد كير',
       'Payment Error': 'خطأ في عملية الدفع',
       'Payment Cancelled': 'تم إلغاء الدفع',
@@ -3893,14 +4223,16 @@ class AppTranslations extends Translations {
       'An unexpected error occurred': 'حدث خطأ غير متوقع',
       'favorite_doctors': 'الأطباء المفضلون',
       'view_favorite_doctors': 'عرض قائمة أطبائك المفضلين',
-      'Session expired. Please login again.': 'انتهت صلاحية الجلسة. يرجى تسجيل الدخول مجدداً.',
+      'Session expired. Please login again.':
+          'انتهت صلاحية الجلسة. يرجى تسجيل الدخول مجدداً.',
       'Weight (kg)': 'الوزن (كجم)',
       'Height (cm)': 'الطول (سم)',
       'Record Date': 'تاريخ القياس',
       'Save Measurement': 'حفظ القياس',
       'Please enter valid weight and height': 'يرجى إدخال وزن وطول صحيحين',
       'Measurement saved successfully': 'تم حفظ القياس بنجاح',
-      'Are you sure you want to delete this record?': 'هل أنت متأكد من حذف هذا السجل؟',
+      'Are you sure you want to delete this record?':
+          'هل أنت متأكد من حذف هذا السجل؟',
       'Growth History': 'سجلات النمو',
       'Age (Months)': 'العمر (شهر)',
       'Ideal Weight (WHO)': 'المعدل المثالي (WHO)',
@@ -3918,9 +4250,15 @@ class AppTranslations extends Translations {
       'Add Measurement': 'إضافة قياس',
       'Notifications': 'الإشعارات',
       'No notifications found': 'لا توجد إشعارات حالياً',
+      'Delete Account': 'حذف الحساب',
+      'Permanently delete your account from the app':
+          'حذف حسابك بشكل دائم من التطبيق',
+      'Are you sure you want to permanently delete your account? This action cannot be undone.':
+          'هل أنت متأكد أنك تريد حذف حسابك نهائياً؟ هذا الإجراء لا يمكن التراجع عنه.',
     },
   };
 }
+
 ```
 
 ### File: lib\core\repos\appointment\appointment_repo.dart
@@ -3928,7 +4266,10 @@ class AppTranslations extends Translations {
 import 'dart:convert';
 
 
+import 'package:http/http.dart' as http;
+
 import '../../apis/appointment/appointment_api.dart';
+import '../../constants.dart';
 import '../../helper/secure_storage_service.dart';
 import '../../../models/appointment/appointment_model.dart';
 
@@ -3968,6 +4309,32 @@ class AppointmentRepo {
 
 
     throw Exception(_errorMessage(decoded, 'Failed to book appointment'));
+  }
+// دالة مخصصة لضرب مسار الـ POST الخاص بالحجز السريع
+  Future<String> bookQuickAppointmentApi(int doctorId, int childId, String date, String time) async {
+    final token = await SecureStorage.getToken();
+    final response = await http.post(
+      Uri.parse('$baseUrl/appointment'), // مسار الـ POST الذي جربته في Postman
+      headers: {
+        'Accept': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+      body: {
+        'doctor_id': doctorId.toString(),
+        'child_id': childId.toString(),
+        'date': date,
+        'time': time,
+      },
+    );
+
+    final data = jsonDecode(response.body);
+
+    // 201 Created تعني نجاح الحجز كما ظهر معك في Postman
+    if (response.statusCode == 201 && data['status'] == 'success') {
+      return data['appointment_id']; // إرجاع الـ UUID الخاص بالموعد
+    } else {
+      throw Exception(data['message'] ?? 'Failed to book appointment');
+    }
   }
 
   Future<List<AppointmentModel>> listAll() => _fetchList(_api.listAll);
@@ -4138,13 +4505,27 @@ class DepartmentRepo {
 
   DepartmentRepo({DepartmentApi? api}) : _api = api ?? DepartmentApi();
 
+
   Future<List<DepartmentModel>> fetchAll() async {
     final token = await SecureStorage.getToken();
     final response = await _api.getAll(token);
     final decoded = jsonDecode(response);
 
+    // 🌟 التعديل هنا: استخراج المصفوفة بمرونة سواء كانت مباشرة أو داخل غلاف (data أو departments)
+    List<dynamic> listToMap = [];
     if (decoded is List) {
-      return decoded
+      listToMap = decoded;
+    } else if (decoded is Map) {
+      if (decoded['departments'] is List) {
+        listToMap = decoded['departments'];
+      } else if (decoded['data'] is List) {
+        listToMap = decoded['data'];
+      }
+    }
+
+    // التحقق من وجود البيانات أو رسالة النجاح
+    if (listToMap.isNotEmpty || (decoded is Map && decoded['status'] == 'success')) {
+      return listToMap
           .map((j) => DepartmentModel.fromJson(j as Map<String, dynamic>))
           .toList();
     }
@@ -4155,7 +4536,6 @@ class DepartmentRepo {
     throw Exception(msg);
   }
 }
-
 ```
 
 ### File: lib\core\repos\appointment\doctor_repo.dart
@@ -4165,11 +4545,28 @@ import '../../apis/appointment/doctor_api.dart';
 import '../../helper/secure_storage_service.dart';
 import '../../../models/appointment/doctor_model.dart';
 import '../../../models/appointment/doctor_availability_model.dart';
+import '../../../models/appointment/closest_appointment_model.dart';
 
 class DoctorRepo {
   final DoctorApi _api;
 
   DoctorRepo({DoctorApi? api}) : _api = api ?? DoctorApi();
+
+  Future<List<ClosestAppointmentModel>> fetchClosestAppointments(int departmentId) async {
+    final token = await SecureStorage.getToken();
+    final response = await _api.getClosestAppointments(token, departmentId);
+    final decoded = jsonDecode(response);
+
+    if (decoded is Map && decoded['status'] == 'success') {
+      final List data = decoded['data'] ?? [];
+      return data.map((e) => ClosestAppointmentModel.fromJson(e as Map<String, dynamic>)).toList();
+    }
+
+    final msg = (decoded is Map && decoded['message'] != null)
+        ? decoded['message'].toString()
+        : 'Failed to load closest appointments';
+    throw Exception(msg);
+  }
 
   Future<List<DoctorModel>> fetchByDepartment(int departmentId) async {
     final token = await SecureStorage.getToken();
@@ -4345,12 +4742,28 @@ import '../../../models/auth/user_model.dart';
 import '../../apis/auth/login_api.dart';
 import '../../helper/secure_storage_service.dart';
 
-
 class LoginRepo {
-  final LoginApi loginApi = LoginApi();
+  final LoginApi _api = LoginApi();
+
+  String _cleanJson(String response) {
+    final brace = response.indexOf('{');
+    final bracket = response.indexOf('[');
+
+    if (bracket != -1 && (brace == -1 || bracket < brace)) {
+      return response.substring(bracket);
+    }
+    if (brace != -1) return response.substring(brace);
+
+    final startIndex = response.indexOf(RegExp(r'[\{\[]'));
+    if (startIndex != -1) {
+      return response.substring(startIndex);
+    }
+
+    return response;
+  }
 
   Future<UserModel> loginUser(String phone, String password) async {
-    var response = await loginApi.login(phone, password);
+    var response = await _api.login(phone, password);
     var responseBody = json.decode(response);
 
     if (responseBody['status'] == 'success') {
@@ -4371,6 +4784,17 @@ class LoginRepo {
     } else {
       throw Exception(responseBody['message'] ?? 'Invalid login details');
     }
+  }
+
+  Future<String> deletePatientAccount() async {
+    String rawResponse = await _api.deletePatientAccount();
+
+    if (rawResponse.contains('{')) {
+      rawResponse = rawResponse.substring(rawResponse.indexOf('{'));
+    }
+
+    final Map<String, dynamic> decodedJson = jsonDecode(rawResponse);
+    return decodedJson['message'] ?? 'Account deleted successfully.';
   }
 }
 
@@ -4617,6 +5041,7 @@ class AppointmentsRepo {
     return list.map((e) => AppointmentsModel.fromJson(e)).toList();
   }
 
+
   Future<List<AppointmentsModel>> getAllUpcoming() async {
     final response = await _api.getAllUpcoming();
     return _parseResponse(response);
@@ -4732,14 +5157,28 @@ class NotificationHistoryRepo {
       final decoded = json.decode(response.body);
 
       if (decoded is List) {
-        return decoded.map((json) => NotificationHistoryModel.fromJson(json as Map<String, dynamic>)).toList();
+        return decoded
+            .map(
+              (json) => NotificationHistoryModel.fromJson(
+                json as Map<String, dynamic>,
+              ),
+            )
+            .toList();
       } else if (decoded is Map && decoded['notifications'] is List) {
         return (decoded['notifications'] as List)
-            .map((json) => NotificationHistoryModel.fromJson(json as Map<String, dynamic>))
+            .map(
+              (json) => NotificationHistoryModel.fromJson(
+                json as Map<String, dynamic>,
+              ),
+            )
             .toList();
       } else if (decoded is Map && decoded['data'] is List) {
         return (decoded['data'] as List)
-            .map((json) => NotificationHistoryModel.fromJson(json as Map<String, dynamic>))
+            .map(
+              (json) => NotificationHistoryModel.fromJson(
+                json as Map<String, dynamic>,
+              ),
+            )
             .toList();
       }
       return [];
@@ -4748,6 +5187,7 @@ class NotificationHistoryRepo {
     }
   }
 }
+
 ```
 
 ### File: lib\core\repos\home\parent_name_repo.dart
@@ -5009,6 +5449,7 @@ import 'package:flutter_stripe/flutter_stripe.dart';
 import 'package:kidcare/core/helper/secure_storage_service.dart';
 import 'package:kidcare/core/localization/app_translations.dart';
 import 'package:kidcare/core/repos/home/add_child_repo.dart';
+import 'package:kidcare/views/appointment/closest_appointments_view.dart';
 import 'package:kidcare/views/home/add_child_view.dart';
 import 'package:kidcare/views/home/appointments_view.dart';
 import 'package:kidcare/views/home/child_profile_view.dart';
@@ -5028,6 +5469,7 @@ import 'package:kidcare/views/auth/sign_up_view.dart';
 import 'package:kidcare/core/repos/auth/sign_up_repo.dart';
 import 'package:kidcare/views/settings/favorite_doctors_view.dart';
 import 'controllers/appointment/appointment_controller.dart';
+import 'controllers/appointment/closest_appointments_controller.dart';
 import 'controllers/auth/sign_up_controller.dart';
 
 // Activation
@@ -5161,6 +5603,21 @@ class MyApp extends StatelessWidget {
             Get.lazyPut<SignUpController>(
                   () => SignUpController(signUpRepo: SignUpRepo()),
             );
+          }),
+        ),
+        GetPage(
+          name: '/closest-appointments',
+          page: () => const ClosestAppointmentsView(),
+          binding: BindingsBuilder(() {
+            Get.lazyPut(() => ClosestAppointmentsController(
+              departmentRepo: DepartmentRepo(),
+              doctorRepo: DoctorRepo(),
+            ));
+            // استخدام Get.put لضمان تهيئة المتحكم
+            Get.put(AppointmentController(
+                repo: AppointmentRepo(),
+                doctorRepo: DoctorRepo()
+            ));
           }),
         ),
 
@@ -5455,6 +5912,39 @@ class ChildModel {
   }
 }
 
+```
+
+### File: lib\models\appointment\closest_appointment_model.dart
+```dart
+class ClosestAppointmentModel {
+  final int doctorId;
+  final String doctorName;
+  final String? profilePictureUrl;
+  final String date;
+  final String time;
+  final String dayName;
+
+  ClosestAppointmentModel({
+    required this.doctorId,
+    required this.doctorName,
+    this.profilePictureUrl,
+    required this.date,
+    required this.time,
+    required this.dayName,
+  });
+
+  factory ClosestAppointmentModel.fromJson(Map<String, dynamic> json) {
+    final appointment = json['closest_appointment'] ?? {};
+    return ClosestAppointmentModel(
+      doctorId: json['doctor_id'] ?? 0,
+      doctorName: json['doctor_name']?.toString() ?? '',
+      profilePictureUrl: json['profile_picture_url']?.toString(),
+      date: appointment['date']?.toString() ?? '',
+      time: appointment['time']?.toString() ?? '',
+      dayName: appointment['day_name']?.toString() ?? '',
+    );
+  }
+}
 ```
 
 ### File: lib\models\appointment\department_model.dart
@@ -5828,8 +6318,8 @@ class AppointmentsModel {
         : (json['doctor_name'] ?? 'Unknown Doctor'.tr);
 
     final specialty = doctor != null
-        ? (doctor['specialty'] ?? 'General'.tr)
-        : (json['specialty'] ?? 'General'.tr);
+        ? (doctor['specialty'] ?? doctor['department'] ?? 'General'.tr)
+        : (json['specialty'] ?? json['department'] ?? 'General'.tr);
 
     final doctorImage = doctor != null ? doctor['image'] : json['doctor_image'];
 
@@ -5843,16 +6333,26 @@ class AppointmentsModel {
 
     final childImage = child != null ? child['image'] : json['child_image'];
 
+    // 🌟 التعديل الجوهري هنا: تحصين الـ ID ضد أخطاء النوع (String vs Int)
+    int parsedId = 0;
+    if (json['id'] != null) {
+      if (json['id'] is int) {
+        parsedId = json['id'];
+      } else {
+        parsedId = int.tryParse(json['id'].toString()) ?? 0;
+      }
+    }
+
     return AppointmentsModel(
-      id: json['id'] ?? 0,
+      id: parsedId, // استخدام الـ ID الآمن
       doctorName: doctorName,
       specialty: specialty,
-      date: json['date'] ?? '',
-      time: json['time'] ?? '',
-      status: json['status'] ?? 'pending',
-      doctorImage: doctorImage,
+      date: json['date']?.toString() ?? '', // تحصين التاريخ
+      time: json['time']?.toString() ?? '', // تحصين الوقت
+      status: json['status']?.toString() ?? 'pending',
+      doctorImage: doctorImage?.toString(),
       childName: childName,
-      childImage: childImage,
+      childImage: childImage?.toString(),
     );
   }
 }
@@ -5946,6 +6446,7 @@ class NotificationHistoryModel {
     );
   }
 }
+
 ```
 
 ### File: lib\models\home\profile_model.dart
@@ -6020,7 +6521,6 @@ import 'package:skeletonizer/skeletonizer.dart';
 
 import '../../controllers/appointment/appointment_controller.dart';
 import '../../controllers/appointment/child_controller.dart';
-import '../../core/booking_theme.dart';
 import '../../models/appointment/child_model.dart';
 import '../../widgets/booking_app_bar.dart';
 
@@ -6059,10 +6559,38 @@ class _ChooseChildViewState extends State<ChooseChildView> {
     setState(() => selectedChildId = child.id);
     appointmentController.selectChild(child);
   }
-
-  void _onNextPressed() {
+  Future<void> _onNextPressed() async {
     if (selectedChildId == null) return;
-    Get.toNamed('/choose-date-time');
+
+    // 1. التحقق مما إذا كان المستخدم قادماً من واجهة الحجز السريع
+    final args = Get.arguments as Map<String, dynamic>?;
+    final isQuickBook = args?['is_quick_book'] ?? false;
+
+    if (isQuickBook) {
+      // 2. البحث عن كائن الطفل (ChildModel) الذي يطابق الـ ID المختار
+      // (تأكد أن اسم مصفوفة الأطفال هو children أو استبدلها بالاسم الصحيح في childController)
+      final selectedChildModel = childController.children.firstWhereOrNull(
+            (c) => c.id == selectedChildId,
+      );
+
+      if (selectedChildModel != null) {
+        // 3. حقن كائن الطفل كاملاً في متحكم الحجز ليتجاوز شرط الـ Validation
+        appointmentController.selectChild(selectedChildModel);
+
+        // 4. استدعاء دالة الحجز
+        final bool success = await appointmentController.bookAppointment();
+
+        if (success) {
+          final appointmentId = appointmentController.bookedAppointmentId.value!;
+          Get.offNamed('/payment-method', arguments: appointmentId);
+        } else {
+          print('--- فشل الحجز محلياً: يرجى التحقق من بيانات DoctorModel ---');
+        }
+      }
+    } else {
+      // المسار الطبيعي
+      Get.toNamed('/choose-date-time');
+    }
   }
 
   @override
@@ -6638,7 +7166,9 @@ class _ChooseDoctorViewState extends State<ChooseDoctorView> {
   Widget build(BuildContext context) {
     return Scaffold(
       // ❌ تم إزالة backgroundColor ليقرأ خلفية النظام تلقائياً
-      appBar: bookingAppBar(subtitle: '${'Choose Doctor'.tr} - $specialty'),
+      appBar: bookingAppBar(
+        subtitle: '${'Choose Doctor'.tr} - ${specialty.tr}',
+      ),
       body: SafeArea(
         child: Column(
           children: [
@@ -6907,6 +7437,208 @@ class _SelectionDot extends StatelessWidget {
   }
 }
 
+```
+
+### File: lib\views\appointment\closest_appointments_view.dart
+```dart
+import 'package:flutter/material.dart';
+import 'package:get/get.dart';
+import 'package:skeletonizer/skeletonizer.dart';
+import '../../controllers/appointment/appointment_controller.dart';
+import '../../controllers/appointment/closest_appointments_controller.dart';
+import '../../models/appointment/closest_appointment_model.dart';
+import '../../models/appointment/doctor_model.dart';
+import '../../widgets/booking_app_bar.dart';
+
+class ClosestAppointmentsView extends GetView<ClosestAppointmentsController> {
+  const ClosestAppointmentsView({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: bookingAppBar(subtitle: 'Closest Appointments'.tr),
+      body: Column(
+        children: [
+          const SizedBox(height: 10),
+          _buildDepartmentsSlider(context),
+          const SizedBox(height: 16),
+          Expanded(child: _buildAppointmentsList()),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDepartmentsSlider(BuildContext context) {
+    return Obx(() {
+      if (controller.departments.isEmpty && controller.isLoading) {
+        return const SizedBox(height: 45, child: Center(child: CircularProgressIndicator()));
+      }
+
+      return SizedBox(
+        height: 45,
+        child: ListView.builder(
+          scrollDirection: Axis.horizontal,
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          itemCount: controller.departments.length,
+          itemBuilder: (context, index) {
+            final dept = controller.departments[index];
+            final isSelected = controller.selectedDepartmentId.value == dept.id;
+
+            return GestureDetector(
+              onTap: () => controller.fetchClosestAppointments(dept.id),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                margin: const EdgeInsets.only(right: 12),
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: isSelected ? context.theme.primaryColor : context.theme.cardColor,
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(
+                    color: isSelected ? context.theme.primaryColor : context.theme.dividerColor,
+                  ),
+                ),
+                child: Text(
+                  dept.name.tr,
+                  style: TextStyle(
+                    color: isSelected ? Colors.white : context.textTheme.bodyLarge?.color,
+                    fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                  ),
+                ),
+              ),
+            );
+          },
+        ),
+      );
+    });
+  }
+
+  Widget _buildAppointmentsList() {
+    return Obx(() {
+      if (controller.isLoading) {
+        return const Center(child: CircularProgressIndicator());
+      }
+
+      if (controller.closestAppointments.isEmpty) {
+        return Center(
+          child: Text(
+            'No upcoming appointments available for this department.'.tr,
+            style: TextStyle(color: Get.context!.textTheme.bodyMedium?.color),
+          ),
+        );
+      }
+
+      return ListView.builder(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+        itemCount: controller.closestAppointments.length,
+        itemBuilder: (context, index) {
+          final item = controller.closestAppointments[index];
+          return _ClosestAppointmentCard(item: item);
+        },
+      );
+    });
+  }
+}
+
+class _ClosestAppointmentCard extends StatelessWidget {
+  final ClosestAppointmentModel item;
+
+  const _ClosestAppointmentCard({required this.item});
+
+  void _onCardTapped() {
+    final aptCtrl = Get.find<AppointmentController>();
+
+    // 1. تمرير مودل وهمي للطبيب يحتوي على الـ ID والاسم الأساسي فقط لأننا لا نحتاج الباقي هنا
+    aptCtrl.selectDoctor(DoctorModel(
+      id: item.doctorId,
+      firstName: item.doctorName,
+      lastName: '',
+      email: '',
+      address: '',
+      isFavorite: false,
+    ));
+
+    // 2. تحديد التاريخ والوقت تلقائياً
+    aptCtrl.selectDate(DateTime.parse(item.date));
+    aptCtrl.selectTime(item.time);
+
+    // 3. الانتقال لاختيار الطفل مع تمرير Flag ليخبر الواجهة أن هذا "حجز سريع"
+    Get.toNamed('/choose-child', arguments: {'is_quick_book': true});
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: _onCardTapped,
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: context.theme.cardColor,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: context.theme.dividerColor),
+          boxShadow: [
+            if (!context.isDarkMode)
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.04),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
+              ),
+          ],
+        ),
+        child: Row(
+          children: [
+            CircleAvatar(
+              radius: 28,
+              backgroundColor: context.isDarkMode ? Colors.blue.withValues(alpha: 0.15) : Colors.blue.shade50,
+              backgroundImage: item.profilePictureUrl != null ? NetworkImage(item.profilePictureUrl!) : null,
+              child: item.profilePictureUrl == null ? Icon(Icons.person, color: context.theme.primaryColor) : null,
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    item.doctorName,
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: context.textTheme.bodyLarge?.color,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Icon(Icons.calendar_month_outlined, size: 16, color: context.theme.primaryColor),
+                      const SizedBox(width: 6),
+                      Text(
+                        '${item.date} (${item.dayName.tr})',
+                        style: TextStyle(fontSize: 13, color: context.textTheme.bodyMedium?.color),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  Row(
+                    children: [
+                      Icon(Icons.access_time_rounded, size: 16, color: Colors.orange.shade600),
+                      const SizedBox(width: 6),
+                      Text(
+                        item.time,
+                        style: TextStyle(fontSize: 13, color: context.textTheme.bodyMedium?.color, fontWeight: FontWeight.bold),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            Icon(Icons.chevron_right, color: context.theme.dividerColor),
+          ],
+        ),
+      ),
+    );
+  }
+}
 ```
 
 ### File: lib\views\auth\activation\otp_verification_view.dart
@@ -8472,6 +9204,133 @@ class _QuickStatCard extends StatelessWidget {
 
 ```
 
+### File: lib\views\home\about_app_view.dart
+```dart
+import 'package:flutter/material.dart';
+import 'package:get/get.dart';
+
+class AboutAppView extends StatelessWidget {
+  const AboutAppView({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('About App'.tr),
+        centerTitle: true,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios, size: 20),
+          onPressed: () => Get.back(),
+        ),
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(24.0),
+        child: Column(
+          children: [
+            // شعار التطبيق
+            Center(
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(20),
+                child: Image.asset(
+                  'assets/images/logo.jpg',
+                  height: 120,
+                ),
+              ),
+            ),
+            const SizedBox(height: 30),
+
+            // عنوان ترحيبي
+            Text(
+              'Pediatric Clinic Management'.tr,
+              style: TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.bold,
+                color: theme.primaryColor,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 20),
+
+            // الوصف الرئيسي
+            _buildSection(
+              context,
+              title: 'Our Vision'.tr,
+              content: 'app_vision_desc'.tr,
+              icon: Icons.lightbulb_outline,
+            ),
+
+            const SizedBox(height: 20),
+
+            _buildSection(
+              context,
+              title: 'Our Mission'.tr,
+              content: 'app_mission_desc'.tr,
+              icon: Icons.track_changes,
+            ),
+
+            const SizedBox(height: 20),
+
+            _buildSection(
+              context,
+              title: 'Key Features'.tr,
+              content: 'app_features_desc'.tr,
+              icon: Icons.star_border,
+            ),
+
+            const SizedBox(height: 40),
+
+            // رقم الإصدار أو الحقوق
+            Text(
+              'Version 1.0.0'.tr,
+              style: TextStyle(color: theme.hintColor, fontSize: 12),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSection(BuildContext context, {required String title, required String content, required IconData icon}) {
+    final theme = Theme.of(context);
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: theme.cardColor,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: theme.dividerColor.withValues(alpha: 0.1)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(icon, color: theme.primaryColor, size: 20),
+              const SizedBox(width: 10),
+              Text(
+                title,
+                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Text(
+            content,
+            style: TextStyle(
+              color: theme.textTheme.bodyMedium?.color,
+              height: 1.6,
+              fontSize: 14,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+```
+
 ### File: lib\views\home\add_child_view.dart
 ```dart
 import 'package:flutter/material.dart';
@@ -9011,38 +9870,53 @@ class AppointmentsView extends GetView<AppointmentsController> {
             ),
             const SizedBox(height: 16),
 
-            // ─── List ───
+            // ─── List مع ميزة التحديث بالسحب ───
             Expanded(
               child: Obx(() {
-                if (controller.isLoading) {
+                final list = controller.showUpcoming.value ? controller.upcoming : controller.past;
+
+                // نظهر دائرة التحميل فقط إذا كانت القائمة فارغة (لتجنب اختفاء المواعيد عند التحديث اليدوي)
+                if (controller.isLoading && list.isEmpty) {
                   return const Center(child: CircularProgressIndicator(color: Colors.blue));
                 }
 
-                final list = controller.showUpcoming.value ? controller.upcoming : controller.past;
-
-                if (list.isEmpty) {
-                  return Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.calendar_today_outlined, size: 60, color: context.theme.dividerColor),
-                        const SizedBox(height: 12),
-                        Text(
-                          'No appointments found'.tr,
-                          style: TextStyle(fontSize: 16, color: context.textTheme.bodyMedium?.color),
-                        ),
-                      ],
+                return RefreshIndicator(
+                  color: context.theme.primaryColor,
+                  onRefresh: () async {
+                    if (controller.showUpcoming.value) {
+                      await controller.fetchUpcoming();
+                    } else {
+                      await controller.fetchPast();
+                    }
+                  },
+                  child: list.isEmpty
+                      ? SingleChildScrollView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    child: Container(
+                      height: MediaQuery.of(context).size.height * 0.6,
+                      alignment: Alignment.center,
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.calendar_today_outlined, size: 60, color: context.theme.dividerColor),
+                          const SizedBox(height: 12),
+                          Text(
+                            'No appointments found'.tr,
+                            style: TextStyle(fontSize: 16, color: context.textTheme.bodyMedium?.color),
+                          ),
+                        ],
+                      ),
                     ),
-                  );
-                }
-
-                return ListView.separated(
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
-                  itemCount: list.length,
-                  separatorBuilder: (_, _) => const SizedBox(height: 12),
-                  itemBuilder: (_, index) => _AppointmentCard(
-                    appointment: list[index],
-                    isSingleChild: isSingleChild,
+                  )
+                      : ListView.separated(
+                    physics: const AlwaysScrollableScrollPhysics(), // ضروري لعمل السحب
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                    itemCount: list.length,
+                    separatorBuilder: (_, _) => const SizedBox(height: 12),
+                    itemBuilder: (_, index) => _AppointmentCard(
+                      appointment: list[index],
+                      isSingleChild: isSingleChild,
+                    ),
                   ),
                 );
               }),
@@ -9637,7 +10511,7 @@ class _InfoCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 6),
                 Text(
-                  '${child.ageYears} ${' years'.tr}',
+                  '${child.ageYears} ${'years'.tr}',
                   style: TextStyle(
                     fontSize: 16,
                     color: context.textTheme.bodyMedium?.color,
@@ -9897,6 +10771,7 @@ class _ActionButton extends StatelessWidget {
 ```dart
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:kidcare/views/home/about_app_view.dart';
 import '../../controllers/home/home_controller.dart';
 import '../../models/home/home_child_model.dart';
 
@@ -10195,7 +11070,7 @@ class _BookButton extends StatelessWidget {
       width: double.infinity,
       height: 58,
       child: ElevatedButton.icon(
-        onPressed: () {},
+        onPressed: ()=> Get.toNamed('/closest-appointments'),
         icon: const Icon(Icons.add_circle_outline,
             color: Colors.white, size: 22),
         label: Text(
@@ -10347,7 +11222,10 @@ class _ClinicInfoSection extends StatelessWidget {
                 ),
                 const SizedBox(height: 8),
                 GestureDetector(
-                  onTap: () {},
+                  onTap: () {
+                    Get.to(()=>const AboutAppView());
+                  },
+                  behavior: HitTestBehavior.opaque,
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.start,
                     children: [
@@ -10497,12 +11375,12 @@ class NotificationHistoryView extends GetView<NotificationHistoryController> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF4F6FA),
+      backgroundColor: context.theme.scaffoldBackgroundColor,
       appBar: AppBar(
         title: Text(
           'Notifications'.tr,
-          style: const TextStyle(
-            color: Color(0xFF1A2E5A),
+          style: TextStyle(
+            color: context.textTheme.bodyLarge?.color,
             fontWeight: FontWeight.bold,
             fontSize: 18,
           ),
@@ -10511,14 +11389,20 @@ class NotificationHistoryView extends GetView<NotificationHistoryController> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios, color: Color(0xFF1A2E5A), size: 20),
+          icon: Icon(
+            Icons.arrow_back_ios,
+            color: context.iconColor,
+            size: 20,
+          ),
           onPressed: () => Get.back(),
         ),
       ),
       body: SafeArea(
         child: Obx(() {
           if (controller.isLoading && controller.notifications.isEmpty) {
-            return const Center(child: CircularProgressIndicator(color: Colors.blue));
+            return Center(
+              child: CircularProgressIndicator(color: context.theme.primaryColor),
+            );
           }
 
           if (controller.notifications.isEmpty) {
@@ -10526,11 +11410,18 @@ class NotificationHistoryView extends GetView<NotificationHistoryController> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.notifications_off_outlined, size: 64, color: Colors.grey.shade300),
+                  Icon(
+                    Icons.notifications_off_outlined,
+                    size: 64,
+                    color: context.theme.dividerColor,
+                  ),
                   const SizedBox(height: 16),
                   Text(
                     'No notifications found'.tr,
-                    style: TextStyle(color: Colors.grey.shade400, fontSize: 14),
+                    style: TextStyle(
+                      color: context.textTheme.bodyMedium?.color,
+                      fontSize: 14,
+                    ),
                   ),
                 ],
               ),
@@ -10539,8 +11430,9 @@ class NotificationHistoryView extends GetView<NotificationHistoryController> {
 
           return RefreshIndicator(
             onRefresh: () => controller.getNotifications(),
-            color: Colors.blue,
+            color: context.theme.primaryColor,
             child: ListView.builder(
+              physics: const AlwaysScrollableScrollPhysics(),
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
               itemCount: controller.notifications.length,
               itemBuilder: (context, index) {
@@ -10549,27 +11441,34 @@ class NotificationHistoryView extends GetView<NotificationHistoryController> {
                   margin: const EdgeInsets.only(bottom: 12),
                   padding: const EdgeInsets.all(14),
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: context.theme.cardColor,
                     borderRadius: BorderRadius.circular(16),
                     boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.02),
-                        blurRadius: 10,
-                        offset: const Offset(0, 4),
-                      ),
+                      if (!context.isDarkMode)
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.04),
+                          blurRadius: 10,
+                          offset: const Offset(0, 4),
+                        ),
                     ],
-                    border: Border.all(color: Colors.grey.shade100),
+                    border: Border.all(color: context.theme.dividerColor),
                   ),
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Container(
                         padding: const EdgeInsets.all(10),
-                        decoration: const BoxDecoration(
-                          color: Color(0xFFF0F4FF),
+                        decoration: BoxDecoration(
+                          color: context.isDarkMode
+                              ? context.theme.primaryColor.withValues(alpha: 0.15)
+                              : context.theme.primaryColor.withValues(alpha: 0.08),
                           shape: BoxShape.circle,
                         ),
-                        child: const Icon(Icons.notifications_outlined, color: Colors.blue, size: 22),
+                        child: Icon(
+                          Icons.notifications_outlined,
+                          color: context.theme.primaryColor,
+                          size: 22,
+                        ),
                       ),
                       const SizedBox(width: 12),
                       Expanded(
@@ -10578,21 +11477,30 @@ class NotificationHistoryView extends GetView<NotificationHistoryController> {
                           children: [
                             Text(
                               item.title,
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontWeight: FontWeight.bold,
                                 fontSize: 14,
-                                color: Color(0xFF1A2E5A),
+                                color: context.textTheme.bodyLarge?.color,
                               ),
                             ),
                             const SizedBox(height: 4),
                             Text(
                               item.body,
-                              style: TextStyle(fontSize: 12.5, color: Colors.grey.shade600, height: 1.4),
+                              style: TextStyle(
+                                fontSize: 12.5,
+                                color: context.textTheme.bodyMedium?.color,
+                                height: 1.4,
+                              ),
                             ),
                             const SizedBox(height: 8),
                             Text(
                               item.createdAt,
-                              style: TextStyle(fontSize: 10, color: Colors.grey.shade400),
+                              style: TextStyle(
+                                fontSize: 10,
+                                color: context.isDarkMode
+                                    ? Colors.grey.shade500
+                                    : Colors.grey.shade400,
+                              ),
                             ),
                           ],
                         ),
@@ -12009,10 +12917,10 @@ class SettingsView extends StatelessWidget {
                 SettingsTile(
                   icon: Icons.delete_forever_rounded,
                   title: 'Delete account'.tr,
-                  subtitle: ''.tr,
+                  subtitle:'Permanently delete your account from the app'.tr,
                   isLogout: true,
                   showDivider: false,
-                  onTap: () {},
+                  onTap: () => controller.deleteAccount(),
                 ),
               ],
             ),

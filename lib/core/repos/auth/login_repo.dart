@@ -3,12 +3,11 @@ import '../../../models/auth/user_model.dart';
 import '../../apis/auth/login_api.dart';
 import '../../helper/secure_storage_service.dart';
 
-
 class LoginRepo {
-  final LoginApi loginApi = LoginApi();
+  final LoginApi _api = LoginApi();
 
   Future<UserModel> loginUser(String phone, String password) async {
-    var response = await loginApi.login(phone, password);
+    var response = await _api.login(phone, password);
     var responseBody = json.decode(response);
 
     if (responseBody['status'] == 'success') {
@@ -28,6 +27,22 @@ class LoginRepo {
       return user;
     } else {
       throw Exception(responseBody['message'] ?? 'Invalid login details');
+    }
+  }
+
+  Future<String> deletePatientAccount() async {
+    String rawResponse = await _api.deletePatientAccount();
+
+    if (rawResponse.contains('{')) {
+      rawResponse = rawResponse.substring(rawResponse.indexOf('{'));
+    }
+
+    final decoded = jsonDecode(rawResponse);
+
+    if (decoded['status'] == 'success' || decoded['message'] != null) {
+      return decoded['message'] ?? 'Account terminated successfully.';
+    } else {
+      throw Exception('Failed to terminate account');
     }
   }
 }

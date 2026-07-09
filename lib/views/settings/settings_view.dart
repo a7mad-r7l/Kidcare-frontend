@@ -26,7 +26,8 @@ class SettingsView extends StatelessWidget {
           ),
         ),
         leading: IconButton(
-          icon: Icon(Icons.arrow_back_ios, color: context.iconColor), // ─── أيقونة متكيفة ───
+          icon: Icon(Icons.arrow_back_ios, color: context.iconColor),
+          // ─── أيقونة متكيفة ───
           onPressed: () => Get.back(),
         ),
       ),
@@ -40,7 +41,7 @@ class SettingsView extends StatelessWidget {
               title: 'preferences'.tr,
               children: [
                 Obx(
-                      () => SettingsTile(
+                  () => SettingsTile(
                     icon: Icons.language,
                     title: 'language'.tr,
                     subtitle: controller.currentLanguage.value == 'ar'
@@ -49,14 +50,18 @@ class SettingsView extends StatelessWidget {
                     onTap: () => _showLanguageBottomSheet(context, controller),
                   ),
                 ),
-                Obx(() => SettingsTile(
-                  icon: Icons.dark_mode_outlined,
-                  title: 'theme'.tr,
-                  subtitle: controller.isDarkMode.value ? 'Dark Mode' : 'Light Mode',
-                  onTap: () {
-                    controller.toggleTheme();
-                  },
-                )),
+                Obx(
+                  () => SettingsTile(
+                    icon: Icons.dark_mode_outlined,
+                    title: 'theme'.tr,
+                    subtitle: controller.isDarkMode.value
+                        ? 'Dark Mode'
+                        : 'Light Mode',
+                    onTap: () {
+                      controller.toggleTheme();
+                    },
+                  ),
+                ),
                 SettingsTile(
                   icon: Icons.favorite_border_rounded,
                   title: 'favorite_doctors'.tr,
@@ -94,10 +99,10 @@ class SettingsView extends StatelessWidget {
                 SettingsTile(
                   icon: Icons.delete_forever_rounded,
                   title: 'Delete account'.tr,
-                  subtitle: ''.tr,
+                  subtitle: 'Permanently delete your account from the app'.tr,
                   isLogout: true,
                   showDivider: false,
-                  onTap: () {},
+                  onTap: () => controller.deleteAccount(),
                 ),
               ],
             ),
@@ -109,9 +114,9 @@ class SettingsView extends StatelessWidget {
   }
 
   void _showLanguageBottomSheet(
-      BuildContext context,
-      SettingsController controller,
-      ) {
+    BuildContext context,
+    SettingsController controller,
+  ) {
     Get.bottomSheet(
       Container(
         padding: const EdgeInsets.all(20),
@@ -136,7 +141,7 @@ class SettingsView extends StatelessWidget {
             const SizedBox(height: 20),
 
             Obx(
-                  () => RadioGroup<String>(
+              () => RadioGroup<String>(
                 groupValue: controller.currentLanguage.value,
                 onChanged: (value) {
                   if (value != null) {
@@ -156,7 +161,9 @@ class SettingsView extends StatelessWidget {
                         ),
                       ),
                       value: 'en',
-                      activeColor: context.theme.primaryColor, // ─── لون التحديد متكيف ───
+                      activeColor: context
+                          .theme
+                          .primaryColor, // ─── لون التحديد متكيف ───
                     ),
                     RadioListTile<String>(
                       title: Text(

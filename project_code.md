@@ -363,15 +363,18 @@ class DoctorController extends BaseController {
     loadFavoriteDoctorIds();
   }
 
-
   Future<void> loadFavoriteDoctorIds() async {
+    showLoading();
     try {
       final favs = await favoriteRepo.fetchFavoriteDoctors();
       favoriteDoctors.assignAll(favs);
       favDoctorIds.assignAll(favs.map((d) => d.id));
-    } catch (_) {}
+    } catch (e) {
+      handleError(e);
+    } finally {
+      hideLoading();
+    }
   }
-
 
   Future<void> toggleFavorite(int doctorId) async {
     if (favDoctorIds.contains(doctorId)) {
@@ -386,10 +389,8 @@ class DoctorController extends BaseController {
     favDoctorIds.refresh();
 
     try {
-
       await favoriteRepo.toggleDoctorFavorite(doctorId);
     } catch (e) {
-
       loadFavoriteDoctorIds();
       handleError(e);
     }
@@ -2136,6 +2137,7 @@ class PaymentController extends GetxController {
 ```dart
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+
 import '../core/helper/secure_storage_service.dart';
 import '../core/repos/auth/login_repo.dart';
 import 'base_controller.dart';
@@ -2246,7 +2248,8 @@ class SettingsController extends BaseController {
   Future<void> _confirmDeleteAccount() async {
     showLoading();
     try {
-      final loginRepo = Get.find<LoginRepo>();
+      final loginRepo = LoginRepo();
+
       final msg = await loginRepo.deletePatientAccount();
 
       showSuccess(msg);
@@ -2300,7 +2303,7 @@ class AppointmentApi {
 
   Future<String> create(String token, Map<String, dynamic> body) async {
     final response = await client.post(
-      Uri.parse('$baseUrl/appointments'),
+      Uri.parse('$baseUrl/appointment'),
       headers: {
         'Accept': 'application/json',
         'Authorization': 'Bearer $token',
@@ -2669,9 +2672,12 @@ class LoginApi {
 
   Future<String> deletePatientAccount() async {
     final token = await SecureStorage.getToken();
+
+    final url = Uri.parse('$baseUrl/parent/account/terminate');
+
     final response = await http
         .delete(
-          Uri.parse('$baseUrl/parent/account/terminate'),
+          url,
           headers: {
             'Content-Type': 'application/json',
             'Accept': 'application/json',
@@ -2680,6 +2686,7 @@ class LoginApi {
           },
         )
         .timeout(const Duration(seconds: 15));
+
     return response.body;
   }
 }
@@ -3297,6 +3304,7 @@ const kBookingAvatarTint = Color(0xFFEFF6FF);
 const String baseUrl = 'https://deputize-daylong-puritan.ngrok-free.dev/api';
 
 String token = '';
+
 ```
 
 ### File: lib\core\helper\json_utils.dart
@@ -4745,23 +4753,6 @@ import '../../helper/secure_storage_service.dart';
 class LoginRepo {
   final LoginApi _api = LoginApi();
 
-  String _cleanJson(String response) {
-    final brace = response.indexOf('{');
-    final bracket = response.indexOf('[');
-
-    if (bracket != -1 && (brace == -1 || bracket < brace)) {
-      return response.substring(bracket);
-    }
-    if (brace != -1) return response.substring(brace);
-
-    final startIndex = response.indexOf(RegExp(r'[\{\[]'));
-    if (startIndex != -1) {
-      return response.substring(startIndex);
-    }
-
-    return response;
-  }
-
   Future<UserModel> loginUser(String phone, String password) async {
     var response = await _api.login(phone, password);
     var responseBody = json.decode(response);
@@ -4793,8 +4784,13 @@ class LoginRepo {
       rawResponse = rawResponse.substring(rawResponse.indexOf('{'));
     }
 
-    final Map<String, dynamic> decodedJson = jsonDecode(rawResponse);
-    return decodedJson['message'] ?? 'Account deleted successfully.';
+    final decoded = jsonDecode(rawResponse);
+
+    if (decoded['status'] == 'success' || decoded['message'] != null) {
+      return decoded['message'] ?? 'Account terminated successfully.';
+    } else {
+      throw Exception('Failed to terminate account');
+    }
   }
 }
 
@@ -6019,6 +6015,7 @@ class DoctorModel {
   final String? departmentName;
   final String? profilePicture;
   final bool isFavorite;
+  final String? department;
 
   DoctorModel({
     required this.id,
@@ -6029,32 +6026,43 @@ class DoctorModel {
     this.departmentName,
     this.profilePicture,
     required this.isFavorite,
+    this.department,
   });
 
   String get fullName => '$firstName $lastName';
 
   factory DoctorModel.fromJson(Map<String, dynamic> json) {
-    // 🌟 تحويل قيمة المفضلية بأمان مطلق ضد أي قيم أرقام أو بول قادمة من الباك إند
     bool favoriteValue = false;
     final fav = json['is_favorite'] ?? json['isFavorite'];
     if (fav != null) {
       if (fav is bool) favoriteValue = fav;
       if (fav is int) favoriteValue = fav == 1;
-      if (fav is String) favoriteValue = fav == '1' || fav.toLowerCase() == 'true';
+      if (fav is String) {
+        favoriteValue = fav == '1' || fav.toLowerCase() == 'true';
+      }
     }
 
     return DoctorModel(
-      id: json['id'] is int ? json['id'] : int.tryParse(json['id']?.toString() ?? '0') ?? 0,
-      firstName: json['first_name']?.toString() ?? json['firstName']?.toString() ?? '',
-      lastName: json['last_name']?.toString() ?? json['lastName']?.toString() ?? '',
+      id: json['id'] is int
+          ? json['id']
+          : int.tryParse(json['id']?.toString() ?? '0') ?? 0,
+      firstName:
+          json['first_name']?.toString() ?? json['firstName']?.toString() ?? '',
+      lastName:
+          json['last_name']?.toString() ?? json['lastName']?.toString() ?? '',
       email: json['email']?.toString() ?? '',
       address: json['address']?.toString() ?? '',
-      departmentName: json['department_name']?.toString() ?? json['departmentName']?.toString() ?? '',
+      departmentName:
+          json['department_name']?.toString() ??
+          json['departmentName']?.toString() ??
+          '',
       profilePicture: json['profile_picture']?.toString(),
+      department: json['department']?.toString() ?? '',
       isFavorite: favoriteValue,
     );
   }
 }
+
 ```
 
 ### File: lib\models\appointment_details_model.dart
@@ -12629,150 +12637,137 @@ import '../../controllers/appointment/appointment_controller.dart';
 import '../../controllers/appointment/doctor_controller.dart';
 import '../../models/appointment/doctor_model.dart';
 
-class FavoriteDoctorsView extends StatelessWidget {
+class FavoriteDoctorsView extends StatefulWidget {
   const FavoriteDoctorsView({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    final DoctorController doctorController = Get.find<DoctorController>();
-    final AppointmentController appointmentController =
-        Get.find<AppointmentController>();
-
-    doctorController.loadFavoriteDoctorIds();
-
-    return Scaffold(
-      // ❌ تم إزالة backgroundColor ليقرأ خلفية النظام تلقائياً
-      appBar: AppBar(
-        title: Text(
-          'favorite_doctors'.tr,
-          style: TextStyle(
-            color: context.textTheme.bodyLarge?.color, // ─── نص متكيف ───
-            fontWeight: FontWeight.bold,
-            fontSize: 20,
-          ),
-        ),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        centerTitle: true,
-        leading: IconButton(
-          icon: Icon(Icons.arrow_back_ios, color: context.iconColor),
-          // ─── أيقونة متكيفة ───
-          onPressed: () => Get.back(),
-        ),
-      ),
-      body: SafeArea(
-        child: Obx(() {
-          final favorites = doctorController.favoriteDoctors;
-
-          if (favorites.isEmpty) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    Icons.favorite_border_rounded,
-                    size: 64,
-                    color: context.theme.dividerColor, // ─── أيقونة متكيفة ───
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    'No doctors available in this department.'.tr,
-                    style: TextStyle(
-                      color: context.textTheme.bodyMedium?.color,
-                      fontSize: 14,
-                    ), // ─── نص متكيف ───
-                  ),
-                ],
-              ),
-            );
-          }
-
-          return ListView.builder(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-            itemCount: favorites.length,
-            itemBuilder: (context, index) {
-              final doctor = favorites[index];
-              return _FavoriteDoctorCard(
-                doctor: doctor,
-                onCardTap: () {
-                  appointmentController.selectDoctor(doctor);
-                  Get.toNamed('/choose-child');
-                },
-                onFavoriteTap: () => doctorController.toggleFavorite(doctor.id),
-              );
-            },
-          );
-        }),
-      ),
-    );
-  }
+  State<FavoriteDoctorsView> createState() => _FavoriteDoctorsViewState();
 }
 
-class _FavoriteDoctorCard extends StatelessWidget {
-  final DoctorModel doctor;
-  final VoidCallback onCardTap;
-  final VoidCallback onFavoriteTap;
+class _FavoriteDoctorsViewState extends State<FavoriteDoctorsView> {
+  final DoctorController controller = Get.find<DoctorController>();
 
-  const _FavoriteDoctorCard({
-    required this.doctor,
-    required this.onCardTap,
-    required this.onFavoriteTap,
-  });
+  @override
+  void initState() {
+    super.initState();
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      controller.loadFavoriteDoctorIds();
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: context.theme.scaffoldBackgroundColor,
+      appBar: AppBar(
+        title: Text(
+          'Favorite Doctors'.tr,
+          style: TextStyle(
+            color: context.textTheme.bodyLarge?.color,
+            fontWeight: FontWeight.bold,
+            fontSize: 18,
+          ),
+        ),
+        centerTitle: true,
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        leading: IconButton(
+          icon: Icon(
+            Icons.arrow_back_ios,
+            color: context.theme.iconTheme.color,
+            size: 20,
+          ),
+          onPressed: () => Get.back(),
+        ),
+      ),
+      body: Obx(() {
+        // 1. حالة التحميل
+        if (controller.isLoading && controller.favoriteDoctors.isEmpty) {
+          return Center(
+            child: CircularProgressIndicator(color: context.theme.primaryColor),
+          );
+        }
+
+        // 2. حالة القائمة الفارغة
+        if (controller.favoriteDoctors.isEmpty) {
+          return Center(
+            child: Text(
+              'No favorite doctors found'.tr,
+              style: TextStyle(color: context.theme.hintColor, fontSize: 15),
+            ),
+          );
+        }
+
+        // 3. عرض البيانات
+        return RefreshIndicator(
+          onRefresh: () => controller.loadFavoriteDoctorIds(),
+          color: context.theme.primaryColor,
+          child: ListView.builder(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+            itemCount: controller.favoriteDoctors.length,
+            itemBuilder: (context, index) {
+              final doctor = controller.favoriteDoctors[index];
+              return _buildFavoriteCard(context, doctor);
+            },
+          ),
+        );
+      }),
+    );
+  }
+
+  Widget _buildFavoriteCard(BuildContext context, DoctorModel doctor) {
+    final String specialtyText =
+        (doctor.department != null && doctor.department!.isNotEmpty)
+        ? '${doctor.department!.tr} ${'Specialist'.tr}'
+        : 'Specialist'.tr;
+
     return GestureDetector(
-      onTap: onCardTap,
+      onTap: () {
+        final appointmentController = Get.find<AppointmentController>();
+        appointmentController.selectDoctor(doctor);
+        Get.toNamed('/choose-child');
+      },
       child: Container(
-        margin: const EdgeInsets.only(bottom: 12),
-        padding: const EdgeInsets.all(14),
+        margin: const EdgeInsets.only(bottom: 14),
+        padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: context.theme.cardColor, // ─── خلفية البطاقة متكيفة ───
-          borderRadius: BorderRadius.circular(18),
+          color: context.theme.cardColor,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: context.theme.dividerColor.withOpacity(0.4),
+          ),
           boxShadow: [
             BoxShadow(
               color: context.isDarkMode
                   ? Colors.transparent
-                  : Colors.black.withValues(alpha: 0.04),
-              // ─── إخفاء الظل في الوضع الليلي ───
-              blurRadius: 12,
+                  : Colors.black.withOpacity(0.04),
+              blurRadius: 10,
               offset: const Offset(0, 4),
             ),
           ],
         ),
         child: Row(
           children: [
-            Container(
-              width: 56,
-              height: 56,
-              decoration: BoxDecoration(
-                color: context.isDarkMode
-                    ? Colors.blue.withOpacity(0.15)
-                    : const Color(0xFFF0F4FF), // ─── خلفية الأفاتار متكيفة ───
-                shape: BoxShape.circle,
-              ),
-              clipBehavior: Clip.antiAlias,
-              child:
+            CircleAvatar(
+              radius: 28,
+              backgroundColor: context.isDarkMode
+                  ? Colors.blue.withOpacity(0.15)
+                  : Colors.blue.shade50,
+              backgroundImage:
                   doctor.profilePicture != null &&
                       doctor.profilePicture!.isNotEmpty
-                  ? Image.network(
-                      doctor.profilePicture!,
-                      fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => Icon(
-                        Icons.person_rounded,
-                        color: context.theme.primaryColor,
-                        // ─── أيقونة متكيفة ───
-                        size: 30,
-                      ),
-                    )
-                  : Icon(
-                      Icons.person_rounded,
-                      color:
-                          context.theme.primaryColor, // ─── أيقونة متكيفة ───
-                      size: 30,
-                    ),
+                  ? NetworkImage(doctor.profilePicture!)
+                  : null,
+              child:
+                  doctor.profilePicture == null ||
+                      doctor.profilePicture!.isEmpty
+                  ? Icon(Icons.person, color: context.theme.primaryColor)
+                  : null,
             ),
-            const SizedBox(width: 14),
+            const SizedBox(width: 16),
+            // بيانات الطبيب
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -12780,34 +12775,31 @@ class _FavoriteDoctorCard extends StatelessWidget {
                   Text(
                     doctor.fullName,
                     style: TextStyle(
-                      fontSize: 15,
+                      fontSize: 16,
                       fontWeight: FontWeight.bold,
-                      color: context
-                          .textTheme
-                          .bodyLarge
-                          ?.color, // ─── نص متكيف ───
+                      color: context.textTheme.bodyLarge?.color,
                     ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
-                  const SizedBox(height: 3),
-                  // 🌟 الإصلاح: قراءة النص المباشر والآمن للقسم المرتجع من البوستمان وترجمته ديناميكياً
+                  const SizedBox(height: 4),
                   Text(
-                    (doctor.departmentName != null &&
-                            doctor.departmentName!.isNotEmpty)
-                        ? doctor.departmentName!.tr
-                        : 'Specialist'.tr,
+                    specialtyText,
                     style: TextStyle(
-                      fontSize: 12.5,
+                      fontSize: 13,
                       color: context.textTheme.bodyMedium?.color,
-                    ), // ─── نص متكيف ───
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ],
               ),
             ),
             GestureDetector(
-              onTap: onFavoriteTap,
+              onTap: () => controller.toggleFavorite(doctor.id),
               child: const Padding(
                 padding: EdgeInsets.all(8.0),
-                child: Icon(Icons.favorite, color: Colors.redAccent, size: 24),
+                child: Icon(Icons.favorite, color: Colors.redAccent, size: 26),
               ),
             ),
           ],
@@ -12849,7 +12841,8 @@ class SettingsView extends StatelessWidget {
           ),
         ),
         leading: IconButton(
-          icon: Icon(Icons.arrow_back_ios, color: context.iconColor), // ─── أيقونة متكيفة ───
+          icon: Icon(Icons.arrow_back_ios, color: context.iconColor),
+          // ─── أيقونة متكيفة ───
           onPressed: () => Get.back(),
         ),
       ),
@@ -12863,7 +12856,7 @@ class SettingsView extends StatelessWidget {
               title: 'preferences'.tr,
               children: [
                 Obx(
-                      () => SettingsTile(
+                  () => SettingsTile(
                     icon: Icons.language,
                     title: 'language'.tr,
                     subtitle: controller.currentLanguage.value == 'ar'
@@ -12872,14 +12865,18 @@ class SettingsView extends StatelessWidget {
                     onTap: () => _showLanguageBottomSheet(context, controller),
                   ),
                 ),
-                Obx(() => SettingsTile(
-                  icon: Icons.dark_mode_outlined,
-                  title: 'theme'.tr,
-                  subtitle: controller.isDarkMode.value ? 'Dark Mode' : 'Light Mode',
-                  onTap: () {
-                    controller.toggleTheme();
-                  },
-                )),
+                Obx(
+                  () => SettingsTile(
+                    icon: Icons.dark_mode_outlined,
+                    title: 'theme'.tr,
+                    subtitle: controller.isDarkMode.value
+                        ? 'Dark Mode'
+                        : 'Light Mode',
+                    onTap: () {
+                      controller.toggleTheme();
+                    },
+                  ),
+                ),
                 SettingsTile(
                   icon: Icons.favorite_border_rounded,
                   title: 'favorite_doctors'.tr,
@@ -12917,7 +12914,7 @@ class SettingsView extends StatelessWidget {
                 SettingsTile(
                   icon: Icons.delete_forever_rounded,
                   title: 'Delete account'.tr,
-                  subtitle:'Permanently delete your account from the app'.tr,
+                  subtitle: 'Permanently delete your account from the app'.tr,
                   isLogout: true,
                   showDivider: false,
                   onTap: () => controller.deleteAccount(),
@@ -12932,9 +12929,9 @@ class SettingsView extends StatelessWidget {
   }
 
   void _showLanguageBottomSheet(
-      BuildContext context,
-      SettingsController controller,
-      ) {
+    BuildContext context,
+    SettingsController controller,
+  ) {
     Get.bottomSheet(
       Container(
         padding: const EdgeInsets.all(20),
@@ -12959,7 +12956,7 @@ class SettingsView extends StatelessWidget {
             const SizedBox(height: 20),
 
             Obx(
-                  () => RadioGroup<String>(
+              () => RadioGroup<String>(
                 groupValue: controller.currentLanguage.value,
                 onChanged: (value) {
                   if (value != null) {
@@ -12979,7 +12976,9 @@ class SettingsView extends StatelessWidget {
                         ),
                       ),
                       value: 'en',
-                      activeColor: context.theme.primaryColor, // ─── لون التحديد متكيف ───
+                      activeColor: context
+                          .theme
+                          .primaryColor, // ─── لون التحديد متكيف ───
                     ),
                     RadioListTile<String>(
                       title: Text(
@@ -13013,6 +13012,7 @@ class SettingsView extends StatelessWidget {
     );
   }
 }
+
 ```
 
 ### File: lib\widgets\activation_helpers.dart

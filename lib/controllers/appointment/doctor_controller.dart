@@ -22,15 +22,18 @@ class DoctorController extends BaseController {
     loadFavoriteDoctorIds();
   }
 
-
   Future<void> loadFavoriteDoctorIds() async {
+    showLoading();
     try {
       final favs = await favoriteRepo.fetchFavoriteDoctors();
       favoriteDoctors.assignAll(favs);
       favDoctorIds.assignAll(favs.map((d) => d.id));
-    } catch (_) {}
+    } catch (e) {
+      handleError(e);
+    } finally {
+      hideLoading();
+    }
   }
-
 
   Future<void> toggleFavorite(int doctorId) async {
     if (favDoctorIds.contains(doctorId)) {
@@ -45,10 +48,8 @@ class DoctorController extends BaseController {
     favDoctorIds.refresh();
 
     try {
-
       await favoriteRepo.toggleDoctorFavorite(doctorId);
     } catch (e) {
-
       loadFavoriteDoctorIds();
       handleError(e);
     }

@@ -7,6 +7,7 @@ class DoctorModel {
   final String? departmentName;
   final String? profilePicture;
   final bool isFavorite;
+  final String? department;
 
   DoctorModel({
     required this.id,
@@ -17,28 +18,38 @@ class DoctorModel {
     this.departmentName,
     this.profilePicture,
     required this.isFavorite,
+    this.department,
   });
 
   String get fullName => '$firstName $lastName';
 
   factory DoctorModel.fromJson(Map<String, dynamic> json) {
-    // 🌟 تحويل قيمة المفضلية بأمان مطلق ضد أي قيم أرقام أو بول قادمة من الباك إند
     bool favoriteValue = false;
     final fav = json['is_favorite'] ?? json['isFavorite'];
     if (fav != null) {
       if (fav is bool) favoriteValue = fav;
       if (fav is int) favoriteValue = fav == 1;
-      if (fav is String) favoriteValue = fav == '1' || fav.toLowerCase() == 'true';
+      if (fav is String) {
+        favoriteValue = fav == '1' || fav.toLowerCase() == 'true';
+      }
     }
 
     return DoctorModel(
-      id: json['id'] is int ? json['id'] : int.tryParse(json['id']?.toString() ?? '0') ?? 0,
-      firstName: json['first_name']?.toString() ?? json['firstName']?.toString() ?? '',
-      lastName: json['last_name']?.toString() ?? json['lastName']?.toString() ?? '',
+      id: json['id'] is int
+          ? json['id']
+          : int.tryParse(json['id']?.toString() ?? '0') ?? 0,
+      firstName:
+          json['first_name']?.toString() ?? json['firstName']?.toString() ?? '',
+      lastName:
+          json['last_name']?.toString() ?? json['lastName']?.toString() ?? '',
       email: json['email']?.toString() ?? '',
       address: json['address']?.toString() ?? '',
-      departmentName: json['department_name']?.toString() ?? json['departmentName']?.toString() ?? '',
+      departmentName:
+          json['department_name']?.toString() ??
+          json['departmentName']?.toString() ??
+          '',
       profilePicture: json['profile_picture']?.toString(),
+      department: json['department']?.toString() ?? '',
       isFavorite: favoriteValue,
     );
   }

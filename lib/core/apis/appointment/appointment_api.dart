@@ -7,7 +7,7 @@ class AppointmentApi {
 
   Future<String> create(String token, Map<String, dynamic> body) async {
     final response = await client.post(
-      Uri.parse('$baseUrl/appointments'),
+      Uri.parse('$baseUrl/appointment'),
       headers: {
         'Accept': 'application/json',
         'Authorization': 'Bearer $token',

@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../core/repos/auth/login_repo.dart';
 import '../base_controller.dart';
+// ─── 1. التعديل الأول: استدعاء ملف خدمة التنبيهات ───
+import '../../core/helper/notification_service.dart';
 
 class LoginController extends BaseController {
   final LoginRepo loginRepo;
@@ -48,6 +50,9 @@ class LoginController extends BaseController {
         phoneController.text.trim(),
         passwordController.text.trim(),
       );
+
+      // ─── 2. التعديل الثاني: رفع التوكن فور نجاح تسجيل الدخول ───
+      await NotificationService.uploadFcmToken();
 
       Get.snackbar(
         "Success".tr,

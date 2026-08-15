@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 
+import 'package:get/get_utils/src/extensions/internacionalization.dart';
 import 'package:http/http.dart' as http;
 
 import '../../apis/appointment/appointment_api.dart';
@@ -132,17 +133,21 @@ class AppointmentRepo {
     throw Exception(_errorMessage(decoded, 'Failed to reschedule appointment'));
   }
 
-  Future<void> cancel(String id) async {
+  Future<String> cancel(String id) async {
     final token = await SecureStorage.getToken();
     final response = await _api.delete(token, id);
-    if (response.isEmpty) return;
+
+    if (response.isEmpty) return "Appointment cancelled successfully".tr;
 
     final decoded = jsonDecode(response);
-    if (decoded is Map && decoded['errors'] != null) {
-      throw Exception(_errorMessage(decoded, 'Failed to cancel appointment'));
-    }
-  }
 
+    // إرجاع رسالة السيرفر (مثل: تم إلغاء الموعد وجاري إعادة المبلغ)
+    if (decoded is Map && decoded['message'] != null) {
+      return decoded['message'].toString();
+    }
+
+    return "Appointment cancelled successfully".tr;
+  }
   // ---- helpers ----
 
   Future<List<AppointmentModel>> _fetchList(

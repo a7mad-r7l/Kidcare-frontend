@@ -4,6 +4,8 @@ import 'package:get/get.dart';
 
 import '../../core/repos/auth/activation_repo.dart';
 import '../base_controller.dart';
+// ─── 1. إضافة استدعاء ملف خدمة التنبيهات ───
+import '../../core/helper/notification_service.dart';
 
 class ActivationController extends BaseController {
   final ActivationRepo repo = ActivationRepo();
@@ -169,6 +171,9 @@ class ActivationController extends BaseController {
         phoneController.text.trim(),
         passwordController.text,
       );
+
+      // ─── 2. إضافة سطر رفع توكن الإشعارات فور نجاح التفعيل وتسجيل الدخول ───
+      await NotificationService.uploadFcmToken();
 
       Get.snackbar(
         "Success".tr,

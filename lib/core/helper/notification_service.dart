@@ -17,25 +17,25 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
 class NotificationService {
   static final FirebaseMessaging _messaging = FirebaseMessaging.instance;
   static final FlutterLocalNotificationsPlugin _localNotificationsPlugin =
-      FlutterLocalNotificationsPlugin();
+  FlutterLocalNotificationsPlugin();
 
   static const AndroidNotificationChannel _appointmentsChannel =
-      AndroidNotificationChannel(
-        'appointments_channel', // channelId
-        'Appointments Notifications', // channelName
-        description: 'This channel is used for appointments updates.',
-        importance: Importance.max,
-        playSound: true,
-      );
+  AndroidNotificationChannel(
+    'appointments_channel', // channelId
+    'Appointments Notifications', // channelName
+    description: 'This channel is used for appointments updates.',
+    importance: Importance.max,
+    playSound: true,
+  );
 
   static const AndroidNotificationChannel _chatChannel =
-      AndroidNotificationChannel(
-        'chat_channel', // channelId
-        'Chat Notifications', // channelName
-        description: 'This channel is used for direct doctor chats.',
-        importance: Importance.max,
-        playSound: true,
-      );
+  AndroidNotificationChannel(
+    'chat_channel', // channelId
+    'Chat Notifications', // channelName
+    description: 'This channel is used for direct doctor chats.',
+    importance: Importance.max,
+    playSound: true,
+  );
 
   static Future<void> initialize() async {
     NotificationSettings settings = await _messaging.requestPermission(
@@ -50,20 +50,20 @@ class NotificationService {
 
     await _localNotificationsPlugin
         .resolvePlatformSpecificImplementation<
-          AndroidFlutterLocalNotificationsPlugin
-        >()
+        AndroidFlutterLocalNotificationsPlugin
+    >()
         ?.createNotificationChannel(_appointmentsChannel);
 
     await _localNotificationsPlugin
         .resolvePlatformSpecificImplementation<
-          AndroidFlutterLocalNotificationsPlugin
-        >()
+        AndroidFlutterLocalNotificationsPlugin
+    >()
         ?.createNotificationChannel(_chatChannel);
 
     const AndroidInitializationSettings initializationSettingsAndroid =
-        AndroidInitializationSettings('@mipmap/ic_launcher');
+    AndroidInitializationSettings('@mipmap/ic_launcher');
     const InitializationSettings initializationSettings =
-        InitializationSettings(android: initializationSettingsAndroid);
+    InitializationSettings(android: initializationSettingsAndroid);
 
     await _localNotificationsPlugin.initialize(
       initializationSettings,
@@ -94,10 +94,12 @@ class NotificationService {
       _handleNotificationClick(initialMessage.data['type'].toString());
     }
 
-    await _getAndPrintFCMToken();
+    // ─── التعديل الأول: استدعاء الدالة بالاسم الجديد ───
+    await uploadFcmToken();
   }
 
-  static Future<void> _getAndPrintFCMToken() async {
+  // ─── التعديل الثاني: إزالة الشرطة السفلية وتغيير الاسم لتصبح عامة ───
+  static Future<void> uploadFcmToken() async {
     try {
       String? token = await _messaging.getToken();
       if (token != null) {

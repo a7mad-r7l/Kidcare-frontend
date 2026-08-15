@@ -7,7 +7,7 @@ class AppointmentApi {
 
   Future<String> create(String token, Map<String, dynamic> body) async {
     final response = await client.post(
-      Uri.parse('$baseUrl/appointment'),
+      Uri.parse('$baseUrl/appointments'),
       headers: {
         'Accept': 'application/json',
         'Authorization': 'Bearer $token',
@@ -96,7 +96,7 @@ class AppointmentApi {
     Map<String, dynamic> body,
   ) async {
     final response = await client.put(
-      Uri.parse('$baseUrl/appointments/$appointmentId'),
+      Uri.parse('$baseUrl/appointment/$appointmentId'),
       headers: {
         'Accept': 'application/json',
         'Authorization': 'Bearer $token',
@@ -109,13 +109,17 @@ class AppointmentApi {
 
   Future<String> delete(String token, String appointmentId) async {
     final response = await client.delete(
-      Uri.parse('$baseUrl/appointments/$appointmentId'),
+      Uri.parse('$baseUrl/appointment/$appointmentId'),
       headers: {
         'Accept': 'application/json',
         'Authorization': 'Bearer $token',
         'Accept-Language': Get.locale?.languageCode ?? 'en',
       },
     );
-    return response.body;
-  }
+    // التحقق من نجاح الطلب
+    if (response.statusCode == 200 || response.statusCode == 201) {
+      return response.body;
+    } else {
+      throw Exception("Error ${response.statusCode}: ${response.body}");
+  }}
 }

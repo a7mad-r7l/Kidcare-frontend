@@ -7,24 +7,25 @@ class SuccessResetView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: context.theme.scaffoldBackgroundColor,
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(25.0),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Image.asset('assets/images/green_checkmark.jpg', height: 200),
+              Image.asset('assets/images/green_checkmark.png', height: 200),
 
+              // يفضل استخدام .png شفافة
               const SizedBox(height: 40),
 
               // العنوان الرئيسي
-              const Text(
+              Text(
                 "Password Updated!",
                 style: TextStyle(
                   fontSize: 24,
                   fontWeight: FontWeight.bold,
-                  color: Color(0xFF1D2755),
+                  color: context.textTheme.bodyLarge?.color,
                 ),
               ),
 
@@ -35,7 +36,11 @@ class SuccessResetView extends StatelessWidget {
                 "Your password has been updated successfully. You can now log in with your new password."
                     .tr,
                 textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 16, color: Colors.grey, height: 1.5),
+                style: TextStyle(
+                  fontSize: 16,
+                  color: context.theme.hintColor,
+                  height: 1.5,
+                ),
               ),
 
               const SizedBox(height: 50),
@@ -46,18 +51,17 @@ class SuccessResetView extends StatelessWidget {
                 height: 55,
                 child: ElevatedButton(
                   onPressed: () {
-                    // العودة لصفحة تسجيل الدخول ومسح كل الصفحات السابقة من الذاكرة
                     Get.offAllNamed('/login');
                   },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF4A86D1),
+                    backgroundColor: context.theme.primaryColor,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(15),
                     ),
                   ),
                   child: Text(
                     "Back to Login".tr,
-                    style: TextStyle(
+                    style: const TextStyle(
                       color: Colors.white,
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
@@ -68,8 +72,7 @@ class SuccessResetView extends StatelessWidget {
 
               const SizedBox(height: 40),
 
-              // صورة الطفل (الولد) في الأسفل
-              Image.asset('assets/images/child_welcome.jpg', height: 200),
+              Image.asset('assets/images/child_welcome.png', height: 200),
             ],
           ),
         ),

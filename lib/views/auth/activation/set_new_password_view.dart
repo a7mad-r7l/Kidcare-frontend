@@ -11,12 +11,16 @@ class SetNewPasswordView extends GetView<ActivationController> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: context.theme.scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios, color: Colors.black),
+          icon: Icon(
+            Icons.arrow_back_ios,
+            color: context.theme.iconTheme.color,
+          ),
+
           onPressed: () => Get.back(),
         ),
       ),
@@ -26,7 +30,7 @@ class SetNewPasswordView extends GetView<ActivationController> {
           child: Column(
             children: [
               const StepProgressIndicator(currentStep: 3),
-               ActivationHeader(
+              ActivationHeader(
                 imagePath: 'assets/images/lock_blue_logo.png',
                 title: 'Create New Password'.tr,
                 subtitle: 'Create a strong password to protect your account'.tr,
@@ -42,7 +46,7 @@ class SetNewPasswordView extends GetView<ActivationController> {
                       controller.isPasswordHidden.value
                           ? Icons.visibility_off
                           : Icons.visibility,
-                      color: Colors.grey,
+                      color: context.theme.hintColor,
                     ),
                     onPressed: controller.togglePasswordVisibility,
                   ),
@@ -64,17 +68,23 @@ class SetNewPasswordView extends GetView<ActivationController> {
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: Colors.grey.shade50,
+                  color: context.theme.cardColor,
                   borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: context.theme.dividerColor.withOpacity(0.2),
+                  ),
                 ),
-                child:  Column(
+                child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       'Password must contain:'.tr,
-                      style: TextStyle(color: Colors.grey, fontSize: 14),
+                      style: TextStyle(
+                        color: context.theme.hintColor,
+                        fontSize: 14,
+                      ),
                     ),
-                    SizedBox(height: 12),
+                    const SizedBox(height: 12),
                     PasswordRequirementRow(text: 'At least 8 characters'.tr),
                   ],
                 ),
@@ -83,7 +93,9 @@ class SetNewPasswordView extends GetView<ActivationController> {
               const SizedBox(height: 40),
               Obx(
                 () => controller.isLoading
-                    ? const CircularProgressIndicator()
+                    ? CircularProgressIndicator(
+                        color: context.theme.primaryColor,
+                      )
                     : PrimaryButton(
                         text: 'Set Password and Login'.tr,
                         onPressed: controller.completeActivation,

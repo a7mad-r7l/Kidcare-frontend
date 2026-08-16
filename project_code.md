@@ -572,6 +572,8 @@ import 'package:get/get.dart';
 
 import '../../core/repos/auth/activation_repo.dart';
 import '../base_controller.dart';
+// ─── 1. إضافة استدعاء ملف خدمة التنبيهات ───
+import '../../core/helper/notification_service.dart';
 
 class ActivationController extends BaseController {
   final ActivationRepo repo = ActivationRepo();
@@ -738,6 +740,9 @@ class ActivationController extends BaseController {
         passwordController.text,
       );
 
+      // ─── 2. إضافة سطر رفع توكن الإشعارات فور نجاح التفعيل وتسجيل الدخول ───
+      await NotificationService.uploadFcmToken();
+
       Get.snackbar(
         "Success".tr,
         "Account activated successfully".tr,
@@ -889,6 +894,8 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../core/repos/auth/login_repo.dart';
 import '../base_controller.dart';
+// ─── 1. التعديل الأول: استدعاء ملف خدمة التنبيهات ───
+import '../../core/helper/notification_service.dart';
 
 class LoginController extends BaseController {
   final LoginRepo loginRepo;
@@ -936,6 +943,9 @@ class LoginController extends BaseController {
         passwordController.text.trim(),
       );
 
+      // ─── 2. التعديل الثاني: رفع التوكن فور نجاح تسجيل الدخول ───
+      await NotificationService.uploadFcmToken();
+
       Get.snackbar(
         "Success".tr,
         "${"Welcome Back,".tr} ${user.firstName}" "!" ,
@@ -958,7 +968,6 @@ class LoginController extends BaseController {
     super.onClose();
   }
 }
-
 ```
 
 ### File: lib\controllers\auth\sign_up_controller.dart
@@ -1704,6 +1713,7 @@ class AddChildController extends BaseController {
 
 ### File: lib\controllers\home\appointments_controller.dart
 ```dart
+import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../core/repos/home/appointments_repo.dart';
 import '../../models/home/appointments_model.dart';
@@ -1752,6 +1762,43 @@ class AppointmentsController extends BaseController {
       handleError(e);
     } finally {
       hideLoading();
+    }
+  }
+  Future<void> cancelAppointment(int appointmentId) async {
+    try {
+      // إظهار دائرة التحميل
+      Get.dialog(
+        const Center(child: CircularProgressIndicator()),
+        barrierDismissible: false,
+      );
+
+      // استدعاء دالة الحذف من الـ Repo
+      final response = await appointmentsRepo.cancelAppointment(appointmentId);
+
+      // إغلاق دائرة التحميل
+      Get.back();
+
+      // 1. حذف الموعد من قائمة "المواعيد القادمة" في الواجهة فوراً
+      upcoming.removeWhere((appointment) => appointment.id == appointmentId);
+
+      // 2. تصفير قائمة المواعيد السابقة لتهيئتها للاستجابة الجديدة
+      past.clear();
+
+      // 3. الانتقال التلقائي إلى تبويب المواعيد السابقة (Past) وجلب البيانات المحدثة
+      switchTab(false);
+
+      // إظهار رسالة النجاح متوافقة مع لغة التطبيق النشطة
+      Get.snackbar(
+        'Success'.tr,
+        response['message'] ?? 'Appointment canceled successfully'.tr,
+        backgroundColor: Get.isDarkMode ? Colors.green.withValues(alpha: 0.8) : Colors.green.shade600,
+        colorText: Colors.white,
+        snackPosition: SnackPosition.BOTTOM,
+      );
+
+    } catch (e) {
+      Get.back(); // إغلاق دائرة التحميل في حالة الخطأ
+      handleError(e); // معالجة الخطأ عبر الـ BaseController
     }
   }
 
@@ -2154,10 +2201,11 @@ class SettingsController extends BaseController {
     isDarkMode.value = Get.isDarkMode;
   }
 
-  void toggleTheme() {
+  void toggleTheme() async {
     isDarkMode.value = !isDarkMode.value;
-
     Get.changeThemeMode(isDarkMode.value ? ThemeMode.dark : ThemeMode.light);
+
+    await SecureStorage.storeThemeMode(isDarkMode.value ? 'dark' : 'light');
   }
 
   Future<void> _loadSavedLanguage() async {
@@ -2303,7 +2351,7 @@ class AppointmentApi {
 
   Future<String> create(String token, Map<String, dynamic> body) async {
     final response = await client.post(
-      Uri.parse('$baseUrl/appointment'),
+      Uri.parse('$baseUrl/appointments'),
       headers: {
         'Accept': 'application/json',
         'Authorization': 'Bearer $token',
@@ -2392,7 +2440,7 @@ class AppointmentApi {
     Map<String, dynamic> body,
   ) async {
     final response = await client.put(
-      Uri.parse('$baseUrl/appointments/$appointmentId'),
+      Uri.parse('$baseUrl/appointment/$appointmentId'),
       headers: {
         'Accept': 'application/json',
         'Authorization': 'Bearer $token',
@@ -2405,15 +2453,19 @@ class AppointmentApi {
 
   Future<String> delete(String token, String appointmentId) async {
     final response = await client.delete(
-      Uri.parse('$baseUrl/appointments/$appointmentId'),
+      Uri.parse('$baseUrl/appointment/$appointmentId'),
       headers: {
         'Accept': 'application/json',
         'Authorization': 'Bearer $token',
         'Accept-Language': Get.locale?.languageCode ?? 'en',
       },
     );
-    return response.body;
-  }
+    // التحقق من نجاح الطلب
+    if (response.statusCode == 200 || response.statusCode == 201) {
+      return response.body;
+    } else {
+      throw Exception("Error ${response.statusCode}: ${response.body}");
+  }}
 }
 
 ```
@@ -2954,6 +3006,7 @@ import 'package:http/http.dart' as http;
 import '../../constants.dart';
 import '../../helper/secure_storage_service.dart';
 import 'package:get/get.dart';
+import 'dart:convert'; // أضفنا هذا لفك تشفير الخطأ إذا حدث
 
 class AppointmentsApi {
   final http.Client client = http.Client();
@@ -2964,7 +3017,11 @@ class AppointmentsApi {
     if (token.isEmpty) throw Exception('Session expired. Please login again.');
     final response = await client.get(
       Uri.parse('$baseUrl/appointments/upcoming'),
-      headers: {'Accept': 'application/json', 'Authorization': 'Bearer $token'},
+      headers: {
+        'Accept': 'application/json',
+        'Authorization': 'Bearer $token',
+        'ngrok-skip-browser-warning': 'true' // يفضل إضافته لكل الطلبات
+      },
     );
     return response.body;
   }
@@ -2975,7 +3032,11 @@ class AppointmentsApi {
     if (token.isEmpty) throw Exception('Session expired. Please login again.');
     final response = await client.get(
       Uri.parse('$baseUrl/appointments/past'),
-      headers: {'Accept': 'application/json', 'Authorization': 'Bearer $token'},
+      headers: {
+        'Accept': 'application/json',
+        'Authorization': 'Bearer $token',
+        'ngrok-skip-browser-warning': 'true'
+      },
     );
     return response.body;
   }
@@ -2986,7 +3047,11 @@ class AppointmentsApi {
     if (token.isEmpty) throw Exception('Session expired. Please login again.');
     final response = await client.get(
       Uri.parse('$baseUrl/appointments/upcoming/$childId'),
-      headers: {'Accept': 'application/json', 'Authorization': 'Bearer $token'},
+      headers: {
+        'Accept': 'application/json',
+        'Authorization': 'Bearer $token',
+        'ngrok-skip-browser-warning': 'true'
+      },
     );
     return response.body;
   }
@@ -2997,9 +3062,45 @@ class AppointmentsApi {
     if (token.isEmpty) throw Exception('Session expired. Please login again.');
     final response = await client.get(
       Uri.parse('$baseUrl/appointments/past/$childId'),
-      headers: {'Accept': 'application/json', 'Authorization': 'Bearer $token'},
+      headers: {
+        'Accept': 'application/json',
+        'Authorization': 'Bearer $token',
+        'ngrok-skip-browser-warning': 'true'
+      },
     );
     return response.body;
+  }
+
+  // 5- Cancel Appointment (الدالة الجديدة لإلغاء الموعد)
+  Future<String> cancelAppointment(int appointmentId) async {
+    final token = await SecureStorage.getToken();
+    if (token.isEmpty) throw Exception('Session expired. Please login again.');
+
+    final response = await client.delete(
+      Uri.parse('$baseUrl/appointments/$appointmentId'),
+      headers: {
+        'Accept': 'application/json',
+        'Authorization': 'Bearer $token',
+        'ngrok-skip-browser-warning': 'true', // ضروري جداً هنا
+      },
+    );
+
+    // طباعة النتيجة في الكونسول لمعرفة الخطأ الحقيقي إن وُجد
+    print('🚨 Cancel Status: ${response.statusCode}');
+    print('🚨 Cancel Body: ${response.body}');
+
+    // التحقق من نجاح العملية (200 OK)
+    if (response.statusCode == 200 || response.statusCode == 201) {
+      return response.body;
+    } else {
+      // محاولة استخراج رسالة الخطأ من السيرفر وعرضها للمستخدم
+      try {
+        final errorData = jsonDecode(response.body);
+        throw Exception(errorData['message'] ?? 'Failed to cancel appointment');
+      } catch (e) {
+        throw Exception('Server error: ${response.statusCode}');
+      }
+    }
   }
 }
 ```
@@ -3301,7 +3402,9 @@ const kBookingAvatarTint = Color(0xFFEFF6FF);
 
 ### File: lib\core\constants.dart
 ```dart
-const String baseUrl = 'https://deputize-daylong-puritan.ngrok-free.dev/api';
+const String baseUrl = 'https://kidcare.sy/api';
+
+//const String baseUrl = 'https://deputize-daylong-puritan.ngrok-free.dev/api';
 
 String token = '';
 
@@ -3369,25 +3472,25 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
 class NotificationService {
   static final FirebaseMessaging _messaging = FirebaseMessaging.instance;
   static final FlutterLocalNotificationsPlugin _localNotificationsPlugin =
-      FlutterLocalNotificationsPlugin();
+  FlutterLocalNotificationsPlugin();
 
   static const AndroidNotificationChannel _appointmentsChannel =
-      AndroidNotificationChannel(
-        'appointments_channel', // channelId
-        'Appointments Notifications', // channelName
-        description: 'This channel is used for appointments updates.',
-        importance: Importance.max,
-        playSound: true,
-      );
+  AndroidNotificationChannel(
+    'appointments_channel', // channelId
+    'Appointments Notifications', // channelName
+    description: 'This channel is used for appointments updates.',
+    importance: Importance.max,
+    playSound: true,
+  );
 
   static const AndroidNotificationChannel _chatChannel =
-      AndroidNotificationChannel(
-        'chat_channel', // channelId
-        'Chat Notifications', // channelName
-        description: 'This channel is used for direct doctor chats.',
-        importance: Importance.max,
-        playSound: true,
-      );
+  AndroidNotificationChannel(
+    'chat_channel', // channelId
+    'Chat Notifications', // channelName
+    description: 'This channel is used for direct doctor chats.',
+    importance: Importance.max,
+    playSound: true,
+  );
 
   static Future<void> initialize() async {
     NotificationSettings settings = await _messaging.requestPermission(
@@ -3402,20 +3505,20 @@ class NotificationService {
 
     await _localNotificationsPlugin
         .resolvePlatformSpecificImplementation<
-          AndroidFlutterLocalNotificationsPlugin
-        >()
+        AndroidFlutterLocalNotificationsPlugin
+    >()
         ?.createNotificationChannel(_appointmentsChannel);
 
     await _localNotificationsPlugin
         .resolvePlatformSpecificImplementation<
-          AndroidFlutterLocalNotificationsPlugin
-        >()
+        AndroidFlutterLocalNotificationsPlugin
+    >()
         ?.createNotificationChannel(_chatChannel);
 
     const AndroidInitializationSettings initializationSettingsAndroid =
-        AndroidInitializationSettings('@mipmap/ic_launcher');
+    AndroidInitializationSettings('@mipmap/ic_launcher');
     const InitializationSettings initializationSettings =
-        InitializationSettings(android: initializationSettingsAndroid);
+    InitializationSettings(android: initializationSettingsAndroid);
 
     await _localNotificationsPlugin.initialize(
       initializationSettings,
@@ -3446,10 +3549,12 @@ class NotificationService {
       _handleNotificationClick(initialMessage.data['type'].toString());
     }
 
-    await _getAndPrintFCMToken();
+    // ─── التعديل الأول: استدعاء الدالة بالاسم الجديد ───
+    await uploadFcmToken();
   }
 
-  static Future<void> _getAndPrintFCMToken() async {
+  // ─── التعديل الثاني: إزالة الشرطة السفلية وتغيير الاسم لتصبح عامة ───
+  static Future<void> uploadFcmToken() async {
     try {
       String? token = await _messaging.getToken();
       if (token != null) {
@@ -3535,7 +3640,6 @@ class NotificationService {
     }
   }
 }
-
 ```
 
 ### File: lib\core\helper\secure_storage_service.dart
@@ -3585,6 +3689,15 @@ class SecureStorage {
   // استرجاع كود اللغة
   static Future<String?> getLanguage() async {
     return await secureStorage.read(key: 'language');
+  }
+  // استرجاع السمة
+  static Future<String?> getThemeMode() async {
+    return await secureStorage.read(key: 'theme_mode');
+  }
+
+  // حفظ السمة
+  static Future<void> storeThemeMode(String theme) async {
+    await secureStorage.write(key: 'theme_mode', value: theme);
   }
 }
 
@@ -4274,6 +4387,7 @@ class AppTranslations extends Translations {
 import 'dart:convert';
 
 
+import 'package:get/get_utils/src/extensions/internacionalization.dart';
 import 'package:http/http.dart' as http;
 
 import '../../apis/appointment/appointment_api.dart';
@@ -4405,17 +4519,21 @@ class AppointmentRepo {
     throw Exception(_errorMessage(decoded, 'Failed to reschedule appointment'));
   }
 
-  Future<void> cancel(String id) async {
+  Future<String> cancel(String id) async {
     final token = await SecureStorage.getToken();
     final response = await _api.delete(token, id);
-    if (response.isEmpty) return;
+
+    if (response.isEmpty) return "Appointment cancelled successfully".tr;
 
     final decoded = jsonDecode(response);
-    if (decoded is Map && decoded['errors'] != null) {
-      throw Exception(_errorMessage(decoded, 'Failed to cancel appointment'));
-    }
-  }
 
+    // إرجاع رسالة السيرفر (مثل: تم إلغاء الموعد وجاري إعادة المبلغ)
+    if (decoded is Map && decoded['message'] != null) {
+      return decoded['message'].toString();
+    }
+
+    return "Appointment cancelled successfully".tr;
+  }
   // ---- helpers ----
 
   Future<List<AppointmentModel>> _fetchList(
@@ -5014,8 +5132,12 @@ class AddChildRepo {
 ### File: lib\core\repos\home\appointments_repo.dart
 ```dart
 import 'dart:convert';
+import 'package:http/http.dart' as http;
+
 import '../../../models/home/appointments_model.dart';
 import '../../apis/home/appointments_api.dart';
+import '../../constants.dart';
+import '../../helper/secure_storage_service.dart';
 
 class AppointmentsRepo {
   final AppointmentsApi _api = AppointmentsApi();
@@ -5041,6 +5163,36 @@ class AppointmentsRepo {
   Future<List<AppointmentsModel>> getAllUpcoming() async {
     final response = await _api.getAllUpcoming();
     return _parseResponse(response);
+  }
+  Future<Map<String, dynamic>> cancelAppointment(int appointmentId) async {
+    final token = await SecureStorage.getToken();
+
+    final response = await http.delete(
+      Uri.parse('$baseUrl/appointments/$appointmentId'),
+      headers: {
+        'Accept': 'application/json',
+        'Authorization': 'Bearer $token',
+        'ngrok-skip-browser-warning': 'true', // 👈 هذا هو السطر المنقذ!
+      },
+    );
+
+    // ─── طباعة النتيجة في الكونسول للمراقبة ───
+    print('🚨 Delete Status: ${response.statusCode}');
+    print('🚨 Delete Body: ${response.body}');
+
+    // التحقق من نجاح العملية قبل محاولة فك التشفير
+    if (response.statusCode == 200 || response.statusCode == 201) {
+      final data = json.decode(response.body);
+      return data; // إرجاع الريسبونس (الذي يحتوي على رسالة النجاح وقيمة الاسترداد)
+    } else {
+      // محاولة استخراج رسالة الخطأ من السيرفر بشكل آمن
+      try {
+        final data = json.decode(response.body);
+        throw Exception(data['message'] ?? 'Failed to cancel appointment');
+      } catch (e) {
+        throw Exception('Server error: ${response.statusCode}');
+      }
+    }
   }
 
   Future<List<AppointmentsModel>> getAllPast() async {
@@ -5547,14 +5699,23 @@ void main() async {
     initialLocale = const Locale('en', 'US');
   }
 
+  String? savedTheme = await SecureStorage.getThemeMode();
+  ThemeMode initialThemeMode = ThemeMode.system;
+  if (savedTheme == 'dark') {
+    initialThemeMode = ThemeMode.dark;
+  } else if (savedTheme == 'light') {
+    initialThemeMode = ThemeMode.light;
+  }
 
-  runApp(MyApp(initialLocale: initialLocale));
+
+  runApp(MyApp(initialLocale: initialLocale, initialThemeMode: initialThemeMode));
 }
 
 class MyApp extends StatelessWidget {
   final Locale initialLocale;
+  final ThemeMode initialThemeMode;
 
-  const MyApp({super.key, required this.initialLocale});
+  const MyApp({super.key, required this.initialLocale, required this.initialThemeMode});
 
   @override
   Widget build(BuildContext context) {
@@ -5562,7 +5723,7 @@ class MyApp extends StatelessWidget {
 
       theme: AppThemes.lightTheme,
       darkTheme: AppThemes.darkTheme,
-      themeMode: ThemeMode.system,
+      themeMode: initialThemeMode,
 
       title: 'Kidcare',
       debugShowCheckedModeBanner: false,
@@ -7778,12 +7939,12 @@ class PhoneActivationView extends GetView<ActivationController> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: context.theme.scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios, color: Colors.black),
+          icon:  Icon(Icons.arrow_back_ios, color: context.theme.iconTheme.color),
           onPressed: () => Get.back(),
         ),
       ),
@@ -7948,25 +8109,25 @@ class ForgotPasswordView extends GetView<ForgotPasswordController> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: context.theme.scaffoldBackgroundColor,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        leading: const BackButton(color: Colors.black),
+        leading: BackButton(color: context.theme.iconTheme.color),
       ),
       body: SingleChildScrollView(
         child: Padding(
           padding: const EdgeInsets.all(20.0),
           child: Column(
             children: [
-              Image.asset('assets/images/logo.jpg', height: 120),
+              Image.asset('assets/images/logo.png', height: 120),
               const SizedBox(height: 20),
               Text(
                 "Forgot Password?".tr,
                 style: TextStyle(
                   fontSize: 24,
                   fontWeight: FontWeight.bold,
-                  color: Color(0xFF0D2451),
+                  color: context.textTheme.bodyLarge?.color,
                 ),
               ),
               const SizedBox(height: 10),
@@ -7974,7 +8135,7 @@ class ForgotPasswordView extends GetView<ForgotPasswordController> {
                 "Don't worry, enter your phone number and we will send you a verification code."
                     .tr,
                 textAlign: TextAlign.center,
-                style: TextStyle(color: Colors.grey[600]),
+                style: TextStyle(color: context.theme.hintColor),
               ),
               const SizedBox(height: 40),
               Align(
@@ -7988,8 +8149,12 @@ class ForgotPasswordView extends GetView<ForgotPasswordController> {
               TextField(
                 controller: controller.phoneController,
                 keyboardType: TextInputType.phone,
+                style: TextStyle(color: context.textTheme.bodyLarge?.color),
                 decoration: InputDecoration(
                   hintText: '9639XXXXXXXX',
+                  filled: true,
+                  fillColor: context.theme.cardColor,
+                  hintStyle: const TextStyle(color: Colors.grey),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(15),
                   ),
@@ -7997,7 +8162,7 @@ class ForgotPasswordView extends GetView<ForgotPasswordController> {
               ),
               const SizedBox(height: 30),
 
-              // الاستماع اللحظي لحالة التحميل باستخدام الكود الموحد الخاص بك
+
               Obx(
                 () => SizedBox(
                   width: double.infinity,
@@ -8059,7 +8224,7 @@ class OtpView extends StatelessWidget {
           padding: const EdgeInsets.all(20.0),
           child: Column(
             children: [
-              Image.asset('assets/images/logo.jpg', height: 100),
+              Image.asset('assets/images/logo.png', height: 100),
               const SizedBox(height: 20),
               Text(
                 "Verify Your Number".tr,
@@ -8182,7 +8347,7 @@ class ResetPasswordView extends StatelessWidget {
         padding: const EdgeInsets.all(20.0),
         child: Column(
           children: [
-            Image.asset('assets/images/logo.jpg', height: 100),
+            Image.asset('assets/images/logo.png', height: 100),
             const SizedBox(height: 20),
             Text(
               "Create New Password".tr,
@@ -8370,7 +8535,6 @@ import '../../controllers/auth/login_controller.dart';
 import '../../controllers/settings_controller.dart';
 import '../../core/repos/auth/login_repo.dart';
 import '../../widgets/custom_text_field.dart';
-// تأكد من استيراد الأزرار المخصصة هنا (PrimaryButton و OutlinedPrimaryButton)
 
 class LoginView extends StatelessWidget {
   const LoginView({super.key});
@@ -8381,180 +8545,178 @@ class LoginView extends StatelessWidget {
     final size = MediaQuery.of(context).size;
     final settingsController = Get.put(SettingsController());
 
-    // ─── إجبار الواجهة بالكامل على الوضع الفاتح ───
-    return Theme(
-      data: ThemeData.light().copyWith(
-        scaffoldBackgroundColor: Colors.white,
-        primaryColor: const Color(0xFF1A2E5A),
-        colorScheme: const ColorScheme.light(
-          primary: Color(0xFF1A2E5A),
-          onSurface: Colors.black, // لضمان أن النصوص الافتراضية باللون الأسود
-        ),
-        textTheme: ThemeData.light().textTheme.apply(
-          bodyColor: Colors.black,
-          displayColor: Colors.black,
-        ),
+    return Scaffold(
+      backgroundColor: context.theme.scaffoldBackgroundColor,
+      // 👈 تصحيح الخلفية
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        actions: [
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12.0),
+            child: Obx(() {
+              final isArabic = settingsController.currentLanguage.value == 'ar';
+              return TextButton.icon(
+                icon: Icon(
+                  Icons.language,
+                  size: 20,
+                  color: context.theme.primaryColor,
+                ), // 👈 تصحيح اللون
+                label: Text(
+                  isArabic ? 'English' : 'العربية',
+                  style: TextStyle(
+                    color: context.theme.primaryColor, // 👈 تصحيح اللون
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                  ),
+                ),
+                onPressed: () {
+                  settingsController.changeLanguage(isArabic ? 'en' : 'ar');
+                },
+              );
+            }),
+          ),
+        ],
       ),
-      child: Scaffold(
-        backgroundColor: Colors.white,
-        appBar: AppBar(
-          backgroundColor: Colors.transparent,
-          elevation: 0,
-          actions: [
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 12.0),
-              child: Obx(() {
-                final isArabic = settingsController.currentLanguage.value == 'ar';
-                return TextButton.icon(
-                  icon: const Icon(Icons.language, size: 20, color: Color(0xFF4A86D1)),
-                  label: Text(
-                    isArabic ? 'English' : 'العربية',
-                    style: const TextStyle(
-                      color: Color(0xFF4A86D1),
-                      fontWeight: FontWeight.bold,
-                      fontSize: 14,
+      body: SafeArea(
+        child: Center(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(horizontal: 24.0),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Image.asset(
+                  'assets/images/logo.png',
+                  height: size.height * 0.25,
+                ),
+                const SizedBox(height: 20),
+                Text(
+                  'Welcome Back'.tr,
+                  style: TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                    color: context.textTheme.bodyLarge?.color, // 👈 تصحيح اللون
+                  ),
+                ),
+                const SizedBox(height: 40),
+
+                CustomTextField(
+                  controller: controller.phoneController,
+                  hintText: 'Phone Number'.tr,
+                  keyboardType: TextInputType.phone,
+                ),
+                const SizedBox(height: 16),
+
+                Obx(
+                  () => CustomTextField(
+                    controller: controller.passwordController,
+                    hintText: 'Password'.tr,
+                    isPassword: controller.isPasswordHidden.value,
+                    suffixIcon: IconButton(
+                      icon: Icon(
+                        controller.isPasswordHidden.value
+                            ? Icons.visibility_off
+                            : Icons.visibility,
+                        color: context.theme.hintColor, // 👈 تصحيح اللون
+                      ),
+                      onPressed: controller.togglePasswordVisibility,
                     ),
                   ),
-                  onPressed: () {
-                    settingsController.changeLanguage(isArabic ? 'en' : 'ar');
-                  },
-                );
-              }),
-            ),
-          ],
-        ),
-        body: SafeArea(
-          child: Center(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 24.0),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Image.asset(
-                    'assets/images/logo.jpg',
-                    height: size.height * 0.25,
-                  ),
-                  const SizedBox(height: 20),
-                  // إجبار النص على اللون الأسود لضمان التباين
-                  Text(
-                    'Welcome Back'.tr,
-                    style: const TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.black,
-                    ),
-                  ),
-                  const SizedBox(height: 40),
+                ),
 
-                  CustomTextField(
-                    controller: controller.phoneController,
-                    hintText: 'Phone Number'.tr,
-                    keyboardType: TextInputType.phone,
-                  ),
-                  const SizedBox(height: 16),
-
-                  Obx(
-                        () => CustomTextField(
-                      controller: controller.passwordController,
-                      hintText: 'Password'.tr,
-                      isPassword: controller.isPasswordHidden.value,
-                      suffixIcon: IconButton(
-                        icon: Icon(
-                          controller.isPasswordHidden.value
-                              ? Icons.visibility_off
-                              : Icons.visibility,
-                          color: Colors.grey, // تثبيت لون الأيقونة
-                        ),
-                        onPressed: controller.togglePasswordVisibility,
-                      ),
-                    ),
-                  ),
-
-                  Align(
-                    alignment: AlignmentDirectional.topStart,
-                    child: TextButton(
-                      onPressed: () {
-                        Get.toNamed('/forgot-password');
-                      },
-                      style: TextButton.styleFrom(
-                        padding: const EdgeInsets.only(top: 8, bottom: 8),
-                        minimumSize: Size.zero,
-                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                      ),
-                      child: Text(
-                        'Forgot Password?'.tr,
-                        style: const TextStyle(
-                          color: Colors.blue,
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                  ),
-
-                  const SizedBox(height: 20),
-
-                  Obx(
-                        () => controller.isLoading
-                        ? const CircularProgressIndicator()
-                        : PrimaryButton(
-                      text: 'Login'.tr,
-                      onPressed: controller.login,
-                    ),
-                  ),
-                  const SizedBox(height: 30),
-                  Row(
-                    children: [
-                      const Expanded(
-                        child: Divider(thickness: 1, color: Colors.grey),
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 10),
-                        child: Text(
-                          'Or'.tr,
-                          style: TextStyle(
-                            color: Colors.grey.shade600,
-                            fontSize: 14,
-                          ),
-                        ),
-                      ),
-                      const Expanded(
-                        child: Divider(thickness: 1, color: Colors.grey),
-                      ),
-                    ],
-                  ),
-
-                  const SizedBox(height: 20),
-                  OutlinedPrimaryButton(
-                    text: 'Create New Account'.tr,
-                    onPressed: () => Get.toNamed('/register'),
-                  ),
-
-                  const SizedBox(height: 12),
-
-                  TextButton(
-                    onPressed: () => Get.toNamed('/activation-phone'),
+                Align(
+                  alignment: AlignmentDirectional.topStart,
+                  child: TextButton(
+                    onPressed: () {
+                      Get.toNamed('/forgot-password');
+                    },
                     style: TextButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      padding: const EdgeInsets.only(top: 8, bottom: 8),
+                      minimumSize: Size.zero,
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                     ),
-                    child: RichText(
-                      text: TextSpan(
-                        text: "Have a clinic file? ".tr,
-                        style: const TextStyle(color: Colors.grey, fontSize: 14),
-                        children: [
-                          TextSpan(
-                            text: "Activate account".tr,
-                            style: const TextStyle(
-                              color: Colors.blue,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ],
+                    child: Text(
+                      'Forgot Password?'.tr,
+                      style: TextStyle(
+                        color: context.theme.primaryColor, // 👈 تصحيح اللون
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
                   ),
-                ],
-              ),
+                ),
+
+                const SizedBox(height: 20),
+
+                Obx(
+                  () => controller.isLoading
+                      ? const CircularProgressIndicator()
+                      : PrimaryButton(
+                          text: 'Login'.tr,
+                          onPressed: controller.login,
+                        ),
+                ),
+                const SizedBox(height: 30),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Divider(
+                        thickness: 1,
+                        color: context.theme.dividerColor,
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 10),
+                      child: Text(
+                        'Or'.tr,
+                        style: TextStyle(
+                          color: context.theme.hintColor, // 👈 تصحيح اللون
+                          fontSize: 14,
+                        ),
+                      ),
+                    ),
+                    Expanded(
+                      child: Divider(
+                        thickness: 1,
+                        color: context.theme.dividerColor,
+                      ),
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: 20),
+                OutlinedPrimaryButton(
+                  text: 'Create New Account'.tr,
+                  onPressed: () => Get.toNamed('/register'),
+                ),
+
+                const SizedBox(height: 12),
+
+                TextButton(
+                  onPressed: () => Get.toNamed('/activation-phone'),
+                  style: TextButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                  ),
+                  child: RichText(
+                    text: TextSpan(
+                      text: "Have a clinic file? ".tr,
+                      style: TextStyle(
+                        color: context.theme.hintColor,
+                        fontSize: 14,
+                      ),
+                      children: [
+                        TextSpan(
+                          text: "Activate account".tr,
+                          style: TextStyle(
+                            color: context.theme.primaryColor, // 👈 تصحيح اللون
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
         ),
@@ -8562,6 +8724,7 @@ class LoginView extends StatelessWidget {
     );
   }
 }
+
 ```
 
 ### File: lib\views\auth\sign_up_view.dart
@@ -8579,197 +8742,195 @@ class SignUpView extends StatelessWidget {
     final controller = Get.find<SignUpController>();
     final size = MediaQuery.of(context).size;
 
-    // ─── إجبار الواجهة بالكامل على الوضع الفاتح ───
-    return Theme(
-      data: ThemeData.light().copyWith(
-        scaffoldBackgroundColor: Colors.white,
-        primaryColor: const Color(0xFF1A2E5A), // لون تطبيقك الأساسي
-        colorScheme: const ColorScheme.light(
-          primary: Color(0xFF1A2E5A),
-          onSurface: Colors.black,
+    return Scaffold(
+      backgroundColor: context.theme.scaffoldBackgroundColor,
+      // 👈 إزالة الثيم الصلب
+      appBar: AppBar(
+        backgroundColor: context.theme.scaffoldBackgroundColor,
+        elevation: 0,
+        leading: IconButton(
+          icon: Icon(
+            Icons.arrow_back_ios,
+            color: context.theme.iconTheme.color,
+            size: 20,
+          ),
+          onPressed: () => Get.back(),
         ),
-        textTheme: ThemeData.light().textTheme.apply(
-          bodyColor: Colors.black,
-          displayColor: Colors.black,
+        title: Image.asset(
+          'assets/images/pediatric_clinic_logo.png',
+          height: 38,
+          fit: BoxFit.contain,
+          // قد تحتاج لاستخدام color ليطابق الوضع الليلي إذا كان الشعار داكناً:
+          color: context.isDarkMode ? Colors.white : null,
         ),
-        iconTheme: const IconThemeData(color: Colors.black87),
+        centerTitle: true,
       ),
-      child: Scaffold(
-        backgroundColor: Colors.white,
-        appBar: AppBar(
-          backgroundColor: Colors.white,
-          elevation: 0,
-          leading: IconButton(
-            icon: const Icon(
-              Icons.arrow_back_ios,
-              color: Colors.black87,
-              size: 20,
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.symmetric(horizontal: 24),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            const SizedBox(height: 12),
+            Text(
+              'Create New Account'.tr,
+              style: TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+                color: context.textTheme.bodyLarge?.color, // 👈 لون متكيف
+              ),
             ),
-            onPressed: () => Get.back(),
-          ),
-          title: Image.asset(
-            'assets/images/pediatric_clinic_logo.png',
-            height: 38,
-            fit: BoxFit.contain,
-          ),
-          centerTitle: true,
-        ),
-        body: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 24),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              const SizedBox(height: 12),
-              Text(
-                'Create New Account'.tr,
-                style: const TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black87,
-                ),
-              ),
-              const SizedBox(height: 6),
-              Text(
-                'Create your account to benefit from our services'.tr,
-                style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 16),
-              Image.asset(
-                'assets/images/doctor_and_children.png',
-                height: size.height * 0.18,
-                fit: BoxFit.contain,
-              ),
-              const SizedBox(height: 24),
+            const SizedBox(height: 6),
+            Text(
+              'Create your account to benefit from our services'.tr,
+              style: TextStyle(fontSize: 13, color: context.theme.hintColor),
+              // 👈 لون متكيف
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 16),
+            Image.asset(
+              'assets/images/doctor_and_children.png',
+              height: size.height * 0.18,
+              fit: BoxFit.contain,
+            ),
+            const SizedBox(height: 24),
 
-              CustomTextField(
-                controller: controller.firstNameController,
-                hintText: 'Enter your name'.tr,
-                label: 'Name'.tr,
-                labelIcon: Icons.person_outline,
-              ),
-              const SizedBox(height: 14),
+            CustomTextField(
+              controller: controller.firstNameController,
+              hintText: 'Enter your name'.tr,
+              label: 'Name'.tr,
+              labelIcon: Icons.person_outline,
+            ),
+            const SizedBox(height: 14),
 
-              CustomTextField(
-                controller: controller.lastNameController,
-                hintText: 'Enter your last name'.tr,
-                label: 'Last Name'.tr,
-                labelIcon: Icons.person_outline,
-              ),
-              const SizedBox(height: 14),
+            CustomTextField(
+              controller: controller.lastNameController,
+              hintText: 'Enter your last name'.tr,
+              label: 'Last Name'.tr,
+              labelIcon: Icons.person_outline,
+            ),
+            const SizedBox(height: 14),
 
-              CustomTextField(
-                controller: controller.emailController,
-                hintText: 'Enter your email'.tr,
-                label: 'Email'.tr,
-                labelIcon: Icons.mail_outline,
-                keyboardType: TextInputType.emailAddress,
-              ),
-              const SizedBox(height: 14),
+            CustomTextField(
+              controller: controller.emailController,
+              hintText: 'Enter your email'.tr,
+              label: 'Email'.tr,
+              labelIcon: Icons.mail_outline,
+              keyboardType: TextInputType.emailAddress,
+            ),
+            const SizedBox(height: 14),
 
-              CustomTextField(
-                controller: controller.phoneController,
-                hintText: 'Enter your phone number'.tr,
-                keyboardType: TextInputType.phone,
-                label: 'Phone'.tr,
-                labelIcon: Icons.phone_outlined,
-              ),
-              const SizedBox(height: 14),
+            CustomTextField(
+              controller: controller.phoneController,
+              hintText: 'Enter your phone number'.tr,
+              keyboardType: TextInputType.phone,
+              label: 'Phone'.tr,
+              labelIcon: Icons.phone_outlined,
+            ),
+            const SizedBox(height: 14),
 
-              CustomTextField(
-                controller: controller.addressController,
-                hintText: 'Enter your address in detail'.tr,
-                label: 'Address'.tr,
-                labelIcon: Icons.location_on_outlined,
-              ),
-              const SizedBox(height: 14),
+            CustomTextField(
+              controller: controller.addressController,
+              hintText: 'Enter your address in detail'.tr,
+              label: 'Address'.tr,
+              labelIcon: Icons.location_on_outlined,
+            ),
+            const SizedBox(height: 14),
 
-              Obx(
-                    () => CustomTextField(
-                  controller: controller.passwordController,
-                  hintText: 'Enter your password'.tr,
-                  isPassword: controller.isPasswordHidden.value,
-                  label: 'Password'.tr,
-                  labelIcon: Icons.lock_outline,
-                  suffixIcon: IconButton(
-                    icon: Icon(
-                      controller.isPasswordHidden.value
-                          ? Icons.visibility_off_outlined
-                          : Icons.visibility_outlined,
-                      color: Colors.grey.shade500,
-                      size: 20,
-                    ),
-                    onPressed: controller.togglePassword,
+            Obx(
+              () => CustomTextField(
+                controller: controller.passwordController,
+                hintText: 'Enter your password'.tr,
+                isPassword: controller.isPasswordHidden.value,
+                label: 'Password'.tr,
+                labelIcon: Icons.lock_outline,
+                suffixIcon: IconButton(
+                  icon: Icon(
+                    controller.isPasswordHidden.value
+                        ? Icons.visibility_off_outlined
+                        : Icons.visibility_outlined,
+                    color: context.theme.hintColor,
+                    size: 20,
                   ),
+                  onPressed: controller.togglePassword,
                 ),
               ),
-              const SizedBox(height: 6),
-              Align(
-                alignment: Alignment.centerRight,
-                child: Text(
-                  'At least 8 characters with uppercase, lowercase and a number'.tr,
-                  style: TextStyle(fontSize: 11, color: Colors.grey.shade500),
-                ),
+            ),
+            const SizedBox(height: 6),
+            Align(
+              alignment: Alignment.centerRight,
+              child: Text(
+                'At least 8 characters with uppercase, lowercase and a number'
+                    .tr,
+                style: TextStyle(fontSize: 11, color: context.theme.hintColor),
               ),
-              const SizedBox(height: 14),
+            ),
+            const SizedBox(height: 14),
 
-              Obx(
-                    () => CustomTextField(
-                  controller: controller.confirmPasswordController,
-                  hintText: 'Enter your password again'.tr,
-                  isPassword: controller.isConfirmPasswordHidden.value,
-                  label: 'Confirm Password'.tr,
-                  labelIcon: Icons.lock_outline,
-                  suffixIcon: IconButton(
-                    icon: Icon(
-                      controller.isConfirmPasswordHidden.value
-                          ? Icons.visibility_off_outlined
-                          : Icons.visibility_outlined,
-                      color: Colors.grey.shade500,
-                      size: 20,
-                    ),
-                    onPressed: controller.toggleConfirmPassword,
+            Obx(
+              () => CustomTextField(
+                controller: controller.confirmPasswordController,
+                hintText: 'Enter your password again'.tr,
+                isPassword: controller.isConfirmPasswordHidden.value,
+                label: 'Confirm Password'.tr,
+                labelIcon: Icons.lock_outline,
+                suffixIcon: IconButton(
+                  icon: Icon(
+                    controller.isConfirmPasswordHidden.value
+                        ? Icons.visibility_off_outlined
+                        : Icons.visibility_outlined,
+                    color: context.theme.hintColor,
+                    size: 20,
                   ),
+                  onPressed: controller.toggleConfirmPassword,
                 ),
               ),
-              const SizedBox(height: 20),
+            ),
+            const SizedBox(height: 20),
 
-              Obx(
-                    () => controller.isLoading
-                    ? const Center(
-                  child: CircularProgressIndicator(color: Colors.blue),
-                )
-                    : PrimaryButton(
-                  text: 'Create Account'.tr,
-                  onPressed: controller.signUp,
-                ),
-              ),
-              const SizedBox(height: 20),
+            Obx(
+              () => controller.isLoading
+                  ? Center(
+                      child: CircularProgressIndicator(
+                        color: context.theme.primaryColor,
+                      ),
+                    )
+                  : PrimaryButton(
+                      text: 'Create Account'.tr,
+                      onPressed: controller.signUp,
+                    ),
+            ),
+            const SizedBox(height: 20),
 
-              Row(
-                children: [
-                  Expanded(child: Divider(color: Colors.grey.shade300)),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 12),
-                    child: Text(
-                      'Already have an account?'.tr,
-                      style: TextStyle(color: Colors.grey.shade500, fontSize: 13),
+            Row(
+              children: [
+                Expanded(child: Divider(color: context.theme.dividerColor)),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  child: Text(
+                    'Already have an account?'.tr,
+                    style: TextStyle(
+                      color: context.theme.hintColor,
+                      fontSize: 13,
                     ),
                   ),
-                  Expanded(child: Divider(color: Colors.grey.shade300)),
-                ],
-              ),
-              const SizedBox(height: 16),
+                ),
+                Expanded(child: Divider(color: context.theme.dividerColor)),
+              ],
+            ),
+            const SizedBox(height: 16),
 
-              OutlinedPrimaryButton(text: 'Login'.tr, onPressed: () => Get.back()),
-              const SizedBox(height: 32),
-            ],
-          ),
+            OutlinedPrimaryButton(
+              text: 'Login'.tr,
+              onPressed: () => Get.back(),
+            ),
+            const SizedBox(height: 32),
+          ],
         ),
       ),
     );
   }
 }
+
 ```
 
 ### File: lib\views\auth\verify_otp_view.dart
@@ -9243,7 +9404,7 @@ class AboutAppView extends StatelessWidget {
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(20),
                 child: Image.asset(
-                  'assets/images/logo.jpg',
+                  'assets/images/logo.png',
                   height: 120,
                 ),
               ),
@@ -9765,7 +9926,8 @@ class AppointmentsView extends GetView<AppointmentsController> {
 
   @override
   Widget build(BuildContext context) {
-    final bool isSingleChild = controller.childId != null && controller.childId != 0;
+    final bool isSingleChild =
+        controller.childId != null && controller.childId != 0;
 
     // ─── إحاطة الواجهة بـ PopScope للتحكم بزر الرجوع في النظام ───
     return PopScope(
@@ -9788,7 +9950,11 @@ class AppointmentsView extends GetView<AppointmentsController> {
             ),
           ),
           leading: IconButton(
-            icon: Icon(Icons.arrow_back_ios, color: context.iconColor, size: 20),
+            icon: Icon(
+              Icons.arrow_back_ios,
+              color: context.iconColor,
+              size: 20,
+            ),
             onPressed: () {
               // ─── العودة إلى الرئيسية مباشرة من زر الواجهة ───
               Get.offAllNamed('/home');
@@ -9802,90 +9968,108 @@ class AppointmentsView extends GetView<AppointmentsController> {
             // ─── Tabs (Slider) ───
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Obx(() => Container(
-                padding: const EdgeInsets.all(4),
-                decoration: BoxDecoration(
-                  color: context.theme.cardColor,
-                  borderRadius: BorderRadius.circular(14),
-                ),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: GestureDetector(
-                        onTap: () => controller.switchTab(true),
-                        child: AnimatedContainer(
-                          duration: const Duration(milliseconds: 200),
-                          padding: const EdgeInsets.symmetric(vertical: 12),
-                          decoration: BoxDecoration(
-                            color: controller.showUpcoming.value ? context.theme.primaryColor : Colors.transparent,
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(
-                                Icons.calendar_month_outlined,
-                                color: controller.showUpcoming.value ? Colors.white : context.textTheme.bodyMedium?.color,
-                                size: 18,
-                              ),
-                              const SizedBox(width: 6),
-                              Text(
-                                'Upcoming'.tr,
-                                style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  color: controller.showUpcoming.value ? Colors.white : context.textTheme.bodyMedium?.color,
+              child: Obx(
+                    () => Container(
+                  padding: const EdgeInsets.all(4),
+                  decoration: BoxDecoration(
+                    color: context.theme.cardColor,
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: GestureDetector(
+                          onTap: () => controller.switchTab(true),
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 200),
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            decoration: BoxDecoration(
+                              color: controller.showUpcoming.value
+                                  ? context.theme.primaryColor
+                                  : Colors.transparent,
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  Icons.calendar_month_outlined,
+                                  color: controller.showUpcoming.value
+                                      ? Colors.white
+                                      : context.textTheme.bodyMedium?.color,
+                                  size: 18,
                                 ),
-                              ),
-                            ],
+                                const SizedBox(width: 6),
+                                Text(
+                                  'Upcoming'.tr,
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    color: controller.showUpcoming.value
+                                        ? Colors.white
+                                        : context.textTheme.bodyMedium?.color,
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
                         ),
                       ),
-                    ),
-                    Expanded(
-                      child: GestureDetector(
-                        onTap: () => controller.switchTab(false),
-                        child: AnimatedContainer(
-                          duration: const Duration(milliseconds: 200),
-                          padding: const EdgeInsets.symmetric(vertical: 12),
-                          decoration: BoxDecoration(
-                            color: !controller.showUpcoming.value ? context.theme.primaryColor : Colors.transparent,
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(
-                                Icons.history_outlined,
-                                color: !controller.showUpcoming.value ? Colors.white : context.textTheme.bodyMedium?.color,
-                                size: 18,
-                              ),
-                              const SizedBox(width: 6),
-                              Text(
-                                'Past'.tr,
-                                style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  color: !controller.showUpcoming.value ? Colors.white : context.textTheme.bodyMedium?.color,
+                      Expanded(
+                        child: GestureDetector(
+                          onTap: () => controller.switchTab(false),
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 200),
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            decoration: BoxDecoration(
+                              color: !controller.showUpcoming.value
+                                  ? context.theme.primaryColor
+                                  : Colors.transparent,
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  Icons.history_outlined,
+                                  color: !controller.showUpcoming.value
+                                      ? Colors.white
+                                      : context.textTheme.bodyMedium?.color,
+                                  size: 18,
                                 ),
-                              ),
-                            ],
+                                const SizedBox(width: 6),
+                                Text(
+                                  'Past'.tr,
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    color: !controller.showUpcoming.value
+                                        ? Colors.white
+                                        : context.textTheme.bodyMedium?.color,
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
                         ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              )),
+              ),
             ),
             const SizedBox(height: 16),
 
             // ─── List مع ميزة التحديث بالسحب ───
             Expanded(
               child: Obx(() {
-                final list = controller.showUpcoming.value ? controller.upcoming : controller.past;
+                final list = controller.showUpcoming.value
+                    ? controller.upcoming
+                    : controller.past;
 
                 // نظهر دائرة التحميل فقط إذا كانت القائمة فارغة (لتجنب اختفاء المواعيد عند التحديث اليدوي)
                 if (controller.isLoading && list.isEmpty) {
-                  return const Center(child: CircularProgressIndicator(color: Colors.blue));
+                  return const Center(
+                    child: CircularProgressIndicator(color: Colors.blue),
+                  );
                 }
 
                 return RefreshIndicator(
@@ -9906,24 +10090,39 @@ class AppointmentsView extends GetView<AppointmentsController> {
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(Icons.calendar_today_outlined, size: 60, color: context.theme.dividerColor),
+                          Icon(
+                            Icons.calendar_today_outlined,
+                            size: 60,
+                            color: context.theme.dividerColor,
+                          ),
                           const SizedBox(height: 12),
                           Text(
                             'No appointments found'.tr,
-                            style: TextStyle(fontSize: 16, color: context.textTheme.bodyMedium?.color),
+                            style: TextStyle(
+                              fontSize: 16,
+                              color: context.textTheme.bodyMedium?.color,
+                            ),
                           ),
                         ],
                       ),
                     ),
                   )
                       : ListView.separated(
-                    physics: const AlwaysScrollableScrollPhysics(), // ضروري لعمل السحب
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    // ضروري لعمل السحب
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 10,
+                    ),
                     itemCount: list.length,
-                    separatorBuilder: (_, _) => const SizedBox(height: 12),
+                    separatorBuilder: (_, _) =>
+                    const SizedBox(height: 12),
                     itemBuilder: (_, index) => _AppointmentCard(
                       appointment: list[index],
                       isSingleChild: isSingleChild,
+                      isUpcoming: controller
+                          .showUpcoming
+                          .value, // 👈 إرسال حالة التبويب للبطاقة
                     ),
                   ),
                 );
@@ -9940,10 +10139,12 @@ class AppointmentsView extends GetView<AppointmentsController> {
 class _AppointmentCard extends StatelessWidget {
   final AppointmentsModel appointment;
   final bool isSingleChild;
+  final bool isUpcoming; // 👈 متغير لتحديد ظهور زر الإلغاء
 
   const _AppointmentCard({
     required this.appointment,
     required this.isSingleChild,
+    required this.isUpcoming,
   });
 
   @override
@@ -9955,13 +10156,53 @@ class _AppointmentCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: context.isDarkMode ? Colors.transparent : Colors.black.withValues(alpha: 0.04),
+            color: context.isDarkMode
+                ? Colors.transparent
+                : Colors.black.withValues(alpha: 0.04),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
         ],
       ),
-      child: isSingleChild ? _buildSingleChildLayout(context) : _buildAllAppointmentsLayout(context),
+      child: isSingleChild
+          ? _buildSingleChildLayout(context)
+          : _buildAllAppointmentsLayout(context),
+    );
+  }
+
+  // ─── زر الإلغاء المخصص ───
+  Widget _buildCancelButton() {
+    final AppointmentsController controller =
+    Get.find<AppointmentsController>();
+    return IconButton(
+      icon: const Icon(Icons.cancel_outlined, color: Colors.red),
+      tooltip: 'Cancel Appointment'.tr,
+      padding: EdgeInsets.zero,
+      constraints: const BoxConstraints(),
+      // لتقليل المساحة المحيطة بالزر
+      onPressed: () {
+        Get.defaultDialog(
+          title: 'Cancel Appointment'.tr,
+          middleText:
+          'Are you sure you want to cancel this appointment? A refund will be initiated.'
+              .tr,
+          titleStyle: const TextStyle(
+            color: Colors.red,
+            fontWeight: FontWeight.bold,
+          ),
+          textConfirm: 'Yes, Cancel'.tr,
+          textCancel: 'No'.tr,
+          confirmTextColor: Colors.white,
+          buttonColor: Colors.red,
+          cancelTextColor: Colors.black,
+          onConfirm: () {
+            Get.back(); // إغلاق نافذة التأكيد
+            controller.cancelAppointment(
+              appointment.id,
+            ); // استدعاء دالة الحذف من الكنترولر
+          },
+        );
+      },
     );
   }
 
@@ -9972,12 +10213,22 @@ class _AppointmentCard extends StatelessWidget {
           children: [
             CircleAvatar(
               radius: 22,
-              backgroundColor: context.isDarkMode ? Colors.blue.withValues(alpha: 0.15) : Colors.blue.shade50,
-              backgroundImage: appointment.childImage != null && appointment.childImage!.isNotEmpty
+              backgroundColor: context.isDarkMode
+                  ? Colors.blue.withValues(alpha: 0.15)
+                  : Colors.blue.shade50,
+              backgroundImage:
+              appointment.childImage != null &&
+                  appointment.childImage!.isNotEmpty
                   ? NetworkImage(appointment.childImage!)
                   : null,
-              child: appointment.childImage == null || appointment.childImage!.isEmpty
-                  ? Icon(Icons.child_care, color: Colors.blue.shade300, size: 24)
+              child:
+              appointment.childImage == null ||
+                  appointment.childImage!.isEmpty
+                  ? Icon(
+                Icons.child_care,
+                color: Colors.blue.shade300,
+                size: 24,
+              )
                   : null,
             ),
             const SizedBox(width: 12),
@@ -9987,20 +10238,39 @@ class _AppointmentCard extends StatelessWidget {
                 children: [
                   Text(
                     appointment.childName,
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: context.textTheme.bodyLarge?.color),
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: context.textTheme.bodyLarge?.color,
+                    ),
                   ),
                   const SizedBox(height: 2),
-                  Text('Patient'.tr, style: TextStyle(fontSize: 12, color: context.textTheme.bodyMedium?.color)),
+                  Text(
+                    'Patient'.tr,
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: context.textTheme.bodyMedium?.color,
+                    ),
+                  ),
                 ],
               ),
             ),
             _StatusPill(status: appointment.status),
+            // 👈 إضافة زر الإلغاء هنا بجانب الحالة مع شرط الإخفاء الإضافي
+            if (isUpcoming && appointment.status.toLowerCase() != 'cancelled' && appointment.status.toLowerCase() != 'canceled') ...[
+              const SizedBox(width: 8),
+              _buildCancelButton()
+            ],
           ],
         ),
 
         Padding(
           padding: const EdgeInsets.symmetric(vertical: 12),
-          child: Divider(height: 1, thickness: 1, color: context.theme.dividerColor),
+          child: Divider(
+            height: 1,
+            thickness: 1,
+            color: context.theme.dividerColor,
+          ),
         ),
 
         Row(
@@ -10009,13 +10279,22 @@ class _AppointmentCard extends StatelessWidget {
               width: 44,
               height: 44,
               decoration: BoxDecoration(
-                color: context.isDarkMode ? context.theme.scaffoldBackgroundColor : Colors.grey.shade100,
+                color: context.isDarkMode
+                    ? context.theme.scaffoldBackgroundColor
+                    : Colors.grey.shade100,
                 borderRadius: BorderRadius.circular(12),
-                image: appointment.doctorImage != null && appointment.doctorImage!.isNotEmpty
-                    ? DecorationImage(image: NetworkImage(appointment.doctorImage!), fit: BoxFit.cover)
+                image:
+                appointment.doctorImage != null &&
+                    appointment.doctorImage!.isNotEmpty
+                    ? DecorationImage(
+                  image: NetworkImage(appointment.doctorImage!),
+                  fit: BoxFit.cover,
+                )
                     : null,
               ),
-              child: appointment.doctorImage == null || appointment.doctorImage!.isEmpty
+              child:
+              appointment.doctorImage == null ||
+                  appointment.doctorImage!.isEmpty
                   ? Icon(Icons.person, color: context.theme.dividerColor)
                   : null,
             ),
@@ -10026,10 +10305,20 @@ class _AppointmentCard extends StatelessWidget {
                 children: [
                   Text(
                     appointment.doctorName,
-                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: context.textTheme.bodyLarge?.color),
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.bold,
+                      color: context.textTheme.bodyLarge?.color,
+                    ),
                   ),
                   const SizedBox(height: 2),
-                  Text(appointment.specialty, style: TextStyle(fontSize: 12, color: context.textTheme.bodyMedium?.color)),
+                  Text(
+                    appointment.specialty,
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: context.textTheme.bodyMedium?.color,
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -10052,14 +10341,27 @@ class _AppointmentCard extends StatelessWidget {
               width: 50,
               height: 50,
               decoration: BoxDecoration(
-                color: context.isDarkMode ? context.theme.scaffoldBackgroundColor : Colors.grey.shade100,
+                color: context.isDarkMode
+                    ? context.theme.scaffoldBackgroundColor
+                    : Colors.grey.shade100,
                 borderRadius: BorderRadius.circular(14),
-                image: appointment.doctorImage != null && appointment.doctorImage!.isNotEmpty
-                    ? DecorationImage(image: NetworkImage(appointment.doctorImage!), fit: BoxFit.cover)
+                image:
+                appointment.doctorImage != null &&
+                    appointment.doctorImage!.isNotEmpty
+                    ? DecorationImage(
+                  image: NetworkImage(appointment.doctorImage!),
+                  fit: BoxFit.cover,
+                )
                     : null,
               ),
-              child: appointment.doctorImage == null || appointment.doctorImage!.isEmpty
-                  ? Icon(Icons.medical_services_outlined, color: Colors.blue.shade400, size: 26)
+              child:
+              appointment.doctorImage == null ||
+                  appointment.doctorImage!.isEmpty
+                  ? Icon(
+                Icons.medical_services_outlined,
+                color: Colors.blue.shade400,
+                size: 26,
+              )
                   : null,
             ),
             const SizedBox(width: 14),
@@ -10073,18 +10375,35 @@ class _AppointmentCard extends StatelessWidget {
                       Expanded(
                         child: Text(
                           appointment.doctorName,
-                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: context.textTheme.bodyLarge?.color),
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: context.textTheme.bodyLarge?.color,
+                          ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
-                      _StatusPill(status: appointment.status),
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          _StatusPill(status: appointment.status),
+                          // 👈 إضافة زر الإلغاء هنا بجانب الحالة مع شرط الإخفاء الإضافي
+                          if (isUpcoming && appointment.status.toLowerCase() != 'cancelled' && appointment.status.toLowerCase() != 'canceled') ...[
+                            const SizedBox(width: 8),
+                            _buildCancelButton(),
+                          ],
+                        ],
+                      ),
                     ],
                   ),
                   const SizedBox(height: 6),
                   Text(
                     appointment.specialty,
-                    style: TextStyle(fontSize: 13, color: context.textTheme.bodyMedium?.color),
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: context.textTheme.bodyMedium?.color,
+                    ),
                   ),
                 ],
               ),
@@ -10101,27 +10420,56 @@ class _AppointmentCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 12),
       decoration: BoxDecoration(
-        color: context.isDarkMode ? context.theme.scaffoldBackgroundColor : const Color(0xFFF8FAFC),
+        color: context.isDarkMode
+            ? context.theme.scaffoldBackgroundColor
+            : const Color(0xFFF8FAFC),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.calendar_today_outlined, size: 16, color: context.isDarkMode ? Colors.blue.shade300 : Colors.blue.shade600),
+          Icon(
+            Icons.calendar_today_outlined,
+            size: 16,
+            color: context.isDarkMode
+                ? Colors.blue.shade300
+                : Colors.blue.shade600,
+          ),
           const SizedBox(width: 6),
           Text(
             appointment.date,
-            style: TextStyle(fontSize: 13, color: context.isDarkMode ? Colors.blue.shade300 : Colors.blue.shade700, fontWeight: FontWeight.w600),
+            style: TextStyle(
+              fontSize: 13,
+              color: context.isDarkMode
+                  ? Colors.blue.shade300
+                  : Colors.blue.shade700,
+              fontWeight: FontWeight.w600,
+            ),
           ),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Text('|', style: TextStyle(color: context.theme.dividerColor)),
+            child: Text(
+              '|',
+              style: TextStyle(color: context.theme.dividerColor),
+            ),
           ),
-          Icon(Icons.access_time_outlined, size: 16, color: context.isDarkMode ? Colors.blue.shade300 : Colors.blue.shade600),
+          Icon(
+            Icons.access_time_outlined,
+            size: 16,
+            color: context.isDarkMode
+                ? Colors.blue.shade300
+                : Colors.blue.shade600,
+          ),
           const SizedBox(width: 6),
           Text(
             appointment.time,
-            style: TextStyle(fontSize: 13, color: context.isDarkMode ? Colors.blue.shade300 : Colors.blue.shade700, fontWeight: FontWeight.w600),
+            style: TextStyle(
+              fontSize: 13,
+              color: context.isDarkMode
+                  ? Colors.blue.shade300
+                  : Colors.blue.shade700,
+              fontWeight: FontWeight.w600,
+            ),
           ),
         ],
       ),
@@ -10143,27 +10491,41 @@ class _StatusPill extends StatelessWidget {
     switch (normalized) {
       case 'confirmed':
       case 'success':
-        bg = context.isDarkMode ? Colors.green.withValues(alpha: 0.2) : Colors.green.shade50;
+        bg = context.isDarkMode
+            ? Colors.green.withValues(alpha: 0.2)
+            : Colors.green.shade50;
         fg = context.isDarkMode ? Colors.greenAccent : Colors.green.shade600;
         break;
       case 'cancelled':
       case 'canceled':
-        bg = context.isDarkMode ? Colors.red.withValues(alpha: 0.2) : Colors.red.shade50;
+        bg = context.isDarkMode
+            ? Colors.red.withValues(alpha: 0.2)
+            : Colors.red.shade50;
         fg = context.isDarkMode ? Colors.redAccent : Colors.red.shade600;
         break;
       case 'pending':
       default:
-        bg = context.isDarkMode ? Colors.orange.withValues(alpha: 0.2) : Colors.orange.shade50;
+        bg = context.isDarkMode
+            ? Colors.orange.withValues(alpha: 0.2)
+            : Colors.orange.shade50;
         fg = context.isDarkMode ? Colors.orangeAccent : Colors.orange.shade700;
         break;
     }
 
-    final label = status.isEmpty ? 'Pending' : status[0].toUpperCase() + status.substring(1);
+    final label = status.isEmpty
+        ? 'Pending'
+        : status[0].toUpperCase() + status.substring(1);
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(20)),
-      child: Text(label.tr, style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: fg)),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Text(
+        label.tr,
+        style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: fg),
+      ),
     );
   }
 }
@@ -11375,7 +11737,9 @@ class _NavItem extends StatelessWidget {
 ```dart
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:intl/intl.dart';
 import '../../controllers/home/notification_history_controller.dart';
+import '../../models/home/notification_history_model.dart';
 
 class NotificationHistoryView extends GetView<NotificationHistoryController> {
   const NotificationHistoryView({super.key});
@@ -11383,145 +11747,138 @@ class NotificationHistoryView extends GetView<NotificationHistoryController> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: context.theme.scaffoldBackgroundColor,
       appBar: AppBar(
-        title: Text(
-          'Notifications'.tr,
-          style: TextStyle(
-            color: context.textTheme.bodyLarge?.color,
-            fontWeight: FontWeight.bold,
-            fontSize: 18,
-          ),
-        ),
+        title: Text('Notifications'.tr),
         centerTitle: true,
-        backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: Icon(
-            Icons.arrow_back_ios,
-            color: context.iconColor,
-            size: 20,
-          ),
+          icon: Icon(Icons.arrow_back_ios, color: context.theme.iconTheme.color, size: 20),
           onPressed: () => Get.back(),
         ),
       ),
-      body: SafeArea(
-        child: Obx(() {
-          if (controller.isLoading && controller.notifications.isEmpty) {
-            return Center(
-              child: CircularProgressIndicator(color: context.theme.primaryColor),
-            );
-          }
+      body: Obx(() {
+        if (controller.isLoading) {
+          return Center(
+            child: CircularProgressIndicator(color: context.theme.primaryColor),
+          );
+        }
 
-          if (controller.notifications.isEmpty) {
-            return Center(
+        if (controller.notifications.isEmpty) {
+          return Center(
+            child: Text(
+              'No notifications found'.tr,
+              style: TextStyle(color: context.textTheme.bodyMedium?.color),
+            ),
+          );
+        }
+
+        return ListView.separated(
+          padding: const EdgeInsets.all(16),
+          itemCount: controller.notifications.length,
+          separatorBuilder: (_, __) => const SizedBox(height: 12),
+          itemBuilder: (context, index) {
+            final notification = controller.notifications[index];
+            return _buildNotificationCard(context, notification);
+          },
+        );
+      }),
+    );
+  }
+
+  Widget _buildNotificationCard(BuildContext context, NotificationHistoryModel item) {
+    // معالجة وتنسيق التاريخ
+    String formattedDate = item.createdAt;
+    try {
+      final DateTime parsedDate = DateTime.parse(item.createdAt).toLocal();
+      formattedDate = DateFormat('dd MMM yyyy, hh:mm a', Get.locale?.languageCode).format(parsedDate);
+    } catch (_) {}
+
+    return InkWell(
+      onTap: () => _handleNotificationTap(item.type),
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: context.theme.cardColor,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: context.theme.dividerColor.withValues(alpha: 0.5)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.03),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: context.theme.primaryColor.withValues(alpha: 0.1),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                Icons.notifications_active_outlined,
+                color: context.theme.primaryColor,
+                size: 24,
+              ),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
               child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Icon(
-                    Icons.notifications_off_outlined,
-                    size: 64,
-                    color: context.theme.dividerColor,
-                  ),
-                  const SizedBox(height: 16),
                   Text(
-                    'No notifications found'.tr,
+                    item.title,
                     style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.bold,
+                      color: context.textTheme.bodyLarge?.color,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    item.body,
+                    style: TextStyle(
+                      fontSize: 13,
                       color: context.textTheme.bodyMedium?.color,
-                      fontSize: 14,
+                      height: 1.4,
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  Text(
+                    formattedDate,
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: context.theme.hintColor,
                     ),
                   ),
                 ],
               ),
-            );
-          }
-
-          return RefreshIndicator(
-            onRefresh: () => controller.getNotifications(),
-            color: context.theme.primaryColor,
-            child: ListView.builder(
-              physics: const AlwaysScrollableScrollPhysics(),
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-              itemCount: controller.notifications.length,
-              itemBuilder: (context, index) {
-                final item = controller.notifications[index];
-                return Container(
-                  margin: const EdgeInsets.only(bottom: 12),
-                  padding: const EdgeInsets.all(14),
-                  decoration: BoxDecoration(
-                    color: context.theme.cardColor,
-                    borderRadius: BorderRadius.circular(16),
-                    boxShadow: [
-                      if (!context.isDarkMode)
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.04),
-                          blurRadius: 10,
-                          offset: const Offset(0, 4),
-                        ),
-                    ],
-                    border: Border.all(color: context.theme.dividerColor),
-                  ),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(10),
-                        decoration: BoxDecoration(
-                          color: context.isDarkMode
-                              ? context.theme.primaryColor.withValues(alpha: 0.15)
-                              : context.theme.primaryColor.withValues(alpha: 0.08),
-                          shape: BoxShape.circle,
-                        ),
-                        child: Icon(
-                          Icons.notifications_outlined,
-                          color: context.theme.primaryColor,
-                          size: 22,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              item.title,
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 14,
-                                color: context.textTheme.bodyLarge?.color,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              item.body,
-                              style: TextStyle(
-                                fontSize: 12.5,
-                                color: context.textTheme.bodyMedium?.color,
-                                height: 1.4,
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              item.createdAt,
-                              style: TextStyle(
-                                fontSize: 10,
-                                color: context.isDarkMode
-                                    ? Colors.grey.shade500
-                                    : Colors.grey.shade400,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                );
-              },
             ),
-          );
-        }),
+          ],
+        ),
       ),
     );
+  }
+
+  // التوجيه الذكي بناءً على نوع الإشعار
+  void _handleNotificationTap(String? type) {
+    if (type == null) return;
+    switch (type) {
+      case 'appointment_accepted':
+      case 'appointment_rejected':
+      case 'appointment_reminder':
+        Get.toNamed('/appointments');
+        break;
+      case 'chat':
+      // Get.toNamed('/chat'); // مسار المحادثة مستقبلاً
+        break;
+      default:
+        break;
+    }
   }
 }
 ```

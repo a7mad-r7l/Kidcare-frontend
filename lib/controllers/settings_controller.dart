@@ -17,10 +17,11 @@ class SettingsController extends BaseController {
     isDarkMode.value = Get.isDarkMode;
   }
 
-  void toggleTheme() {
+  void toggleTheme() async {
     isDarkMode.value = !isDarkMode.value;
-
     Get.changeThemeMode(isDarkMode.value ? ThemeMode.dark : ThemeMode.light);
+
+    await SecureStorage.storeThemeMode(isDarkMode.value ? 'dark' : 'light');
   }
 
   Future<void> _loadSavedLanguage() async {

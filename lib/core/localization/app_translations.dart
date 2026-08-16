@@ -335,6 +335,17 @@ class AppTranslations extends Translations {
           'Permanently delete your account from the app',
       'Are you sure you want to permanently delete your account? This action cannot be undone.':
           'Are you sure you want to permanently delete your account? This action cannot be undone.',
+      // --- Vaccinations View ---
+      'Available Schedules': 'Available Schedules',
+      '(Upcoming)': '(Upcoming)',
+      'Vaccination History': 'Vaccination History',
+      '(Past)': '(Past)',
+      'No upcoming vaccines available for this age at the moment.':
+          'No upcoming vaccines available for this age at the moment.',
+      'Available Date': 'Available Date',
+      'Available Time': 'Available Time',
+      'No vaccination records found.': 'No vaccination records found.',
+      'Given on': 'Given on',
     },
 
     // ==========================================================
@@ -669,6 +680,17 @@ class AppTranslations extends Translations {
           'حذف حسابك بشكل دائم من التطبيق',
       'Are you sure you want to permanently delete your account? This action cannot be undone.':
           'هل أنت متأكد أنك تريد حذف حسابك نهائياً؟ هذا الإجراء لا يمكن التراجع عنه.',
+      // --- Vaccinations View ---
+      'Available Schedules': 'اللقاحات المتاحة',
+      '(Upcoming)': '(القادمة)',
+      'Vaccination History': 'سجل اللقاحات',
+      '(Past)': '(السابقة)',
+      'No upcoming vaccines available for this age at the moment.':
+          'لا توجد لقاحات قادمة متاحة لهذا العمر في الوقت الحالي.',
+      'Available Date': 'تاريخ التوفر',
+      'Available Time': 'وقت التوفر',
+      'No vaccination records found.': 'لم يتم العثور على سجلات لقاحات.',
+      'Given on': 'أُعطي في تاريخ',
     },
   };
 }

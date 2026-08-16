@@ -82,6 +82,9 @@ import 'core/repos/home/home_children_repo.dart';
 import 'core/repos/home/notification_history_repo.dart';
 import 'core/repos/home/parent_name_repo.dart';
 import 'core/repos/home/profile_repo.dart';
+import 'package:kidcare/views/vaccines/vaccines_view.dart';
+import 'package:kidcare/controllers/vaccines/vaccines_controller.dart';
+import 'package:kidcare/core/repos/vaccines/vaccines_repo.dart';
 
 void main() async {
   // لتهيئة فلاتر قبل تشغيل أي ميزة Native مثل Stripe
@@ -108,14 +111,23 @@ void main() async {
     initialLocale = const Locale('en', 'US');
   }
 
+  String? savedTheme = await SecureStorage.getThemeMode();
+  ThemeMode initialThemeMode = ThemeMode.system;
+  if (savedTheme == 'dark') {
+    initialThemeMode = ThemeMode.dark;
+  } else if (savedTheme == 'light') {
+    initialThemeMode = ThemeMode.light;
+  }
 
-  runApp(MyApp(initialLocale: initialLocale));
+
+  runApp(MyApp(initialLocale: initialLocale, initialThemeMode: initialThemeMode));
 }
 
 class MyApp extends StatelessWidget {
   final Locale initialLocale;
+  final ThemeMode initialThemeMode;
 
-  const MyApp({super.key, required this.initialLocale});
+  const MyApp({super.key, required this.initialLocale, required this.initialThemeMode});
 
   @override
   Widget build(BuildContext context) {
@@ -123,7 +135,7 @@ class MyApp extends StatelessWidget {
 
       theme: AppThemes.lightTheme,
       darkTheme: AppThemes.darkTheme,
-      themeMode: ThemeMode.system,
+      themeMode: initialThemeMode,
 
       title: 'Kidcare',
       debugShowCheckedModeBanner: false,
@@ -344,6 +356,13 @@ class MyApp extends StatelessWidget {
           page: () => const NotificationHistoryView(),
           binding: BindingsBuilder(() {
             Get.lazyPut(() => NotificationHistoryController(repo: NotificationHistoryRepo()));
+          }),
+        ),
+        GetPage(
+          name: '/vaccinations',
+          page: () => const VaccinesView(),
+          binding: BindingsBuilder(() {
+            Get.lazyPut(() => VaccinesController(repo: VaccinesRepo()));
           }),
         ),
       ],

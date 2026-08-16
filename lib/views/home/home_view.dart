@@ -67,12 +67,18 @@ class HomeView extends GetView<HomeController> {
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(Icons.child_care,
-                              size: 48, color: context.theme.dividerColor), // لون أيقونة فارغ متكيف
+                          Icon(
+                            Icons.child_care,
+                            size: 48,
+                            color: context.theme.dividerColor,
+                          ),
+                          // لون أيقونة فارغ متكيف
                           const SizedBox(height: 8),
                           Text(
                             'No children added yet'.tr,
-                            style: TextStyle(color: context.textTheme.bodyMedium?.color), // نص متكيف
+                            style: TextStyle(
+                              color: context.textTheme.bodyMedium?.color,
+                            ), // نص متكيف
                           ),
                         ],
                       ),
@@ -115,29 +121,40 @@ class _HeaderSection extends GetView<HomeController> {
                 child: CircleAvatar(
                   radius: 26,
                   // لون خلفية ذكي بناءً على الوضع
-                  backgroundColor: context.isDarkMode ? Colors.grey.shade800 : Colors.grey.shade200,
-                  child: Icon(Icons.person,
-                      color: context.isDarkMode ? Colors.grey.shade400 : Colors.grey.shade500, size: 28),
+                  backgroundColor: context.isDarkMode
+                      ? Colors.grey.shade800
+                      : Colors.grey.shade200,
+                  child: Icon(
+                    Icons.person,
+                    color: context.isDarkMode
+                        ? Colors.grey.shade400
+                        : Colors.grey.shade500,
+                    size: 28,
+                  ),
                 ),
               ),
               const SizedBox(width: 12),
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Obx(() => Text(
-                    controller.parentName.value.isEmpty
-                        ? 'Welcome!'.tr
-                        : controller.parentName.value,
-                    style: TextStyle(
-                      fontSize: 17,
-                      fontWeight: FontWeight.bold,
-                      color: context.textTheme.bodyLarge?.color, // نص متكيف
+                  Obx(
+                    () => Text(
+                      controller.parentName.value.isEmpty
+                          ? 'Welcome!'.tr
+                          : controller.parentName.value,
+                      style: TextStyle(
+                        fontSize: 17,
+                        fontWeight: FontWeight.bold,
+                        color: context.textTheme.bodyLarge?.color, // نص متكيف
+                      ),
                     ),
-                  )),
+                  ),
                   Text(
                     'Welcome back!'.tr,
                     style: TextStyle(
-                        fontSize: 13, color: context.textTheme.bodyMedium?.color), // نص ثانوي متكيف
+                      fontSize: 13,
+                      color: context.textTheme.bodyMedium?.color,
+                    ), // نص ثانوي متكيف
                   ),
                 ],
               ),
@@ -147,8 +164,13 @@ class _HeaderSection extends GetView<HomeController> {
         Stack(
           children: [
             IconButton(
-              icon: const Icon(Icons.notifications_none_outlined, color: Color(0xFF1A2E5A)),
-              onPressed: () => Get.toNamed('/notifications-history'), // 🌟 التوجيه للشاشة التاريخية
+              icon: const Icon(
+                Icons.notifications_none_outlined,
+                color: Color(0xFF1A2E5A),
+              ),
+              onPressed: () => Get.toNamed(
+                '/notifications-history',
+              ), // 🌟 التوجيه للشاشة التاريخية
             ),
             Positioned(
               top: 0,
@@ -181,8 +203,7 @@ class _ChildrenSlider extends StatefulWidget {
 }
 
 class _ChildrenSliderState extends State<_ChildrenSlider> {
-  final PageController _pageController =
-  PageController(viewportFraction: 0.5);
+  final PageController _pageController = PageController(viewportFraction: 0.5);
 
   @override
   void dispose() {
@@ -234,7 +255,9 @@ class _ChildCard extends StatelessWidget {
       child: Container(
         decoration: BoxDecoration(
           // استخدام لون داكن للبطاقة في الوضع الليلي ليناسب اللون الأخضر
-          color: context.isDarkMode ? const Color(0xFF1E3A2F) : const Color(0xFFD6F5D6),
+          color: context.isDarkMode
+              ? const Color(0xFF1E3A2F)
+              : const Color(0xFFD6F5D6),
           borderRadius: BorderRadius.circular(20),
         ),
         child: Stack(
@@ -244,14 +267,18 @@ class _ChildCard extends StatelessWidget {
                 padding: const EdgeInsets.only(bottom: 50),
                 child: CircleAvatar(
                   radius: 45,
-                  backgroundColor: context.theme.scaffoldBackgroundColor, // خلفية متكيفة للصورة
-                  backgroundImage: (child.image != null &&
-                      child.image!.isNotEmpty)
+                  backgroundColor: context.theme.scaffoldBackgroundColor,
+                  // خلفية متكيفة للصورة
+                  backgroundImage:
+                      (child.image != null && child.image!.isNotEmpty)
                       ? NetworkImage(child.image!)
                       : null,
                   child: (child.image == null || child.image!.isEmpty)
-                      ? Icon(Icons.person,
-                      color: context.theme.dividerColor, size: 40)
+                      ? Icon(
+                          Icons.person,
+                          color: context.theme.dividerColor,
+                          size: 40,
+                        )
                       : null,
                 ),
               ),
@@ -299,9 +326,12 @@ class _BookButton extends StatelessWidget {
       width: double.infinity,
       height: 58,
       child: ElevatedButton.icon(
-        onPressed: ()=> Get.toNamed('/closest-appointments'),
-        icon: const Icon(Icons.add_circle_outline,
-            color: Colors.white, size: 22),
+        onPressed: () => Get.toNamed('/closest-appointments'),
+        icon: const Icon(
+          Icons.add_circle_outline,
+          color: Colors.white,
+          size: 22,
+        ),
         label: Text(
           'Book New Appointment'.tr,
           style: const TextStyle(
@@ -311,7 +341,8 @@ class _BookButton extends StatelessWidget {
           ),
         ),
         style: ElevatedButton.styleFrom(
-          backgroundColor: context.theme.primaryColor, // استخدام اللون الأساسي للسمة
+          backgroundColor: context.theme.primaryColor,
+          // استخدام اللون الأساسي للسمة
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
           ),
@@ -378,10 +409,15 @@ class _DepartmentItem extends StatelessWidget {
             height: 80,
             decoration: BoxDecoration(
               // لون البطاقة يتكيف مع الوضع الليلي
-              color: context.isDarkMode ? context.theme.cardColor : const Color(0xFFF0F4FF),
+              color: context.isDarkMode
+                  ? context.theme.cardColor
+                  : const Color(0xFFF0F4FF),
               borderRadius: BorderRadius.circular(16),
               border: Border.all(
-                  color: context.isDarkMode ? Colors.transparent : Colors.blue.shade100),
+                color: context.isDarkMode
+                    ? Colors.transparent
+                    : Colors.blue.shade100,
+              ),
             ),
             child: Icon(
               department['icon'] as IconData,
@@ -392,7 +428,11 @@ class _DepartmentItem extends StatelessWidget {
           const SizedBox(height: 8),
           Text(
             department['label'].toString().tr,
-            style: TextStyle(fontSize: 12, color: context.textTheme.bodyLarge?.color), // نص متكيف
+            style: TextStyle(
+              fontSize: 12,
+              color: context.textTheme.bodyLarge?.color,
+            ),
+            // نص متكيف
             textAlign: TextAlign.center,
           ),
         ],
@@ -411,7 +451,9 @@ class _ClinicInfoSection extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: context.isDarkMode ? context.theme.cardColor : const Color(0xFFF0F4FF), // لون متكيف
+        color: context.isDarkMode
+            ? context.theme.cardColor
+            : const Color(0xFFF0F4FF), // لون متكيف
         borderRadius: BorderRadius.circular(20),
       ),
       child: Row(
@@ -420,11 +462,16 @@ class _ClinicInfoSection extends StatelessWidget {
             width: 100,
             height: 100,
             decoration: BoxDecoration(
-              color: context.isDarkMode ? Colors.blue.withValues(alpha: 0.1) : Colors.blue.shade50,
+              color: context.isDarkMode
+                  ? Colors.blue.withValues(alpha: 0.1)
+                  : Colors.blue.shade50,
               borderRadius: BorderRadius.circular(12),
             ),
-            child: Icon(Icons.local_hospital_outlined,
-                color: Colors.blue.shade300, size: 48),
+            child: Icon(
+              Icons.local_hospital_outlined,
+              color: Colors.blue.shade300,
+              size: 48,
+            ),
           ),
           const SizedBox(width: 16),
           Expanded(
@@ -441,7 +488,8 @@ class _ClinicInfoSection extends StatelessWidget {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'We provide comprehensive healthcare for your children with the highest quality standards.'.tr,
+                  'We provide comprehensive healthcare for your children with the highest quality standards.'
+                      .tr,
                   style: TextStyle(
                     fontSize: 12,
                     color: context.textTheme.bodyMedium?.color, // متكيف
@@ -452,7 +500,7 @@ class _ClinicInfoSection extends StatelessWidget {
                 const SizedBox(height: 8),
                 GestureDetector(
                   onTap: () {
-                    Get.to(()=>const AboutAppView());
+                    Get.to(() => const AboutAppView());
                   },
                   behavior: HitTestBehavior.opaque,
                   child: Row(
@@ -466,8 +514,11 @@ class _ClinicInfoSection extends StatelessWidget {
                           fontWeight: FontWeight.bold,
                         ),
                       ),
-                      Icon(Icons.chevron_right,
-                          color: context.theme.primaryColor, size: 18),
+                      Icon(
+                        Icons.chevron_right,
+                        color: context.theme.primaryColor,
+                        size: 18,
+                      ),
                     ],
                   ),
                 ),
@@ -489,15 +540,17 @@ class _BottomNav extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: context.theme.bottomNavigationBarTheme.backgroundColor, // لون الـ BottomNav من السمة
+        color: context.theme.bottomNavigationBarTheme.backgroundColor,
+        // لون الـ BottomNav من السمة
         borderRadius: const BorderRadius.only(
           topLeft: Radius.circular(24),
           topRight: Radius.circular(24),
         ),
         boxShadow: [
           BoxShadow(
-            // إخفاء الظل في الوضع الليلي
-            color: context.isDarkMode ? Colors.transparent : Colors.black.withValues(alpha: 0.08),
+            color: context.isDarkMode
+                ? Colors.transparent
+                : Colors.black.withValues(alpha: 0.08),
             blurRadius: 20,
             offset: const Offset(0, -4),
           ),
@@ -509,10 +562,19 @@ class _BottomNav extends StatelessWidget {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
-              _NavItem(icon: Icons.home_rounded, label: 'Home'.tr, isSelected: true, onTap: () {}),
-              _NavItem(icon: Icons.calendar_month_outlined, label: 'Appointments'.tr, isSelected: false, onTap: () => Get.toNamed('/appointments')),
+              _NavItem(
+                icon: Icons.home_rounded,
+                label: 'Home'.tr,
+                isSelected: true,
+                onTap: () {},
+              ),
+              _NavItem(
+                icon: Icons.calendar_month_outlined,
+                label: 'Appointments'.tr,
+                isSelected: false,
+                onTap: () => Get.toNamed('/appointments'),
+              ),
 
-              // زر الوسط
               GestureDetector(
                 onTap: () => Get.toNamed('/add-child'),
                 child: Container(
@@ -527,7 +589,9 @@ class _BottomNav extends StatelessWidget {
                     shape: BoxShape.circle,
                     boxShadow: [
                       BoxShadow(
-                        color: context.isDarkMode ? Colors.transparent : const Color(0xFF3B9EFF).withValues(alpha: 0.4),
+                        color: context.isDarkMode
+                            ? Colors.transparent
+                            : const Color(0xFF3B9EFF).withValues(alpha: 0.4),
                         blurRadius: 12,
                         offset: const Offset(0, 4),
                       ),
@@ -537,8 +601,19 @@ class _BottomNav extends StatelessWidget {
                 ),
               ),
 
-              _NavItem(icon: Icons.vaccines_outlined, label: 'Vaccinations'.tr, isSelected: false, onTap: () => Get.toNamed('/vaccinations')),
-              _NavItem(icon: Icons.more_horiz, label: 'More'.tr, isSelected: false, onTap: () => Get.toNamed('/settings')),
+              _NavItem(
+                icon: Icons.vaccines_outlined,
+                label: 'Vaccinations'.tr,
+                isSelected: false,
+                onTap: () => Get.find<HomeController>().onVaccinesTabTapped(),
+              ),
+
+              _NavItem(
+                icon: Icons.more_horiz,
+                label: 'More'.tr,
+                isSelected: false,
+                onTap: () => Get.toNamed('/settings'),
+              ),
             ],
           ),
         ),
@@ -553,13 +628,20 @@ class _NavItem extends StatelessWidget {
   final bool isSelected;
   final VoidCallback onTap;
 
-  const _NavItem({required this.icon, required this.label, required this.isSelected, required this.onTap});
+  const _NavItem({
+    required this.icon,
+    required this.label,
+    required this.isSelected,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
     // الألوان المتكيفة للـ BottomNav
-    final selectedColor = context.theme.bottomNavigationBarTheme.selectedItemColor;
-    final unselectedColor = context.theme.bottomNavigationBarTheme.unselectedItemColor;
+    final selectedColor =
+        context.theme.bottomNavigationBarTheme.selectedItemColor;
+    final unselectedColor =
+        context.theme.bottomNavigationBarTheme.unselectedItemColor;
 
     return GestureDetector(
       onTap: onTap,
@@ -568,13 +650,19 @@ class _NavItem extends StatelessWidget {
         duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         decoration: BoxDecoration(
-          color: isSelected ? selectedColor?.withValues(alpha: 0.1) : Colors.transparent,
+          color: isSelected
+              ? selectedColor?.withValues(alpha: 0.1)
+              : Colors.transparent,
           borderRadius: BorderRadius.circular(12),
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, color: isSelected ? selectedColor : unselectedColor, size: 24),
+            Icon(
+              icon,
+              color: isSelected ? selectedColor : unselectedColor,
+              size: 24,
+            ),
             const SizedBox(height: 3),
             Text(
               label,

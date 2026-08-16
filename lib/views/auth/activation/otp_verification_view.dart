@@ -14,25 +14,30 @@ class OtpVerificationView extends GetView<ActivationController> {
     final defaultPinTheme = PinTheme(
       width: 50,
       height: 56,
-      textStyle: const TextStyle(
+      textStyle: TextStyle(
         fontSize: 20,
-        color: Colors.black,
+        color: context.textTheme.bodyLarge?.color,
         fontWeight: FontWeight.w600,
       ),
       decoration: BoxDecoration(
-        border: Border.all(color: Colors.grey.shade300),
+        color: context.theme.cardColor,
+        border: Border.all(color: context.theme.dividerColor.withOpacity(0.5)),
+
         borderRadius: BorderRadius.circular(8),
-        color: Colors.white,
       ),
     );
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: context.theme.scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios, color: Colors.black),
+          icon: Icon(
+            Icons.arrow_back_ios,
+            color: context.theme.iconTheme.color,
+          ),
+
           onPressed: () => Get.back(),
         ),
       ),
@@ -58,7 +63,10 @@ class OtpVerificationView extends GetView<ActivationController> {
                   controller: controller.otpController,
                   defaultPinTheme: defaultPinTheme,
                   focusedPinTheme: defaultPinTheme.copyDecorationWith(
-                    border: Border.all(color: Colors.blue, width: 2),
+                    border: Border.all(
+                      color: context.theme.primaryColor,
+                      width: 2,
+                    ),
                   ),
                   onCompleted: (pin) {},
                 ),
@@ -66,35 +74,39 @@ class OtpVerificationView extends GetView<ActivationController> {
               const SizedBox(height: 30),
 
               //  إعادة إرسال الرمز
-              Obx(() => Column(
-                children: [
-                   Text(
-                    "Didn't receive the code?".tr,
-                    style: TextStyle(color: Colors.grey),
-                  ),
-                  TextButton(
-                    onPressed: controller.secondsRemaining.value == 0
-                        ? () => controller.resendOtp()
-                        : null,
-                    child: Text(
-                      controller.secondsRemaining.value == 0
-                          ? "Resend Code".tr
-                          : "${"Resend in".tr} (00:${controller.secondsRemaining.value.toString().padLeft(2, '0')})",
-                      style: TextStyle(
-                        color: controller.secondsRemaining.value == 0
-                            ? Colors.blue
-                            : Colors.grey,
-                        fontWeight: FontWeight.bold,
+              Obx(
+                () => Column(
+                  children: [
+                    Text(
+                      "Didn't receive the code?".tr,
+                      style: TextStyle(color: context.theme.hintColor),
+                    ),
+                    TextButton(
+                      onPressed: controller.secondsRemaining.value == 0
+                          ? () => controller.resendOtp()
+                          : null,
+                      child: Text(
+                        controller.secondsRemaining.value == 0
+                            ? "Resend Code".tr
+                            : "${"Resend in".tr} (00:${controller.secondsRemaining.value.toString().padLeft(2, '0')})",
+                        style: TextStyle(
+                          color: controller.secondsRemaining.value == 0
+                              ? context.theme.primaryColor
+                              : context.theme.hintColor,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ),
-                  ),
-                ],
-              )),
+                  ],
+                ),
+              ),
 
               const SizedBox(height: 20),
               Obx(
                 () => controller.isLoading
-                    ? const CircularProgressIndicator()
+                    ? CircularProgressIndicator(
+                        color: context.theme.primaryColor,
+                      )
                     : PrimaryButton(
                         text: 'Verify and Activate Account'.tr,
                         onPressed: controller.verifyOtp,

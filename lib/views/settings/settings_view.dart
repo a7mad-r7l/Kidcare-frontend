@@ -13,7 +13,7 @@ class SettingsView extends StatelessWidget {
     final controller = Get.put(SettingsController());
 
     return Scaffold(
-      // ❌ تم إزالة backgroundColor ليقرأ خلفية النظام التلقائية (بيضاء/داكنة)
+
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -21,13 +21,13 @@ class SettingsView extends StatelessWidget {
         title: Text(
           'settings'.tr,
           style: TextStyle(
-            color: context.textTheme.bodyLarge?.color, // ─── لون النص متكيف ───
+            color: context.textTheme.bodyLarge?.color,
             fontWeight: FontWeight.bold,
           ),
         ),
         leading: IconButton(
           icon: Icon(Icons.arrow_back_ios, color: context.iconColor),
-          // ─── أيقونة متكيفة ───
+
           onPressed: () => Get.back(),
         ),
       ),
@@ -74,22 +74,10 @@ class SettingsView extends StatelessWidget {
             ),
             const SizedBox(height: 25),
 
-            // 4. قسم الدعم والمزيد
+            // 4. المزيد
             SettingsSection(
-              title: 'support_and_more'.tr,
+              title: 'More'.tr,
               children: [
-                SettingsTile(
-                  icon: Icons.help_outline,
-                  title: 'help_center'.tr,
-                  subtitle: 'faq_and_support'.tr,
-                  onTap: () {},
-                ),
-                SettingsTile(
-                  icon: Icons.description_outlined,
-                  title: 'app_rating'.tr,
-                  subtitle: 'share_your_opinion'.tr,
-                  onTap: () {},
-                ),
                 SettingsTile(
                   icon: Icons.info_outline,
                   title: 'about_app'.tr,
@@ -121,7 +109,7 @@ class SettingsView extends StatelessWidget {
       Container(
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
-          // ─── لون خلفية النافذة المنبثقة متكيف ───
+
           color: context.theme.cardColor,
           borderRadius: const BorderRadius.vertical(top: Radius.circular(25)),
         ),
@@ -134,7 +122,7 @@ class SettingsView extends StatelessWidget {
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
-                // ─── لون العنوان متكيف ───
+
                 color: context.textTheme.bodyLarge?.color,
               ),
             ),
@@ -156,14 +144,14 @@ class SettingsView extends StatelessWidget {
                         'English',
                         style: TextStyle(
                           fontWeight: FontWeight.w600,
-                          // ─── لون الخيار متكيف ───
+
                           color: context.textTheme.bodyLarge?.color,
                         ),
                       ),
                       value: 'en',
                       activeColor: context
                           .theme
-                          .primaryColor, // ─── لون التحديد متكيف ───
+                          .primaryColor,
                     ),
                     RadioListTile<String>(
                       title: Text(

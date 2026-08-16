@@ -10,34 +10,35 @@ class OtpView extends StatelessWidget {
   Widget build(BuildContext context) {
     final controller = Get.find<ForgotPasswordController>();
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: context.theme.scaffoldBackgroundColor,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        leading: const BackButton(color: Colors.black),
+        leading: BackButton(color: context.theme.iconTheme.color),
       ),
       body: SingleChildScrollView(
         child: Padding(
           padding: const EdgeInsets.all(20.0),
           child: Column(
             children: [
-              Image.asset('assets/images/logo.jpg', height: 100),
+              Image.asset('assets/images/logo.png', height: 100),
               const SizedBox(height: 20),
               Text(
                 "Verify Your Number".tr,
-                style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+                style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: context.textTheme.bodyLarge?.color), // 👈 متكيف
               ),
               const SizedBox(height: 10),
               Text(
                 "We sent a 4-digit code to".tr,
-                style: TextStyle(color: Colors.grey),
+                style: TextStyle(color: context.theme.hintColor),
               ),
 
               Text(
                 controller.phoneController.text,
-                style: const TextStyle(
+                style: TextStyle(
                   fontWeight: FontWeight.bold,
                   fontSize: 16,
+                  color: context.textTheme.bodyLarge?.color,
                 ),
               ),
 
@@ -50,12 +51,14 @@ class OtpView extends StatelessWidget {
                   width: 65,
                   height: 65,
                   decoration: BoxDecoration(
+                    color: context.theme.cardColor,
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.blue.shade100),
+                    border: Border.all(color: context.theme.dividerColor.withOpacity(0.5)),
                   ),
-                  textStyle: const TextStyle(
+                  textStyle: TextStyle(
                     fontSize: 22,
                     fontWeight: FontWeight.bold,
+                    color: context.textTheme.bodyLarge?.color,
                   ),
                 ),
               ),
@@ -63,11 +66,11 @@ class OtpView extends StatelessWidget {
               const SizedBox(height: 30),
 
               Obx(
-                () => Column(
+                    () => Column(
                   children: [
                     Text(
                       "Didn't receive the code?".tr,
-                      style: TextStyle(color: Colors.grey),
+                      style: TextStyle(color: context.theme.hintColor),
                     ),
                     TextButton(
                       onPressed: controller.secondsRemaining.value == 0
@@ -86,7 +89,7 @@ class OtpView extends StatelessWidget {
               const SizedBox(height: 40),
 
               Obx(
-                () => SizedBox(
+                    () => SizedBox(
                   width: double.infinity,
                   height: 55,
                   child: ElevatedButton(
@@ -94,7 +97,7 @@ class OtpView extends StatelessWidget {
                         ? null
                         : () => controller.verifyCode(),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF4A86D1),
+                      backgroundColor: context.theme.primaryColor,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(15),
                       ),
@@ -102,15 +105,15 @@ class OtpView extends StatelessWidget {
                     child: controller.isLoading
                         ? const CircularProgressIndicator(color: Colors.white)
                         : Text(
-                            "Verify".tr,
-                            style: TextStyle(color: Colors.white, fontSize: 18),
-                          ),
+                      "Verify".tr,
+                      style: const TextStyle(color: Colors.white, fontSize: 18),
+                    ),
                   ),
                 ),
               ),
 
               const SizedBox(height: 50),
-              Image.asset('assets/images/shield_logo.jpg', height: 120),
+              // Image.asset('assets/images/shield_logo.jpg', height: 120), // يفضل تحويلها لـ png شفافة إن وُجدت
             ],
           ),
         ),

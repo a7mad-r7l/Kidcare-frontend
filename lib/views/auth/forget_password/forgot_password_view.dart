@@ -8,25 +8,25 @@ class ForgotPasswordView extends GetView<ForgotPasswordController> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: context.theme.scaffoldBackgroundColor,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        leading: const BackButton(color: Colors.black),
+        leading: BackButton(color: context.theme.iconTheme.color),
       ),
       body: SingleChildScrollView(
         child: Padding(
           padding: const EdgeInsets.all(20.0),
           child: Column(
             children: [
-              Image.asset('assets/images/logo.jpg', height: 120),
+              Image.asset('assets/images/logo.png', height: 120),
               const SizedBox(height: 20),
               Text(
                 "Forgot Password?".tr,
                 style: TextStyle(
                   fontSize: 24,
                   fontWeight: FontWeight.bold,
-                  color: Color(0xFF0D2451),
+                  color: context.textTheme.bodyLarge?.color,
                 ),
               ),
               const SizedBox(height: 10),
@@ -34,7 +34,7 @@ class ForgotPasswordView extends GetView<ForgotPasswordController> {
                 "Don't worry, enter your phone number and we will send you a verification code."
                     .tr,
                 textAlign: TextAlign.center,
-                style: TextStyle(color: Colors.grey[600]),
+                style: TextStyle(color: context.theme.hintColor),
               ),
               const SizedBox(height: 40),
               Align(
@@ -48,8 +48,12 @@ class ForgotPasswordView extends GetView<ForgotPasswordController> {
               TextField(
                 controller: controller.phoneController,
                 keyboardType: TextInputType.phone,
+                style: TextStyle(color: context.textTheme.bodyLarge?.color),
                 decoration: InputDecoration(
                   hintText: '9639XXXXXXXX',
+                  filled: true,
+                  fillColor: context.theme.cardColor,
+                  hintStyle: const TextStyle(color: Colors.grey),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(15),
                   ),
@@ -57,7 +61,7 @@ class ForgotPasswordView extends GetView<ForgotPasswordController> {
               ),
               const SizedBox(height: 30),
 
-              // الاستماع اللحظي لحالة التحميل باستخدام الكود الموحد الخاص بك
+
               Obx(
                 () => SizedBox(
                   width: double.infinity,

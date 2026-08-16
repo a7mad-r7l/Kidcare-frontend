@@ -9,14 +9,14 @@ class VerifyOtpView extends GetView<VerifyOtpController> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: context.theme.scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(
+          icon: Icon(
             Icons.arrow_back_ios,
-            color: Colors.black87,
+            color: context.theme.iconTheme.color,
             size: 20,
           ),
           onPressed: () => Get.back(),
@@ -41,7 +41,7 @@ class VerifyOtpView extends GetView<VerifyOtpController> {
               style: TextStyle(
                 fontSize: 24,
                 fontWeight: FontWeight.bold,
-                color: Colors.black87,
+                color: context.textTheme.bodyLarge?.color,
               ),
               textAlign: TextAlign.center,
             ),
@@ -49,7 +49,7 @@ class VerifyOtpView extends GetView<VerifyOtpController> {
 
             Text(
               'We sent a 4-digit verification code to'.tr,
-              style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
+              style: TextStyle(fontSize: 13, color: context.theme.hintColor),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 4),
@@ -58,12 +58,12 @@ class VerifyOtpView extends GetView<VerifyOtpController> {
               style: TextStyle(
                 fontSize: 15,
                 fontWeight: FontWeight.bold,
-                color: Colors.blue.shade700,
+                color: context.theme.primaryColor,
               ),
             ),
             const SizedBox(height: 36),
 
-            // OTP Boxes
+            // OTP Boxes (تأكد أن الـ OtpBox داخله يستخدم ألوان متكيفة أيضاً)
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
@@ -100,15 +100,15 @@ class VerifyOtpView extends GetView<VerifyOtpController> {
 
             // Validity timer
             Obx(
-              () => RichText(
+                  () => RichText(
                 text: TextSpan(
-                  style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
+                  style: TextStyle(fontSize: 13, color: context.theme.hintColor),
                   children: [
                     TextSpan(text: 'The code is valid for '.tr),
                     TextSpan(
                       text: controller.validityFormatted,
                       style: TextStyle(
-                        color: Colors.blue.shade600,
+                        color: context.theme.primaryColor,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
@@ -123,9 +123,9 @@ class VerifyOtpView extends GetView<VerifyOtpController> {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
               decoration: BoxDecoration(
-                color: Colors.grey.shade50,
+                color: context.theme.cardColor,
                 borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: Colors.grey.shade200),
+                border: Border.all(color: context.theme.dividerColor.withOpacity(0.2)),
               ),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.center,
@@ -139,7 +139,7 @@ class VerifyOtpView extends GetView<VerifyOtpController> {
                           style: TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.bold,
-                            color: Colors.black87,
+                            color: context.textTheme.bodyLarge?.color,
                           ),
                         ),
                         const SizedBox(height: 4),
@@ -147,31 +147,31 @@ class VerifyOtpView extends GetView<VerifyOtpController> {
                           'You can resend the code after the countdown ends'.tr,
                           style: TextStyle(
                             fontSize: 12,
-                            color: Colors.grey.shade500,
+                            color: context.theme.hintColor,
                           ),
                         ),
                         const SizedBox(height: 10),
                         Obx(
-                          () => controller.canResend.value
+                              () => controller.canResend.value
                               ? GestureDetector(
-                                  onTap: controller.resendOtp,
-                                  child: Text(
-                                    'Resend Code'.tr,
-                                    style: TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.bold,
-                                      color: Colors.blue.shade600,
-                                    ),
-                                  ),
-                                )
+                            onTap: controller.resendOtp,
+                            child: Text(
+                              'Resend Code'.tr,
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: context.theme.primaryColor,
+                              ),
+                            ),
+                          )
                               : Text(
-                                  controller.resendFormatted,
-                                  style: TextStyle(
-                                    fontSize: 20,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.blue.shade600,
-                                  ),
-                                ),
+                            controller.resendFormatted,
+                            style: TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                              color: context.theme.primaryColor,
+                            ),
+                          ),
                         ),
                       ],
                     ),
@@ -180,12 +180,12 @@ class VerifyOtpView extends GetView<VerifyOtpController> {
                   Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: Colors.blue.shade50,
+                      color: context.theme.primaryColor.withOpacity(0.1),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Icon(
                       Icons.chat_bubble_outline,
-                      color: Colors.blue.shade600,
+                      color: context.theme.primaryColor,
                       size: 26,
                     ),
                   ),
@@ -196,14 +196,14 @@ class VerifyOtpView extends GetView<VerifyOtpController> {
 
             // Verify button
             Obx(
-              () => controller.isLoading
-                  ? const Center(
-                      child: CircularProgressIndicator(color: Colors.blue),
-                    )
+                  () => controller.isLoading
+                  ? Center(
+                child: CircularProgressIndicator(color: context.theme.primaryColor),
+              )
                   : PrimaryButton(
-                      text: 'Verify'.tr,
-                      onPressed: controller.verifyOtp,
-                    ),
+                text: 'Verify'.tr,
+                onPressed: controller.verifyOtp,
+              ),
             ),
             const SizedBox(height: 14),
 

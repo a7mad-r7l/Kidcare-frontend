@@ -9,46 +9,60 @@ class ResetPasswordView extends StatelessWidget {
   Widget build(BuildContext context) {
     final controller = Get.find<ForgotPasswordController>();
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: context.theme.scaffoldBackgroundColor,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        leading: const BackButton(color: Colors.black),
+        leading: BackButton(color: context.theme.iconTheme.color),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20.0),
         child: Column(
           children: [
-            Image.asset('assets/images/logo.jpg', height: 100),
+            Image.asset('assets/images/logo.png', height: 100),
             const SizedBox(height: 20),
             Text(
               "Create New Password".tr,
-              style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+              style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: context.textTheme.bodyLarge?.color),
             ),
             const SizedBox(height: 10),
             Text(
               "Your new password must be different".tr,
-              style: TextStyle(color: Colors.grey),
+              style: TextStyle(color: context.theme.hintColor),
             ),
             const SizedBox(height: 30),
 
             Obx(
-              () => TextField(
+                  () => TextField(
                 controller: controller.passwordController,
                 obscureText: !controller.isPasswordVisible.value,
+                style: TextStyle(color: context.textTheme.bodyLarge?.color),
                 decoration: InputDecoration(
                   hintText: "Password".tr,
-                  prefixIcon: const Icon(Icons.lock_outline),
+                  hintStyle: TextStyle(color: context.theme.hintColor),
+                  filled: true,
+                  fillColor: context.theme.cardColor,
+                  prefixIcon: Icon(Icons.lock_outline, color: context.theme.hintColor),
                   suffixIcon: IconButton(
                     icon: Icon(
                       controller.isPasswordVisible.value
                           ? Icons.visibility
                           : Icons.visibility_off,
+                      color: context.theme.hintColor,
                     ),
                     onPressed: () => controller.isPasswordVisible.toggle(),
                   ),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(15),
+                    borderSide: BorderSide.none,
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(15),
+                    borderSide: BorderSide(color: context.theme.dividerColor.withOpacity(0.2)),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(15),
+                    borderSide: BorderSide(color: context.theme.primaryColor, width: 1.5),
                   ),
                 ),
               ),
@@ -57,22 +71,36 @@ class ResetPasswordView extends StatelessWidget {
             const SizedBox(height: 20),
 
             Obx(
-              () => TextField(
+                  () => TextField(
                 controller: controller.confirmPasswordController,
                 obscureText: !controller.isConfirmVisible.value,
+                style: TextStyle(color: context.textTheme.bodyLarge?.color),
                 decoration: InputDecoration(
                   hintText: "Confirm Password".tr,
-                  prefixIcon: const Icon(Icons.lock_outline),
+                  hintStyle: TextStyle(color: context.theme.hintColor),
+                  filled: true,
+                  fillColor: context.theme.cardColor,
+                  prefixIcon: Icon(Icons.lock_outline, color: context.theme.hintColor),
                   suffixIcon: IconButton(
                     icon: Icon(
                       controller.isConfirmVisible.value
                           ? Icons.visibility
                           : Icons.visibility_off,
+                      color: context.theme.hintColor,
                     ),
                     onPressed: () => controller.isConfirmVisible.toggle(),
                   ),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(15),
+                    borderSide: BorderSide.none,
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(15),
+                    borderSide: BorderSide(color: context.theme.dividerColor.withOpacity(0.2)),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(15),
+                    borderSide: BorderSide(color: context.theme.primaryColor, width: 1.5),
                   ),
                 ),
               ),
@@ -81,7 +109,7 @@ class ResetPasswordView extends StatelessWidget {
             const SizedBox(height: 40),
 
             Obx(
-              () => SizedBox(
+                  () => SizedBox(
                 width: double.infinity,
                 height: 55,
                 child: ElevatedButton(
@@ -89,7 +117,7 @@ class ResetPasswordView extends StatelessWidget {
                       ? null
                       : () => controller.updatePassword(),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF4A86D1),
+                    backgroundColor: context.theme.primaryColor,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(15),
                     ),
@@ -97,15 +125,15 @@ class ResetPasswordView extends StatelessWidget {
                   child: controller.isLoading
                       ? const CircularProgressIndicator(color: Colors.white)
                       : Text(
-                          "Update Password".tr,
-                          style: TextStyle(color: Colors.white, fontSize: 18),
-                        ),
+                    "Update Password".tr,
+                    style: const TextStyle(color: Colors.white, fontSize: 18),
+                  ),
                 ),
               ),
             ),
 
             const SizedBox(height: 50),
-            Image.asset('assets/images/lock_logo.jpg', height: 150),
+            // Image.asset('assets/images/lock_logo.jpg', height: 150),
           ],
         ),
       ),

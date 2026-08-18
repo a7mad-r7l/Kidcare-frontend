@@ -89,7 +89,7 @@ class CheckoutSummaryView extends GetView<PaymentController> {
                                     ),
                                     const SizedBox(height: 4),
                                     Text(
-                                      summary.patientAge,
+                                      '${summary.patientAge} ${summary.ageType.tr}',
                                       style: TextStyle(
                                         color: context.textTheme.bodyMedium?.color,
                                         fontSize: 14,

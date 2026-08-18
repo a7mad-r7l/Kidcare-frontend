@@ -168,21 +168,26 @@ class _HeaderSection extends GetView<HomeController> {
                 Icons.notifications_none_outlined,
                 color: Color(0xFF1A2E5A),
               ),
-              onPressed: () => Get.toNamed(
-                '/notifications-history',
-              ), // 🌟 التوجيه للشاشة التاريخية
+              onPressed: () {
+                controller.hasUnreadNotifications.value = false; // 👈 تصفيرها
+                Get.toNamed('/notifications-history');
+              },
             ),
-            Positioned(
-              top: 0,
-              right: 0,
-              child: Container(
-                width: 8,
-                height: 8,
-                decoration: const BoxDecoration(
-                  color: Colors.blue,
-                  shape: BoxShape.circle,
-                ),
-              ),
+            Obx(
+              () => controller.hasUnreadNotifications.value
+                  ? Positioned(
+                      top: 0,
+                      right: 0,
+                      child: Container(
+                        width: 8,
+                        height: 8,
+                        decoration: const BoxDecoration(
+                          color: Colors.blue,
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                    )
+                  : const SizedBox.shrink(),
             ),
           ],
         ),
@@ -299,7 +304,7 @@ class _ChildCard extends StatelessWidget {
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    '${child.age} ${'years'.tr}',
+                    '${child.age} ${child.ageType.tr}',
                     style: TextStyle(
                       fontSize: 12,
                       color: context.textTheme.bodyMedium?.color, // نص متكيف

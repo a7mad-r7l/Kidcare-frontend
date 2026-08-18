@@ -1,6 +1,7 @@
 class AppointmentDetailsModel {
   final String patientName;
   final String patientAge;
+  final String ageType;
   final String patientImageUrl;
   final String doctorName;
   final String departmentName;
@@ -17,6 +18,7 @@ class AppointmentDetailsModel {
     required this.dateTime,
     required this.price,
     required this.currency,
+    required this.ageType,
   });
 
   factory AppointmentDetailsModel.fromJson(Map<String, dynamic> json) {
@@ -29,6 +31,7 @@ class AppointmentDetailsModel {
     return AppointmentDetailsModel(
       patientName: json['patient_name']?.toString() ?? '',
       patientAge: json['patient_age']?.toString() ?? '',
+      ageType: json['age_type']?.toString() ?? 'year',
       patientImageUrl: rawUrl,
       doctorName: json['doctor_name']?.toString() ?? '',
       departmentName: json['department_name']?.toString() ?? '',

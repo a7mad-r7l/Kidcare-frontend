@@ -8,6 +8,9 @@ import 'package:kidcare/core/helper/secure_storage_service.dart';
 
 import '../constants.dart';
 
+import '../../controllers/home/home_controller.dart';
+import '../../controllers/home/appointments_controller.dart';
+
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   await Firebase.initializeApp();
@@ -17,25 +20,25 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
 class NotificationService {
   static final FirebaseMessaging _messaging = FirebaseMessaging.instance;
   static final FlutterLocalNotificationsPlugin _localNotificationsPlugin =
-  FlutterLocalNotificationsPlugin();
+      FlutterLocalNotificationsPlugin();
 
   static const AndroidNotificationChannel _appointmentsChannel =
-  AndroidNotificationChannel(
-    'appointments_channel', // channelId
-    'Appointments Notifications', // channelName
-    description: 'This channel is used for appointments updates.',
-    importance: Importance.max,
-    playSound: true,
-  );
+      AndroidNotificationChannel(
+        'appointments_channel', // channelId
+        'Appointments Notifications', // channelName
+        description: 'This channel is used for appointments updates.',
+        importance: Importance.max,
+        playSound: true,
+      );
 
   static const AndroidNotificationChannel _chatChannel =
-  AndroidNotificationChannel(
-    'chat_channel', // channelId
-    'Chat Notifications', // channelName
-    description: 'This channel is used for direct doctor chats.',
-    importance: Importance.max,
-    playSound: true,
-  );
+      AndroidNotificationChannel(
+        'chat_channel', // channelId
+        'Chat Notifications', // channelName
+        description: 'This channel is used for direct doctor chats.',
+        importance: Importance.max,
+        playSound: true,
+      );
 
   static Future<void> initialize() async {
     NotificationSettings settings = await _messaging.requestPermission(
@@ -50,20 +53,20 @@ class NotificationService {
 
     await _localNotificationsPlugin
         .resolvePlatformSpecificImplementation<
-        AndroidFlutterLocalNotificationsPlugin
-    >()
+          AndroidFlutterLocalNotificationsPlugin
+        >()
         ?.createNotificationChannel(_appointmentsChannel);
 
     await _localNotificationsPlugin
         .resolvePlatformSpecificImplementation<
-        AndroidFlutterLocalNotificationsPlugin
-    >()
+          AndroidFlutterLocalNotificationsPlugin
+        >()
         ?.createNotificationChannel(_chatChannel);
 
     const AndroidInitializationSettings initializationSettingsAndroid =
-    AndroidInitializationSettings('@mipmap/ic_launcher');
+        AndroidInitializationSettings('@mipmap/ic_launcher');
     const InitializationSettings initializationSettings =
-    InitializationSettings(android: initializationSettingsAndroid);
+        InitializationSettings(android: initializationSettingsAndroid);
 
     await _localNotificationsPlugin.initialize(
       initializationSettings,
@@ -79,33 +82,40 @@ class NotificationService {
     FirebaseMessaging.onMessage.listen((RemoteMessage message) {
       log("📥 استلام إشعار حي والتطبيق مفتوح: ${message.notification?.title}");
       _showLocalNotification(message);
+      if (Get.isRegistered<HomeController>()) {
+        Get.find<HomeController>().hasUnreadNotifications.value = true;
+      }
     });
 
     FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
       log("🖱️ تم النقر على الإشعار والتطبيق بالخلفية: ${message.data}");
-      if (message.data.containsKey('type')) {
-        _handleNotificationClick(message.data['type'].toString());
+
+      String type = message.data['type']?.toString() ?? 'general';
+      if (type == 'general' && message.notification?.title != null) {
+        type = message.notification!.title!.toLowerCase();
       }
+      _handleNotificationClick(type);
     });
 
     RemoteMessage? initialMessage = await _messaging.getInitialMessage();
-    if (initialMessage != null && initialMessage.data.containsKey('type')) {
-      log("🚀 أقع التطبيق من الصفر بنقرة إشعار: ${initialMessage.data}");
-      _handleNotificationClick(initialMessage.data['type'].toString());
+    if (initialMessage != null) {
+      log("🚀 إقلاع التطبيق من الصفر بنقرة إشعار: ${initialMessage.data}");
+
+      String type = initialMessage.data['type']?.toString() ?? 'general';
+      if (type == 'general' && initialMessage.notification?.title != null) {
+        type = initialMessage.notification!.title!.toLowerCase();
+      }
+      _handleNotificationClick(type);
     }
 
-    // ─── التعديل الأول: استدعاء الدالة بالاسم الجديد ───
     await uploadFcmToken();
   }
 
-  // ─── التعديل الثاني: إزالة الشرطة السفلية وتغيير الاسم لتصبح عامة ───
   static Future<void> uploadFcmToken() async {
     try {
       String? token = await _messaging.getToken();
       if (token != null) {
         log("🔑 🔑 🔑 MY DEVICE FCM TOKEN = $token");
-
-        // 🌟 إرسال التوكن إلى السيرفر
         await _saveTokenToBackend(token);
       }
     } catch (e) {
@@ -144,9 +154,14 @@ class NotificationService {
 
     if (notification != null && android != null) {
       String notificationType = message.data['type']?.toString() ?? 'general';
+
+      if (notificationType == 'general') {
+        notificationType = notification.title?.toLowerCase() ?? 'general';
+      }
+
       AndroidNotificationChannel targetChannel = _appointmentsChannel;
 
-      if (notificationType == 'chat') {
+      if (notificationType.contains('chat')) {
         targetChannel = _chatChannel;
       }
 
@@ -170,18 +185,50 @@ class NotificationService {
     }
   }
 
+  // ─── توجيه الإشعارات ───
   static void _handleNotificationClick(String type) {
-    log("🔀 جاري توجيه المستخدم بناءً على نوع الإشعار: $type");
+    log("🔀 جاري توجيه المريض بناءً على نوع الإشعار: $type");
 
-    switch (type) {
-      case 'appointment_accepted':
-      case 'appointment_rejected':
-      case 'appointment_reminder':
-        Get.toNamed('/appointments');
-        break;
-      default:
-        Get.toNamed('/home');
-        break;
+    final typeLower = type.toLowerCase();
+
+    // 1. إشعارات اللقاحات
+    if (typeLower.contains('vaccine')) {
+      Get.offAllNamed('/home');
+      Future.delayed(const Duration(milliseconds: 500), () {
+        if (Get.isRegistered<HomeController>()) {
+          Get.find<HomeController>().onVaccinesTabTapped();
+        }
+      });
+      return;
     }
+
+    // 2. إشعارات إلغاء الموعد -> المواعيد السابقة
+    if (typeLower.contains('cancel')) {
+      Get.delete<AppointmentsController>();
+      Get.toNamed('/appointments');
+      Future.delayed(const Duration(milliseconds: 300), () {
+        if (Get.isRegistered<AppointmentsController>()) {
+          Get.find<AppointmentsController>().switchTab(false); // تاب Past
+        }
+      });
+      return;
+    }
+
+    // 3. إشعارات الحجز والتذكير والتأكيد -> المواعيد القادمة
+    if (typeLower.contains('appointment') ||
+        typeLower.contains('reminder') ||
+        typeLower.contains('confirm') ||
+        typeLower.contains('accept')) {
+      Get.delete<AppointmentsController>();
+      Get.toNamed('/appointments');
+      Future.delayed(const Duration(milliseconds: 300), () {
+        if (Get.isRegistered<AppointmentsController>()) {
+          Get.find<AppointmentsController>().switchTab(true); // تاب Upcoming
+        }
+      });
+      return;
+    }
+
+    Get.toNamed('/home');
   }
 }

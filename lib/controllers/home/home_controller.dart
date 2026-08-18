@@ -9,6 +9,7 @@ import 'package:flutter/material.dart';
 class HomeController extends BaseController {
   final HomeChildrenRepo homeChildrenRepo;
   final ParentNameRepo parentNameRepo;
+  final RxBool hasUnreadNotifications = false.obs;
 
   HomeController({
     required this.homeChildrenRepo,

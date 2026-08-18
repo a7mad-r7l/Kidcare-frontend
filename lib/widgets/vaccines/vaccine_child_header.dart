@@ -60,7 +60,7 @@ class VaccineChildHeader extends GetView<VaccinesController> {
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      '${child.ageYears} ${'years'.tr}',
+                      '${child.ageNumber} ${child.ageType.tr}',
                       style: TextStyle(
                         fontSize: 13,
                         color: context.theme.hintColor,

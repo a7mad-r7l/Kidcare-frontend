@@ -346,7 +346,7 @@ class _InfoCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 6),
                 Text(
-                  '${child.ageYears} ${'years'.tr}',
+                  '${child.ageNumber} ${child.ageType.tr}',
                   style: TextStyle(
                     fontSize: 16,
                     color: context.textTheme.bodyMedium?.color,
@@ -414,7 +414,7 @@ class _StatsCard extends StatelessWidget {
           Expanded(
             child: _StatItem(
               icon: Icons.calendar_month_outlined,
-              value: '${child.ageYears}',
+              value: '${child.ageNumber}',
               label: 'Age'.tr,
             ),
           ),

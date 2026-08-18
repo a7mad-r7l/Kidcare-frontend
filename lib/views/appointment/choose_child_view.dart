@@ -9,7 +9,7 @@ import '../../widgets/booking_app_bar.dart';
 
 final _fakeChildren = List<ChildModel>.generate(
   3,
-      (i) => ChildModel(
+  (i) => ChildModel(
     id: -i - 1,
     parentId: -1,
     firstName: 'Child',
@@ -34,7 +34,7 @@ class ChooseChildView extends StatefulWidget {
 class _ChooseChildViewState extends State<ChooseChildView> {
   final ChildController childController = Get.find<ChildController>();
   final AppointmentController appointmentController =
-  Get.find<AppointmentController>();
+      Get.find<AppointmentController>();
 
   int? selectedChildId;
 
@@ -42,6 +42,7 @@ class _ChooseChildViewState extends State<ChooseChildView> {
     setState(() => selectedChildId = child.id);
     appointmentController.selectChild(child);
   }
+
   Future<void> _onNextPressed() async {
     if (selectedChildId == null) return;
 
@@ -53,7 +54,7 @@ class _ChooseChildViewState extends State<ChooseChildView> {
       // 2. البحث عن كائن الطفل (ChildModel) الذي يطابق الـ ID المختار
       // (تأكد أن اسم مصفوفة الأطفال هو children أو استبدلها بالاسم الصحيح في childController)
       final selectedChildModel = childController.children.firstWhereOrNull(
-            (c) => c.id == selectedChildId,
+        (c) => c.id == selectedChildId,
       );
 
       if (selectedChildModel != null) {
@@ -64,7 +65,8 @@ class _ChooseChildViewState extends State<ChooseChildView> {
         final bool success = await appointmentController.bookAppointment();
 
         if (success) {
-          final appointmentId = appointmentController.bookedAppointmentId.value!;
+          final appointmentId =
+              appointmentController.bookedAppointmentId.value!;
           Get.offNamed('/payment-method', arguments: appointmentId);
         } else {
           print('--- فشل الحجز محلياً: يرجى التحقق من بيانات DoctorModel ---');
@@ -99,7 +101,8 @@ class _ChooseChildViewState extends State<ChooseChildView> {
                         "You haven't added any children yet.".tr,
                         textAlign: TextAlign.center,
                         style: TextStyle(
-                          color: context.textTheme.bodyMedium?.color, // ─── نص متكيف ───
+                          color: context.textTheme.bodyMedium?.color,
+                          // ─── نص متكيف ───
                           fontSize: 14,
                         ),
                       ),
@@ -140,8 +143,11 @@ class _ChooseChildViewState extends State<ChooseChildView> {
         height: 54,
         child: ElevatedButton(
           style: ElevatedButton.styleFrom(
-            backgroundColor: context.theme.primaryColor, // ─── استخدام اللون الأساسي من السمة ───
-            disabledBackgroundColor: context.theme.primaryColor.withValues(alpha: 0.4),
+            backgroundColor: context.theme.primaryColor,
+            // ─── استخدام اللون الأساسي من السمة ───
+            disabledBackgroundColor: context.theme.primaryColor.withValues(
+              alpha: 0.4,
+            ),
             elevation: 0,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(16),
@@ -179,7 +185,9 @@ class _ChildCard extends StatelessWidget {
 
     // ─── تكييف الألوان الخلفية للبطاقة المحددة حسب الوضع (ليلي/نهاري) ───
     final Color lightTint = isMale ? _kBoyTint : _kGirlTint;
-    final Color darkTint = isMale ? Colors.blue.withValues(alpha: 0.15) : Colors.pinkAccent.withValues(alpha: 0.15);
+    final Color darkTint = isMale
+        ? Colors.blue.withValues(alpha: 0.15)
+        : Colors.pinkAccent.withValues(alpha: 0.15);
     final Color tint = context.isDarkMode ? darkTint : lightTint;
 
     return GestureDetector(
@@ -197,41 +205,32 @@ class _ChildCard extends StatelessWidget {
             color: isSelected ? _kSelectedBorder : context.theme.dividerColor,
             width: isSelected ? 2 : 1,
           ),
-          boxShadow: isSelected || context.isDarkMode // إخفاء الظل في الوضع الليلي أو عند التحديد
+          boxShadow:
+              isSelected ||
+                  context
+                      .isDarkMode // إخفاء الظل في الوضع الليلي أو عند التحديد
               ? null
               : [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.03),
-              blurRadius: 10,
-              offset: const Offset(0, 3),
-            ),
-          ],
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.03),
+                    blurRadius: 10,
+                    offset: const Offset(0, 3),
+                  ),
+                ],
         ),
         child: Row(
           children: [
             _ChildAvatar(child: child, tint: tint),
             const SizedBox(width: 14),
+
             Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    child.fullName,
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w700,
-                      color: context.textTheme.bodyLarge?.color, // ─── نص متكيف ───
-                    ),
-                  ),
-                  const SizedBox(height: 3),
-                  Text(
-                    '${child.ageYears} ${'years'.tr}',
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: context.textTheme.bodyMedium?.color, // ─── نص متكيف ───
-                    ),
-                  ),
-                ],
+              child: Text(
+                child.fullName,
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                  color: context.textTheme.bodyLarge?.color,
+                ),
               ),
             ),
             const SizedBox(width: 10),
@@ -259,10 +258,10 @@ class _ChildAvatar extends StatelessWidget {
       clipBehavior: Clip.antiAlias,
       child: child.image != null
           ? Image.network(
-        child.image!,
-        fit: BoxFit.cover,
-        errorBuilder: (_, _, _) => _localFallback(isMale),
-      )
+              child.image!,
+              fit: BoxFit.cover,
+              errorBuilder: (_, _, _) => _localFallback(isMale),
+            )
           : _localFallback(isMale),
     );
   }
@@ -290,7 +289,9 @@ class _SelectionIndicator extends StatelessWidget {
       height: 26,
       decoration: BoxDecoration(
         // ─── تكييف خلفية المؤشر ───
-        color: selected ? _kSelectedBorder : context.theme.scaffoldBackgroundColor,
+        color: selected
+            ? _kSelectedBorder
+            : context.theme.scaffoldBackgroundColor,
         shape: BoxShape.circle,
         border: Border.all(
           // ─── تكييف إطار المؤشر ───

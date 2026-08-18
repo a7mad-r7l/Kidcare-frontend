@@ -51,7 +51,7 @@ class AppointmentsView extends GetView<AppointmentsController> {
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: Obx(
-                    () => Container(
+                () => Container(
                   padding: const EdgeInsets.all(4),
                   decoration: BoxDecoration(
                     color: context.theme.cardColor,
@@ -165,48 +165,48 @@ class AppointmentsView extends GetView<AppointmentsController> {
                   },
                   child: list.isEmpty
                       ? SingleChildScrollView(
-                    physics: const AlwaysScrollableScrollPhysics(),
-                    child: Container(
-                      height: MediaQuery.of(context).size.height * 0.6,
-                      alignment: Alignment.center,
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            Icons.calendar_today_outlined,
-                            size: 60,
-                            color: context.theme.dividerColor,
-                          ),
-                          const SizedBox(height: 12),
-                          Text(
-                            'No appointments found'.tr,
-                            style: TextStyle(
-                              fontSize: 16,
-                              color: context.textTheme.bodyMedium?.color,
+                          physics: const AlwaysScrollableScrollPhysics(),
+                          child: Container(
+                            height: MediaQuery.of(context).size.height * 0.6,
+                            alignment: Alignment.center,
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  Icons.calendar_today_outlined,
+                                  size: 60,
+                                  color: context.theme.dividerColor,
+                                ),
+                                const SizedBox(height: 12),
+                                Text(
+                                  'No appointments found'.tr,
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    color: context.textTheme.bodyMedium?.color,
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
-                        ],
-                      ),
-                    ),
-                  )
+                        )
                       : ListView.separated(
-                    physics: const AlwaysScrollableScrollPhysics(),
-                    // ضروري لعمل السحب
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 20,
-                      vertical: 10,
-                    ),
-                    itemCount: list.length,
-                    separatorBuilder: (_, _) =>
-                    const SizedBox(height: 12),
-                    itemBuilder: (_, index) => _AppointmentCard(
-                      appointment: list[index],
-                      isSingleChild: isSingleChild,
-                      isUpcoming: controller
-                          .showUpcoming
-                          .value, // 👈 إرسال حالة التبويب للبطاقة
-                    ),
-                  ),
+                          physics: const AlwaysScrollableScrollPhysics(),
+                          // ضروري لعمل السحب
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 20,
+                            vertical: 10,
+                          ),
+                          itemCount: list.length,
+                          separatorBuilder: (_, _) =>
+                              const SizedBox(height: 12),
+                          itemBuilder: (_, index) => _AppointmentCard(
+                            appointment: list[index],
+                            isSingleChild: isSingleChild,
+                            isUpcoming: controller
+                                .showUpcoming
+                                .value, // 👈 إرسال حالة التبويب للبطاقة
+                          ),
+                        ),
                 );
               }),
             ),
@@ -255,7 +255,7 @@ class _AppointmentCard extends StatelessWidget {
   // ─── زر الإلغاء المخصص ───
   Widget _buildCancelButton() {
     final AppointmentsController controller =
-    Get.find<AppointmentsController>();
+        Get.find<AppointmentsController>();
     return IconButton(
       icon: const Icon(Icons.cancel_outlined, color: Colors.red),
       tooltip: 'Cancel Appointment'.tr,
@@ -266,8 +266,8 @@ class _AppointmentCard extends StatelessWidget {
         Get.defaultDialog(
           title: 'Cancel Appointment'.tr,
           middleText:
-          'Are you sure you want to cancel this appointment? A refund will be initiated.'
-              .tr,
+              'Are you sure you want to cancel this appointment? A refund will be initiated.'
+                  .tr,
           titleStyle: const TextStyle(
             color: Colors.red,
             fontWeight: FontWeight.bold,
@@ -299,18 +299,18 @@ class _AppointmentCard extends StatelessWidget {
                   ? Colors.blue.withValues(alpha: 0.15)
                   : Colors.blue.shade50,
               backgroundImage:
-              appointment.childImage != null &&
-                  appointment.childImage!.isNotEmpty
+                  appointment.childImage != null &&
+                      appointment.childImage!.isNotEmpty
                   ? NetworkImage(appointment.childImage!)
                   : null,
               child:
-              appointment.childImage == null ||
-                  appointment.childImage!.isEmpty
+                  appointment.childImage == null ||
+                      appointment.childImage!.isEmpty
                   ? Icon(
-                Icons.child_care,
-                color: Colors.blue.shade300,
-                size: 24,
-              )
+                      Icons.child_care,
+                      color: Colors.blue.shade300,
+                      size: 24,
+                    )
                   : null,
             ),
             const SizedBox(width: 12),
@@ -338,10 +338,12 @@ class _AppointmentCard extends StatelessWidget {
               ),
             ),
             _StatusPill(status: appointment.status),
-            // 👈 إضافة زر الإلغاء هنا بجانب الحالة مع شرط الإخفاء الإضافي
-            if (isUpcoming && appointment.status.toLowerCase() != 'cancelled' && appointment.status.toLowerCase() != 'canceled') ...[
+            // إظهار زر الإلغاء إذا كان الموعد قادماً وغير ملغي
+            if (isUpcoming &&
+                appointment.status.toLowerCase() != 'cancelled' &&
+                appointment.status.toLowerCase() != 'canceled') ...[
               const SizedBox(width: 8),
-              _buildCancelButton()
+              _buildCancelButton(),
             ],
           ],
         ),
@@ -366,17 +368,17 @@ class _AppointmentCard extends StatelessWidget {
                     : Colors.grey.shade100,
                 borderRadius: BorderRadius.circular(12),
                 image:
-                appointment.doctorImage != null &&
-                    appointment.doctorImage!.isNotEmpty
+                    appointment.doctorImage != null &&
+                        appointment.doctorImage!.isNotEmpty
                     ? DecorationImage(
-                  image: NetworkImage(appointment.doctorImage!),
-                  fit: BoxFit.cover,
-                )
+                        image: NetworkImage(appointment.doctorImage!),
+                        fit: BoxFit.cover,
+                      )
                     : null,
               ),
               child:
-              appointment.doctorImage == null ||
-                  appointment.doctorImage!.isEmpty
+                  appointment.doctorImage == null ||
+                      appointment.doctorImage!.isEmpty
                   ? Icon(Icons.person, color: context.theme.dividerColor)
                   : null,
             ),
@@ -409,6 +411,31 @@ class _AppointmentCard extends StatelessWidget {
 
         const SizedBox(height: 16),
         _buildDateTimeSection(context),
+
+        // 👈 هذا هو التعديل الجديد: زر عرض التقييم الطبي للمواعيد المكتملة
+        if (appointment.status.toLowerCase() == 'completed') ...[
+          const SizedBox(height: 12),
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              style: OutlinedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                foregroundColor: context.theme.primaryColor,
+                side: BorderSide(color: context.theme.primaryColor),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              onPressed: () =>
+                  Get.toNamed('/prescription', arguments: appointment.id),
+              icon: const Icon(Icons.medical_information_outlined, size: 20),
+              label: Text(
+                'View Medical Assessment'.tr,
+                style: const TextStyle(fontWeight: FontWeight.bold),
+              ),
+            ),
+          ),
+        ],
       ],
     );
   }
@@ -428,22 +455,22 @@ class _AppointmentCard extends StatelessWidget {
                     : Colors.grey.shade100,
                 borderRadius: BorderRadius.circular(14),
                 image:
-                appointment.doctorImage != null &&
-                    appointment.doctorImage!.isNotEmpty
+                    appointment.doctorImage != null &&
+                        appointment.doctorImage!.isNotEmpty
                     ? DecorationImage(
-                  image: NetworkImage(appointment.doctorImage!),
-                  fit: BoxFit.cover,
-                )
+                        image: NetworkImage(appointment.doctorImage!),
+                        fit: BoxFit.cover,
+                      )
                     : null,
               ),
               child:
-              appointment.doctorImage == null ||
-                  appointment.doctorImage!.isEmpty
+                  appointment.doctorImage == null ||
+                      appointment.doctorImage!.isEmpty
                   ? Icon(
-                Icons.medical_services_outlined,
-                color: Colors.blue.shade400,
-                size: 26,
-              )
+                      Icons.medical_services_outlined,
+                      color: Colors.blue.shade400,
+                      size: 26,
+                    )
                   : null,
             ),
             const SizedBox(width: 14),
@@ -470,8 +497,11 @@ class _AppointmentCard extends StatelessWidget {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           _StatusPill(status: appointment.status),
-                          // 👈 إضافة زر الإلغاء هنا بجانب الحالة مع شرط الإخفاء الإضافي
-                          if (isUpcoming && appointment.status.toLowerCase() != 'cancelled' && appointment.status.toLowerCase() != 'canceled') ...[
+                          // إظهار زر الإلغاء إذا كان الموعد قادماً وغير ملغي
+                          if (isUpcoming &&
+                              appointment.status.toLowerCase() != 'cancelled' &&
+                              appointment.status.toLowerCase() !=
+                                  'canceled') ...[
                             const SizedBox(width: 8),
                             _buildCancelButton(),
                           ],
@@ -494,6 +524,31 @@ class _AppointmentCard extends StatelessWidget {
         ),
         const SizedBox(height: 16),
         _buildDateTimeSection(context),
+
+        // 👈 هذا هو التعديل الجديد: زر عرض التقييم الطبي للمواعيد المكتملة
+        if (appointment.status.toLowerCase() == 'completed') ...[
+          const SizedBox(height: 12),
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              style: OutlinedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                foregroundColor: context.theme.primaryColor,
+                side: BorderSide(color: context.theme.primaryColor),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              onPressed: () =>
+                  Get.toNamed('/prescription', arguments: appointment.id),
+              icon: const Icon(Icons.medical_information_outlined, size: 20),
+              label: Text(
+                'View Medical Assessment'.tr,
+                style: const TextStyle(fontWeight: FontWeight.bold),
+              ),
+            ),
+          ),
+        ],
       ],
     );
   }

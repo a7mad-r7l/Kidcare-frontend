@@ -1,6 +1,7 @@
 import 'package:http/http.dart' as http;
 import '../../constants.dart';
 import '../../helper/secure_storage_service.dart';
+import 'package:get/get.dart';
 
 class ChildProfileApi {
   final http.Client client = http.Client();
@@ -17,6 +18,7 @@ class ChildProfileApi {
       headers: {
         'Accept': 'application/json',
         'Authorization': 'Bearer $token',
+        'Accept-Language': Get.locale?.languageCode ?? 'en',
       },
     );
 
@@ -35,6 +37,7 @@ class ChildProfileApi {
       headers: {
         'Accept': 'application/json',
         'Authorization': 'Bearer $token',
+        'Accept-Language': Get.locale?.languageCode ?? 'en',
       },
     );
 

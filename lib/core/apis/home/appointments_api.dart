@@ -16,7 +16,8 @@ class AppointmentsApi {
       headers: {
         'Accept': 'application/json',
         'Authorization': 'Bearer $token',
-        'ngrok-skip-browser-warning': 'true' // يفضل إضافته لكل الطلبات
+        'ngrok-skip-browser-warning': 'true',
+        'Accept-Language': Get.locale?.languageCode ?? 'en',
       },
     );
     return response.body;
@@ -31,7 +32,8 @@ class AppointmentsApi {
       headers: {
         'Accept': 'application/json',
         'Authorization': 'Bearer $token',
-        'ngrok-skip-browser-warning': 'true'
+        'ngrok-skip-browser-warning': 'true',
+        'Accept-Language': Get.locale?.languageCode ?? 'en',
       },
     );
     return response.body;
@@ -46,7 +48,8 @@ class AppointmentsApi {
       headers: {
         'Accept': 'application/json',
         'Authorization': 'Bearer $token',
-        'ngrok-skip-browser-warning': 'true'
+        'ngrok-skip-browser-warning': 'true',
+        'Accept-Language': Get.locale?.languageCode ?? 'en',
       },
     );
     return response.body;
@@ -61,7 +64,8 @@ class AppointmentsApi {
       headers: {
         'Accept': 'application/json',
         'Authorization': 'Bearer $token',
-        'ngrok-skip-browser-warning': 'true'
+        'ngrok-skip-browser-warning': 'true',
+        'Accept-Language': Get.locale?.languageCode ?? 'en',
       },
     );
     return response.body;
@@ -77,7 +81,8 @@ class AppointmentsApi {
       headers: {
         'Accept': 'application/json',
         'Authorization': 'Bearer $token',
-        'ngrok-skip-browser-warning': 'true', // ضروري جداً هنا
+        'ngrok-skip-browser-warning': 'true',
+        'Accept-Language': Get.locale?.languageCode ?? 'en',
       },
     );
 

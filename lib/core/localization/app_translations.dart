@@ -361,6 +361,11 @@ class AppTranslations extends Translations {
       'Frequency': 'Frequency',
       'Timing': 'Timing',
       'Duration': 'Duration',
+      'Cancel Appointment': 'Cancel Appointment',
+      'Are you sure you want to cancel this appointment? A refund will be initiated.':
+          'Are you sure you want to cancel this appointment? A refund will be initiated.',
+      'Yes, Cancel': 'Yes, Cancel',
+      'No': 'No',
     },
 
     // ==========================================================
@@ -721,6 +726,11 @@ class AppTranslations extends Translations {
       'Frequency': 'التكرار',
       'Timing': 'التوقيت',
       'Duration': 'المدة',
+      'Cancel Appointment': 'الغاء الموعد',
+      'Are you sure you want to cancel this appointment? A refund will be initiated.':
+          'هل أنت متأكد من رغبتك في إلغاء هذا الموعد؟ سيتم البدء في إجراءات استرداد المبلغ.',
+      'Yes, Cancel': 'نعم,الغاء',
+      'No': 'لا',
     },
   };
 }

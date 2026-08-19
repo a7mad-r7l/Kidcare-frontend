@@ -276,7 +276,7 @@ class _AppointmentCard extends StatelessWidget {
           textCancel: 'No'.tr,
           confirmTextColor: Colors.white,
           buttonColor: Colors.red,
-          cancelTextColor: Colors.black,
+          cancelTextColor: Colors.red,
           onConfirm: () {
             Get.back(); // إغلاق نافذة التأكيد
             controller.cancelAppointment(

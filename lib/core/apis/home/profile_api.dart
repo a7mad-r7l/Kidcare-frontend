@@ -41,6 +41,7 @@ class ProfileApi {
         'Accept': 'application/json',
         'Content-Type': 'application/json', // مهم جداً لإرسال الـ Body
         'Authorization': 'Bearer $token',
+        'Accept-Language': Get.locale?.languageCode ?? 'en',
       },
       body: json.encode(updatedData),
     );

@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 import '../../../models/appointment/child_model.dart';
 import '../../apis/home/child_profile_api.dart';
 
@@ -38,5 +39,25 @@ class ChildProfileRepo {
       return;
     }
     throw Exception(body['message'] ?? 'Failed to delete child');
+  }
+
+  // ─── دالة التعديل الجديدة ───
+  Future<void> updateChild({
+    required int childId,
+    Map<String, String>? fields,
+    File? image,
+  }) async {
+    final response = await _api.updateChild(
+      childId: childId,
+      fields: fields,
+      image: image,
+    );
+
+    final body = json.decode(response);
+
+    // التحقق من نجاح العملية بناءً على الكلمة 'success' في رسالة السيرفر
+    if (body['message'] == null || !body['message'].toString().toLowerCase().contains('success')) {
+      throw Exception(body['message'] ?? 'Failed to update child profile');
+    }
   }
 }

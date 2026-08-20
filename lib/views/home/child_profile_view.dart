@@ -1,7 +1,11 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:image_picker/image_picker.dart';
+
 import '../../controllers/home/child_profile_controller.dart';
 import '../../models/appointment/child_model.dart';
+import '../../widgets/custom_text_field.dart';
 import '../growth/child_growth_tab_view.dart';
 
 class ChildProfileView extends GetView<ChildProfileController> {
@@ -12,7 +16,6 @@ class ChildProfileView extends GetView<ChildProfileController> {
     final RxBool isGrowthTab = true.obs;
 
     return Scaffold(
-      // ❌ تم إزالة اللون الأبيض الثابت
       appBar: AppBar(
         elevation: 0,
         centerTitle: true,
@@ -21,13 +24,29 @@ class ChildProfileView extends GetView<ChildProfileController> {
           style: TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.bold,
-            color: context.textTheme.bodyLarge?.color, // ─── نص متكيف ───
+            color: context.textTheme.bodyLarge?.color,
           ),
         ),
         leading: IconButton(
           icon: Icon(Icons.arrow_back_ios, color: context.iconColor, size: 20),
           onPressed: () => Get.back(),
         ),
+        // ─── إضافة زر التعديل هنا ───
+        actions: [
+          IconButton(
+            icon: Icon(Icons.edit_outlined, color: context.theme.primaryColor),
+            onPressed: () {
+              final child = controller.child.value;
+              if (child != null) {
+                Get.bottomSheet(
+                  _EditChildSheet(child: child),
+                  isScrollControlled: true,
+                  backgroundColor: Colors.transparent,
+                );
+              }
+            },
+          ),
+        ],
       ),
       body: Obx(() {
         if (controller.isLoading) {
@@ -60,7 +79,7 @@ class ChildProfileView extends GetView<ChildProfileController> {
               child: Container(
                 padding: const EdgeInsets.all(4),
                 decoration: BoxDecoration(
-                  color: context.theme.cardColor, // ─── خلفية التابز متكيفة ───
+                  color: context.theme.cardColor,
                   borderRadius: BorderRadius.circular(14),
                 ),
                 child: Row(
@@ -69,7 +88,7 @@ class ChildProfileView extends GetView<ChildProfileController> {
                       child: GestureDetector(
                         onTap: () => isGrowthTab.value = true,
                         child: Obx(
-                          () => AnimatedContainer(
+                              () => AnimatedContainer(
                             duration: const Duration(milliseconds: 200),
                             padding: const EdgeInsets.symmetric(vertical: 12),
                             decoration: BoxDecoration(
@@ -109,7 +128,7 @@ class ChildProfileView extends GetView<ChildProfileController> {
                       child: GestureDetector(
                         onTap: () => isGrowthTab.value = false,
                         child: Obx(
-                          () => AnimatedContainer(
+                              () => AnimatedContainer(
                             duration: const Duration(milliseconds: 200),
                             padding: const EdgeInsets.symmetric(vertical: 12),
                             decoration: BoxDecoration(
@@ -203,64 +222,56 @@ class ChildProfileView extends GetView<ChildProfileController> {
                           height: 54,
                           child: ElevatedButton.icon(
                             onPressed: controller.isLoading
-                                ? null // تعطيل الزر إذا كان التطبيق في حالة تحميل
+                                ? null
                                 : () => Get.dialog(
-                                    AlertDialog(
-                                      backgroundColor: context.theme.cardColor,
-                                      title: Text(
-                                        'Delete Child'.tr,
-                                        style: TextStyle(
-                                          color: context
-                                              .textTheme
-                                              .bodyLarge
-                                              ?.color,
-                                        ),
+                              AlertDialog(
+                                backgroundColor: context.theme.cardColor,
+                                title: Text(
+                                  'Delete Child'.tr,
+                                  style: TextStyle(
+                                    color: context.textTheme.bodyLarge?.color,
+                                  ),
+                                ),
+                                content: Text(
+                                  'Are you sure you want to delete this child profile? This action cannot be undone.'.tr,
+                                  style: TextStyle(
+                                    color: context.textTheme.bodyMedium?.color,
+                                  ),
+                                ),
+                                actions: [
+                                  TextButton(
+                                    onPressed: () => Get.back(),
+                                    child: Text('Cancel'.tr),
+                                  ),
+                                  TextButton(
+                                    onPressed: () {
+                                      Get.back();
+                                      controller.deleteCurrentChild();
+                                    },
+                                    child: Text(
+                                      'Delete'.tr,
+                                      style: const TextStyle(
+                                        color: Colors.red,
+                                        fontWeight: FontWeight.bold,
                                       ),
-                                      content: Text(
-                                        'Are you sure you want to delete this child profile? This action cannot be undone.'
-                                            .tr,
-                                        style: TextStyle(
-                                          color: context
-                                              .textTheme
-                                              .bodyMedium
-                                              ?.color,
-                                        ),
-                                      ),
-                                      actions: [
-                                        TextButton(
-                                          onPressed: () => Get.back(),
-                                          child: Text('Cancel'.tr),
-                                        ),
-                                        TextButton(
-                                          onPressed: () {
-                                            Get.back(); // إغلاق الـ Dialog
-                                            controller
-                                                .deleteCurrentChild(); // تنفيذ دالة الحذف المعدلة
-                                          },
-                                          child: Text(
-                                            'Delete'.tr,
-                                            style: const TextStyle(
-                                              color: Colors.red,
-                                              fontWeight: FontWeight.bold,
-                                            ),
-                                          ),
-                                        ),
-                                      ],
                                     ),
                                   ),
+                                ],
+                              ),
+                            ),
                             icon: controller.isLoading
                                 ? const SizedBox(
-                                    width: 20,
-                                    height: 20,
-                                    child: CircularProgressIndicator(
-                                      color: Colors.white,
-                                      strokeWidth: 2,
-                                    ),
-                                  )
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(
+                                color: Colors.white,
+                                strokeWidth: 2,
+                              ),
+                            )
                                 : const Icon(
-                                    Icons.delete_outline,
-                                    color: Colors.white,
-                                  ),
+                              Icons.delete_outline,
+                              color: Colors.white,
+                            ),
                             label: Text(
                               controller.isLoading
                                   ? 'Deleting...'.tr
@@ -296,6 +307,393 @@ class ChildProfileView extends GetView<ChildProfileController> {
   }
 }
 
+
+class _EditChildSheet extends StatefulWidget {
+  final ChildModel child;
+  const _EditChildSheet({required this.child});
+
+  @override
+  State<_EditChildSheet> createState() => _EditChildSheetState();
+}
+
+class _EditChildSheetState extends State<_EditChildSheet> {
+  late TextEditingController _firstNameController;
+  late TextEditingController _lastNameController;
+  late TextEditingController _medicalHistoryController;
+  late TextEditingController _allergiesController;
+
+  String _selectedGender = 'male';
+  String _selectedBloodType = '';
+  String _selectedBirthDate = '';
+  File? _selectedImage;
+
+  final List<String> bloodTypes = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
+
+  @override
+  void initState() {
+    super.initState();
+    _firstNameController = TextEditingController(text: widget.child.firstName);
+    _lastNameController = TextEditingController(text: widget.child.lastName);
+    _medicalHistoryController = TextEditingController(text: widget.child.medicalHistory ?? '');
+    _allergiesController = TextEditingController(text: widget.child.allergies ?? '');
+
+    _selectedGender = widget.child.gender.toLowerCase() == 'female' ? 'female' : 'male';
+    _selectedBloodType = widget.child.bloodType ?? '';
+
+    final d = widget.child.birthDate;
+    _selectedBirthDate = '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
+  }
+
+  @override
+  void dispose() {
+    _firstNameController.dispose();
+    _lastNameController.dispose();
+    _medicalHistoryController.dispose();
+    _allergiesController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _pickImage() async {
+    final picker = ImagePicker();
+    final picked = await picker.pickImage(source: ImageSource.gallery, imageQuality: 80);
+    if (picked != null) {
+      setState(() => _selectedImage = File(picked.path));
+    }
+  }
+
+  Future<void> _pickBirthDate(BuildContext context) async {
+    final now = DateTime.now();
+    final earliestAllowedDate = DateTime(now.year - 6, now.month, now.day);
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: widget.child.birthDate.isBefore(earliestAllowedDate) ? earliestAllowedDate : widget.child.birthDate,
+      firstDate: earliestAllowedDate,
+      lastDate: now,
+    );
+    if (picked != null) {
+      setState(() {
+        _selectedBirthDate = '${picked.year}-${picked.month.toString().padLeft(2, '0')}-${picked.day.toString().padLeft(2, '0')}';
+      });
+    }
+  }
+
+  void _onSave() {
+    final controller = Get.find<ChildProfileController>();
+    controller.updateChildData(
+      fields: {
+        'first_name': _firstNameController.text.trim(),
+        'last_name': _lastNameController.text.trim(),
+        'gender': _selectedGender,
+        'birth_date': _selectedBirthDate,
+        'blood_type': _selectedBloodType,
+        'medical_history': _medicalHistoryController.text.trim(),
+        'allergies': _allergiesController.text.trim(),
+      },
+      image: _selectedImage,
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    // 🌟 إعطاء النافذة ارتفاع ثابت (85% من الشاشة) لحماية التصميم من الانضغاط
+    final sheetHeight = MediaQuery.of(context).size.height * 0.85;
+
+    return Container(
+      height: sheetHeight,
+      decoration: BoxDecoration(
+        color: context.theme.scaffoldBackgroundColor,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      child: Column(
+        children: [
+          // ─── القسم العلوي الثابت (لا يتأثر بالتمرير) ───
+          const SizedBox(height: 16),
+          Container(
+            width: 40,
+            height: 5,
+            decoration: BoxDecoration(
+              color: context.theme.dividerColor,
+              borderRadius: BorderRadius.circular(10),
+            ),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            'Edit Profile'.tr,
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: context.textTheme.bodyLarge?.color,
+            ),
+          ),
+          const SizedBox(height: 16),
+
+          // ─── القسم القابل للتمرير (يحتوي على مساحة ديناميكية للوحة المفاتيح) ───
+          Expanded(
+            child: SingleChildScrollView(
+              padding: EdgeInsets.only(
+                left: 20,
+                right: 20,
+                top: 8,
+                // 🌟 هذا السطر يرفع المحتوى للأعلى تلقائياً عند ظهور لوحة المفاتيح
+                bottom: MediaQuery.of(context).viewInsets.bottom + 24,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // تعديل الصورة
+                  Center(
+                    child: GestureDetector(
+                      onTap: _pickImage,
+                      child: Stack(
+                        children: [
+                          CircleAvatar(
+                            radius: 45,
+                            backgroundColor: context.theme.cardColor,
+                            backgroundImage: _selectedImage != null
+                                ? FileImage(_selectedImage!) as ImageProvider
+                                : (widget.child.image != null && widget.child.image!.isNotEmpty
+                                ? NetworkImage(widget.child.image!)
+                                : null),
+                            child: _selectedImage == null && (widget.child.image == null || widget.child.image!.isEmpty)
+                                ? Icon(Icons.person, color: context.theme.dividerColor, size: 50)
+                                : null,
+                          ),
+                          Positioned(
+                            bottom: 0,
+                            right: 0,
+                            child: Container(
+                              padding: const EdgeInsets.all(6),
+                              decoration: BoxDecoration(
+                                color: context.theme.primaryColor,
+                                shape: BoxShape.circle,
+                                border: Border.all(color: context.theme.scaffoldBackgroundColor, width: 2),
+                              ),
+                              child: const Icon(Icons.camera_alt, color: Colors.white, size: 16),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+
+                  // الاسم الأول والأخير
+                  Row(
+                    children: [
+                      Expanded(
+                        child: CustomTextField(
+                          controller: _firstNameController,
+                          hintText: 'First Name'.tr,
+                          label: 'First Name'.tr,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: CustomTextField(
+                          controller: _lastNameController,
+                          hintText: 'Last Name'.tr,
+                          label: 'Last Name'.tr,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+
+                  // الجنس
+                  Text(
+                    'Gender'.tr,
+                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: context.textTheme.bodyLarge?.color),
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: GestureDetector(
+                          onTap: () => setState(() => _selectedGender = 'female'),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            decoration: BoxDecoration(
+                              color: _selectedGender == 'female'
+                                  ? (context.isDarkMode ? Colors.pinkAccent.withValues(alpha: 0.15) : const Color(0xFFFCE4EC))
+                                  : context.theme.cardColor,
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: _selectedGender == 'female' ? Colors.pinkAccent : context.theme.dividerColor,
+                              ),
+                            ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(Icons.face_3, color: _selectedGender == 'female' ? Colors.pinkAccent : Colors.grey, size: 20),
+                                const SizedBox(width: 6),
+                                Text('Female'.tr, style: TextStyle(color: _selectedGender == 'female' ? Colors.pinkAccent : Colors.grey, fontWeight: FontWeight.bold)),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: GestureDetector(
+                          onTap: () => setState(() => _selectedGender = 'male'),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            decoration: BoxDecoration(
+                              color: _selectedGender == 'male'
+                                  ? (context.isDarkMode ? Colors.blue.withValues(alpha: 0.15) : const Color(0xFFE3F2FD))
+                                  : context.theme.cardColor,
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: _selectedGender == 'male' ? Colors.blue : context.theme.dividerColor,
+                              ),
+                            ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(Icons.face, color: _selectedGender == 'male' ? Colors.blue : Colors.grey, size: 20),
+                                const SizedBox(width: 6),
+                                Text('Male'.tr, style: TextStyle(color: _selectedGender == 'male' ? Colors.blue : Colors.grey, fontWeight: FontWeight.bold)),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+
+                  // تاريخ الميلاد
+                  Text(
+                    'Birth Date'.tr,
+                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: context.textTheme.bodyLarge?.color),
+                  ),
+                  const SizedBox(height: 8),
+                  GestureDetector(
+                    onTap: () => _pickBirthDate(context),
+                    child: Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
+                      decoration: BoxDecoration(
+                        color: context.theme.cardColor,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: context.theme.dividerColor),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            _selectedBirthDate,
+                            style: TextStyle(fontSize: 14, color: context.textTheme.bodyLarge?.color),
+                          ),
+                          const Icon(Icons.calendar_today_outlined, color: Colors.blue, size: 20),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+
+                  // فصيلة الدم
+                  Text(
+                    'Blood Type'.tr,
+                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: context.textTheme.bodyLarge?.color),
+                  ),
+                  const SizedBox(height: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    decoration: BoxDecoration(
+                      color: context.theme.cardColor,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: context.theme.dividerColor),
+                    ),
+                    child: DropdownButtonHideUnderline(
+                      child: DropdownButton<String>(
+                        isExpanded: true,
+                        dropdownColor: context.theme.cardColor,
+                        value: _selectedBloodType.isEmpty ? null : _selectedBloodType,
+                        hint: Text('Select blood type'.tr, style: TextStyle(color: context.textTheme.bodyMedium?.color, fontSize: 14)),
+                        items: bloodTypes.map((type) => DropdownMenuItem(
+                          value: type,
+                          child: Text(type, style: TextStyle(color: context.textTheme.bodyLarge?.color)),
+                        )).toList(),
+                        onChanged: (val) {
+                          if (val != null) setState(() => _selectedBloodType = val);
+                        },
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+
+                  // التاريخ الطبي
+                  Text(
+                    'Medical History'.tr,
+                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: context.textTheme.bodyLarge?.color),
+                  ),
+                  const SizedBox(height: 8),
+                  TextField(
+                    controller: _medicalHistoryController,
+                    maxLines: 2,
+                    style: TextStyle(color: context.textTheme.bodyLarge?.color),
+                    decoration: InputDecoration(
+                      hintText: "Enter child's medical history".tr,
+                      hintStyle: TextStyle(color: context.textTheme.bodyMedium?.color, fontSize: 13),
+                      filled: true,
+                      fillColor: context.theme.cardColor,
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: context.theme.dividerColor)),
+                      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: context.theme.dividerColor)),
+                      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Colors.blue, width: 2)),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+
+                  // الحساسية
+                  Text(
+                    'Allergies'.tr,
+                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: context.textTheme.bodyLarge?.color),
+                  ),
+                  const SizedBox(height: 8),
+                  TextField(
+                    controller: _allergiesController,
+                    maxLines: 2,
+                    style: TextStyle(color: context.textTheme.bodyLarge?.color),
+                    decoration: InputDecoration(
+                      hintText: "Enter any allergies the child has".tr,
+                      hintStyle: TextStyle(color: context.textTheme.bodyMedium?.color, fontSize: 13),
+                      filled: true,
+                      fillColor: context.theme.cardColor,
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: context.theme.dividerColor)),
+                      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: context.theme.dividerColor)),
+                      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Colors.blue, width: 2)),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+
+                  // زر الحفظ
+                  SizedBox(
+                    width: double.infinity,
+                    height: 54,
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: context.theme.primaryColor,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                      ),
+                      onPressed: _onSave,
+                      child: Text(
+                        'Save'.tr,
+                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ─── باقي الأكواد المساعدة الخاصة بالواجهة لم يتم المساس بها ───
 class _InfoCard extends StatelessWidget {
   final ChildModel child;
 
@@ -307,9 +705,8 @@ class _InfoCard extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        // ─── لون الخلفية متكيف (أخضر خفيف جداً ليلاً ونهاراً) ───
         color: context.isDarkMode
-            ? Colors.green.withOpacity(0.15)
+            ? Colors.green.withValues(alpha: 0.15)
             : const Color(0xFFE8F5E9),
         borderRadius: BorderRadius.circular(20),
       ),
@@ -322,11 +719,7 @@ class _InfoCard extends StatelessWidget {
                 ? NetworkImage(child.image!)
                 : null,
             child: (child.image == null || child.image!.isEmpty)
-                ? Icon(
-                    Icons.person,
-                    color: context.theme.dividerColor,
-                    size: 55,
-                  )
+                ? Icon(Icons.person, color: context.theme.dividerColor, size: 55)
                 : null,
           ),
           const SizedBox(width: 20),
@@ -356,9 +749,7 @@ class _InfoCard extends StatelessWidget {
                 Row(
                   children: [
                     Icon(
-                      child.gender.toLowerCase() == 'female'
-                          ? Icons.female
-                          : Icons.male,
+                      child.gender.toLowerCase() == 'female' ? Icons.female : Icons.male,
                       color: Colors.green,
                       size: 18,
                     ),
@@ -395,7 +786,7 @@ class _StatsCard extends StatelessWidget {
           BoxShadow(
             color: context.isDarkMode
                 ? Colors.transparent
-                : Colors.black.withOpacity(0.04),
+                : Colors.black.withValues(alpha: 0.04),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -497,7 +888,7 @@ class _DataCard extends StatelessWidget {
           BoxShadow(
             color: context.isDarkMode
                 ? Colors.transparent
-                : Colors.black.withOpacity(0.04),
+                : Colors.black.withValues(alpha: 0.04),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -565,7 +956,7 @@ class _ActionButton extends StatelessWidget {
             BoxShadow(
               color: context.isDarkMode
                   ? Colors.transparent
-                  : Colors.black.withOpacity(0.04),
+                  : Colors.black.withValues(alpha: 0.04),
               blurRadius: 10,
               offset: const Offset(0, 4),
             ),

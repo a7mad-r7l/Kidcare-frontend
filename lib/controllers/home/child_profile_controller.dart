@@ -5,7 +5,7 @@ import '../../models/appointment/child_model.dart';
 import '../../models/home/home_child_model.dart';
 import '../base_controller.dart';
 import 'home_controller.dart';
-
+import 'dart:io';
 class ChildProfileController extends BaseController {
   final ChildProfileRepo repo;
 
@@ -44,6 +44,37 @@ class ChildProfileController extends BaseController {
       hideLoading();
     }
   }
+  Future<void> updateChildData({
+    Map<String, String>? fields,
+    File? image,
+  }) async {
+    if ((fields == null || fields.isEmpty) && image == null) return;
+
+    showLoading();
+    try {
+      await repo.updateChild(
+        childId: childId,
+        fields: fields,
+        image: image,
+      );
+
+      // جلب البيانات من جديد لتحديث شاشة البروفايل تلقائياً
+      await fetchChildDetails();
+
+      // تحديث قائمة الأطفال في الرئيسية لتنعكس التعديلات (مثل الاسم أو الصورة)
+      if (Get.isRegistered<HomeController>()) {
+        Get.find<HomeController>().fetchChildren();
+      }
+
+      Get.back(); // إغلاق نافذة التعديل إن كنت تستخدم Dialog أو BottomSheet
+      showSuccess('Child profile updated successfully'.tr);
+    } catch (e) {
+      handleError(e);
+    } finally {
+      hideLoading();
+    }
+  }
+
 
   // الآن الدالة تستخدم الـ repo الخاص بـ هذا الـ Controller مباشرة
   Future<void> deleteCurrentChild() async {

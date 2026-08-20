@@ -412,8 +412,10 @@ class _AppointmentCard extends StatelessWidget {
         const SizedBox(height: 16),
         _buildDateTimeSection(context),
 
-        // 👈 هذا هو التعديل الجديد: زر عرض التقييم الطبي للمواعيد المكتملة
-        if (appointment.status.toLowerCase() == 'completed') ...[
+
+        if (appointment.status.toLowerCase() == 'completed' ||
+            appointment.status == 'مكتمل' ||
+            appointment.status == 'تم') ...[
           const SizedBox(height: 12),
           SizedBox(
             width: double.infinity,
@@ -525,8 +527,11 @@ class _AppointmentCard extends StatelessWidget {
         const SizedBox(height: 16),
         _buildDateTimeSection(context),
 
-        // 👈 هذا هو التعديل الجديد: زر عرض التقييم الطبي للمواعيد المكتملة
-        if (appointment.status.toLowerCase() == 'completed') ...[
+
+
+        if (appointment.status.toLowerCase() == 'completed' ||
+            appointment.status == 'مكتمل' ||
+            appointment.status == 'تم') ...[
           const SizedBox(height: 12),
           SizedBox(
             width: double.infinity,

@@ -18,10 +18,9 @@ class GrowthChartWidget extends StatelessWidget {
       height: 320,
       padding: const EdgeInsets.fromLTRB(12, 20, 20, 12),
       decoration: BoxDecoration(
-        // ─── لون خلفية البطاقة متكيف ───
         color: context.theme.cardColor,
         borderRadius: BorderRadius.circular(20),
-        // ─── لون إطار البطاقة متكيف ───
+
         border: Border.all(color: context.theme.dividerColor),
       ),
       child: Column(
@@ -104,8 +103,9 @@ class GrowthChartWidget extends StatelessWidget {
         show: true,
         drawVerticalLine: true,
         horizontalInterval: 5,
-        verticalInterval: 6,
-        // ─── ألوان خطوط الشبكة الأفقية والعمودية متكيفة ───
+
+        verticalInterval: (data.currentAgeMonths > 24) ? 12 : 6,
+
         getDrawingHorizontalLine: (value) =>
             FlLine(color: context.theme.dividerColor, strokeWidth: 1),
         getDrawingVerticalLine: (value) =>
@@ -122,7 +122,7 @@ class GrowthChartWidget extends StatelessWidget {
             'Age (Months)'.tr,
             style: TextStyle(
               fontSize: 11,
-              // ─── لون عناوين المحاور متكيف ───
+
               color: context.textTheme.bodyMedium?.color,
               fontWeight: FontWeight.bold,
             ),
@@ -130,13 +130,17 @@ class GrowthChartWidget extends StatelessWidget {
           axisNameSize: 20,
           sideTitles: SideTitles(
             showTitles: true,
-            interval: 6,
+
+            interval: (data.currentAgeMonths > 24) ? 12 : 6,
             getTitlesWidget: (value, meta) => Padding(
               padding: const EdgeInsets.only(top: 6),
               child: Text(
                 value.toInt().toString(),
-                // ─── أرقام المحاور متكيفة ───
-                style: TextStyle(color: context.textTheme.bodyMedium?.color, fontSize: 11),
+
+                style: TextStyle(
+                  color: context.textTheme.bodyMedium?.color,
+                  fontSize: 11,
+                ),
               ),
             ),
           ),
@@ -146,7 +150,7 @@ class GrowthChartWidget extends StatelessWidget {
             'Weight (kg)'.tr,
             style: TextStyle(
               fontSize: 11,
-              // ─── لون عناوين المحاور متكيف ───
+
               color: context.textTheme.bodyMedium?.color,
               fontWeight: FontWeight.bold,
             ),
@@ -157,15 +161,21 @@ class GrowthChartWidget extends StatelessWidget {
             interval: 5,
             getTitlesWidget: (value, meta) => Text(
               value.toInt().toString(),
-              // ─── أرقام المحاور متكيفة ───
-              style: TextStyle(color: context.textTheme.bodyMedium?.color, fontSize: 11),
+
+              style: TextStyle(
+                color: context.textTheme.bodyMedium?.color,
+                fontSize: 11,
+              ),
             ),
           ),
         ),
       ),
       borderData: FlBorderData(show: false),
       minX: 0,
-      maxX: calculatedMaxX,
+
+      maxX: data.currentAgeMonths > 24
+          ? data.currentAgeMonths.toDouble()
+          : 24.0,
       minY: 0,
       maxY: calculatedMaxY,
       lineBarsData: [
@@ -203,6 +213,7 @@ class GrowthChartWidget extends StatelessWidget {
           color: Colors.blue.shade700,
           barWidth: 3.5,
           isStrokeCapRound: true,
+
           dotData: FlDotData(
             show: true,
             getDotPainter: (spot, percent, barData, index) =>
@@ -210,7 +221,7 @@ class GrowthChartWidget extends StatelessWidget {
                   radius: 5,
                   color: Colors.blue.shade800,
                   strokeWidth: 2,
-                  // ─── لون الإطار الأبيض للنقطة يصبح متكيفاً ───
+
                   strokeColor: context.theme.cardColor,
                 ),
           ),
@@ -218,8 +229,9 @@ class GrowthChartWidget extends StatelessWidget {
       ],
       lineTouchData: LineTouchData(
         touchTooltipData: LineTouchTooltipData(
-          // ─── لون نافذة التلميح متكيف (أفتح قليلاً في الوضع الليلي) ───
-          getTooltipColor: (touchedSpot) => context.isDarkMode ? const Color(0xFF303030) : const Color(0xFF212121),
+          getTooltipColor: (touchedSpot) => context.isDarkMode
+              ? const Color(0xFF303030)
+              : const Color(0xFF212121),
           getTooltipItems: (List<LineBarSpot> touchedSpots) {
             return touchedSpots.map((barSpot) {
               if (barSpot.barIndex == 3) {
@@ -266,7 +278,7 @@ class _LegendItem extends StatelessWidget {
           Row(
             children: List.generate(
               3,
-                  (index) => Container(
+              (index) => Container(
                 width: 5,
                 height: 2,
                 margin: const EdgeInsets.symmetric(horizontal: 1),

@@ -1909,6 +1909,7 @@ import 'package:flutter/material.dart';
 class HomeController extends BaseController {
   final HomeChildrenRepo homeChildrenRepo;
   final ParentNameRepo parentNameRepo;
+  final RxBool hasUnreadNotifications = false.obs;
 
   HomeController({
     required this.homeChildrenRepo,
@@ -3199,7 +3200,8 @@ class AppointmentsApi {
       headers: {
         'Accept': 'application/json',
         'Authorization': 'Bearer $token',
-        'ngrok-skip-browser-warning': 'true' // يفضل إضافته لكل الطلبات
+        'ngrok-skip-browser-warning': 'true',
+        'Accept-Language': Get.locale?.languageCode ?? 'en',
       },
     );
     return response.body;
@@ -3214,7 +3216,8 @@ class AppointmentsApi {
       headers: {
         'Accept': 'application/json',
         'Authorization': 'Bearer $token',
-        'ngrok-skip-browser-warning': 'true'
+        'ngrok-skip-browser-warning': 'true',
+        'Accept-Language': Get.locale?.languageCode ?? 'en',
       },
     );
     return response.body;
@@ -3229,7 +3232,8 @@ class AppointmentsApi {
       headers: {
         'Accept': 'application/json',
         'Authorization': 'Bearer $token',
-        'ngrok-skip-browser-warning': 'true'
+        'ngrok-skip-browser-warning': 'true',
+        'Accept-Language': Get.locale?.languageCode ?? 'en',
       },
     );
     return response.body;
@@ -3244,7 +3248,8 @@ class AppointmentsApi {
       headers: {
         'Accept': 'application/json',
         'Authorization': 'Bearer $token',
-        'ngrok-skip-browser-warning': 'true'
+        'ngrok-skip-browser-warning': 'true',
+        'Accept-Language': Get.locale?.languageCode ?? 'en',
       },
     );
     return response.body;
@@ -3260,7 +3265,8 @@ class AppointmentsApi {
       headers: {
         'Accept': 'application/json',
         'Authorization': 'Bearer $token',
-        'ngrok-skip-browser-warning': 'true', // ضروري جداً هنا
+        'ngrok-skip-browser-warning': 'true',
+        'Accept-Language': Get.locale?.languageCode ?? 'en',
       },
     );
 
@@ -3289,6 +3295,7 @@ class AppointmentsApi {
 import 'package:http/http.dart' as http;
 import '../../constants.dart';
 import '../../helper/secure_storage_service.dart';
+import 'package:get/get.dart';
 
 class ChildProfileApi {
   final http.Client client = http.Client();
@@ -3305,6 +3312,7 @@ class ChildProfileApi {
       headers: {
         'Accept': 'application/json',
         'Authorization': 'Bearer $token',
+        'Accept-Language': Get.locale?.languageCode ?? 'en',
       },
     );
 
@@ -3323,6 +3331,7 @@ class ChildProfileApi {
       headers: {
         'Accept': 'application/json',
         'Authorization': 'Bearer $token',
+        'Accept-Language': Get.locale?.languageCode ?? 'en',
       },
     );
 
@@ -3371,22 +3380,21 @@ class HomeChildrenApi {
 
 ### File: lib\core\apis\home\notification_history_api.dart
 ```dart
-
 import 'package:http/http.dart' as http;
 import '../../constants.dart';
 import '../../helper/secure_storage_service.dart';
+import 'package:get/get.dart';
 
 class NotificationHistoryApi {
   Future<http.Response> getNotificationsHistory() async {
     final token = await SecureStorage.getToken();
-    final lang = await SecureStorage.getLanguage() ?? 'en';
 
     return await http.get(
       Uri.parse('$baseUrl/notifications'),
       headers: {
         'Authorization': 'Bearer $token',
         'Accept': 'application/json',
-        'Accept-Language': lang,
+        'Accept-Language': Get.locale?.languageCode ?? 'en',
       },
     );
   }
@@ -3472,6 +3480,7 @@ class ProfileApi {
         'Accept': 'application/json',
         'Content-Type': 'application/json', // مهم جداً لإرسال الـ Body
         'Authorization': 'Bearer $token',
+        'Accept-Language': Get.locale?.languageCode ?? 'en',
       },
       body: json.encode(updatedData),
     );
@@ -3790,6 +3799,9 @@ class NotificationService {
     FirebaseMessaging.onMessage.listen((RemoteMessage message) {
       log("📥 استلام إشعار حي والتطبيق مفتوح: ${message.notification?.title}");
       _showLocalNotification(message);
+      if (Get.isRegistered<HomeController>()) {
+        Get.find<HomeController>().hasUnreadNotifications.value = true;
+      }
     });
 
     FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
@@ -4366,6 +4378,11 @@ class AppTranslations extends Translations {
       'Frequency': 'Frequency',
       'Timing': 'Timing',
       'Duration': 'Duration',
+      'Cancel Appointment': 'Cancel Appointment',
+      'Are you sure you want to cancel this appointment? A refund will be initiated.':
+          'Are you sure you want to cancel this appointment? A refund will be initiated.',
+      'Yes, Cancel': 'Yes, Cancel',
+      'No': 'No',
     },
 
     // ==========================================================
@@ -4726,6 +4743,11 @@ class AppTranslations extends Translations {
       'Frequency': 'التكرار',
       'Timing': 'التوقيت',
       'Duration': 'المدة',
+      'Cancel Appointment': 'الغاء الموعد',
+      'Are you sure you want to cancel this appointment? A refund will be initiated.':
+          'هل أنت متأكد من رغبتك في إلغاء هذا الموعد؟ سيتم البدء في إجراءات استرداد المبلغ.',
+      'Yes, Cancel': 'نعم,الغاء',
+      'No': 'لا',
     },
   };
 }
@@ -11047,7 +11069,7 @@ class _AppointmentCard extends StatelessWidget {
           textCancel: 'No'.tr,
           confirmTextColor: Colors.white,
           buttonColor: Colors.red,
-          cancelTextColor: Colors.black,
+          cancelTextColor: Colors.red,
           onConfirm: () {
             Get.back(); // إغلاق نافذة التأكيد
             controller.cancelAppointment(
@@ -12218,21 +12240,26 @@ class _HeaderSection extends GetView<HomeController> {
                 Icons.notifications_none_outlined,
                 color: Color(0xFF1A2E5A),
               ),
-              onPressed: () => Get.toNamed(
-                '/notifications-history',
-              ), // 🌟 التوجيه للشاشة التاريخية
+              onPressed: () {
+                controller.hasUnreadNotifications.value = false; // 👈 تصفيرها
+                Get.toNamed('/notifications-history');
+              },
             ),
-            Positioned(
-              top: 0,
-              right: 0,
-              child: Container(
-                width: 8,
-                height: 8,
-                decoration: const BoxDecoration(
-                  color: Colors.blue,
-                  shape: BoxShape.circle,
-                ),
-              ),
+            Obx(
+              () => controller.hasUnreadNotifications.value
+                  ? Positioned(
+                      top: 0,
+                      right: 0,
+                      child: Container(
+                        width: 8,
+                        height: 8,
+                        decoration: const BoxDecoration(
+                          color: Colors.blue,
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                    )
+                  : const SizedBox.shrink(),
             ),
           ],
         ),

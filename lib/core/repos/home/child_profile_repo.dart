@@ -33,11 +33,13 @@ class ChildProfileRepo {
     final response = await _api.deleteChild(childId);
     final body = json.decode(response);
 
-    if (body['message'] != null &&
-        (body['message'].toString().toLowerCase().contains('success') ||
-            body['message'].toString().toLowerCase().contains('deleted'))) {
+
+    if (body['status'] == 'success' ||
+        (body['message'] != null && (body['message'].toString().toLowerCase().contains('success') || body['message'].toString().toLowerCase().contains('deleted')))) {
       return;
     }
+
+
     throw Exception(body['message'] ?? 'Failed to delete child');
   }
 

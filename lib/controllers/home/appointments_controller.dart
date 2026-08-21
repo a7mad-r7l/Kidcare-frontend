@@ -40,9 +40,13 @@ class AppointmentsController extends BaseController {
   Future<void> fetchUpcoming() async {
     showLoading();
     try {
-      final result = childId != null
+      List<AppointmentsModel> result = childId != null
           ? await appointmentsRepo.getUpcomingForChild(childId!)
           : await appointmentsRepo.getAllUpcoming();
+
+      // 👈 فلترة أمنية (Local Filtering): استبعاد المواعيد الملغية التي يرسلها الباك-إند بالخطأ في مسار الـ upcoming
+      result = result.where((app) => !app.status.toLowerCase().contains('cancel')).toList();
+
       upcoming.assignAll(result);
     } catch (e) {
       handleError(e);

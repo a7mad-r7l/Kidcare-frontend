@@ -42,12 +42,7 @@ class ChildProfileApi {
       },
     );
 
-    // التحقق من حالة الطلب
-    if (response.statusCode == 200) {
-      return response.body;
-    } else {
-      throw Exception('Failed to delete child: ${response.statusCode}');
-    }
+    return response.body;
   }
   Future<String> updateChild({
     required int childId,

@@ -13,7 +13,7 @@ class AppointmentsController extends BaseController {
 
   final RxList<AppointmentsModel> upcoming = <AppointmentsModel>[].obs;
   final RxList<AppointmentsModel> past = <AppointmentsModel>[].obs;
-  final RxList<AppointmentsModel> cancelled = <AppointmentsModel>[].obs; // 👈 القائمة الجديدة
+  final RxList<AppointmentsModel> cancelled = <AppointmentsModel>[].obs;
 
   final RxInt selectedTab = 0.obs; // 0 = Upcoming, 1 = Past, 2 = Cancelled
 
@@ -44,8 +44,9 @@ class AppointmentsController extends BaseController {
           ? await appointmentsRepo.getUpcomingForChild(childId!)
           : await appointmentsRepo.getAllUpcoming();
 
-      // 👈 فلترة أمنية (Local Filtering): استبعاد المواعيد الملغية التي يرسلها الباك-إند بالخطأ في مسار الـ upcoming
-      result = result.where((app) => !app.status.toLowerCase().contains('cancel')).toList();
+      result = result
+          .where((app) => !app.status.toLowerCase().contains('cancel'))
+          .toList();
 
       upcoming.assignAll(result);
     } catch (e) {
@@ -72,10 +73,8 @@ class AppointmentsController extends BaseController {
   Future<void> fetchCancelled() async {
     showLoading();
     try {
-      // جلب جميع المواعيد الملغية (لعدم وجود راوت مخصص للطفل)
       List<AppointmentsModel> result = await appointmentsRepo.getAllCancelled();
 
-      // 👈 فلترة محلية (Local Filtering) إذا كنا داخل ملف طفل محدد
       if (childId != null && childId != 0) {
         result = result.where((app) => app.childId == childId).toList();
       }
@@ -102,21 +101,20 @@ class AppointmentsController extends BaseController {
       // حذف الموعد من قائمة القادمة
       upcoming.removeWhere((appointment) => appointment.id == appointmentId);
 
-      // تصفير القوائم الأخرى لتحديثها عند زيارتها
       past.clear();
       cancelled.clear();
 
-      // الانتقال تلقائياً لتبويب المواعيد الملغية
       switchTab(2);
 
       Get.snackbar(
         'Success'.tr,
         response['message'] ?? 'Appointment canceled successfully'.tr,
-        backgroundColor: Get.isDarkMode ? Colors.green.withValues(alpha: 0.8) : Colors.green.shade600,
+        backgroundColor: Get.isDarkMode
+            ? Colors.green.withValues(alpha: 0.8)
+            : Colors.green.shade600,
         colorText: Colors.white,
         snackPosition: SnackPosition.BOTTOM,
       );
-
     } catch (e) {
       Get.back();
       handleError(e);

@@ -54,8 +54,39 @@ class PrescriptionView extends GetView<PrescriptionController> {
             children: [
               _buildDoctorHeader(context, data.doctorName),
               const SizedBox(height: 20),
-              _buildDiagnosisCard(context, data.diagnosis, data.doctorNotes),
+
+              _buildDiagnosisCard(
+                context,
+                data.diagnosis.tr,
+                data.doctorNotes.tr,
+              ),
+
+              if (data.requiredTests != null &&
+                  data.requiredTests!.isNotEmpty) ...[
+                const SizedBox(height: 16),
+                _buildExtraInfoCard(
+                  context,
+                  title: 'Required Tests'.tr,
+                  content: data.requiredTests!.tr,
+                  icon: Icons.biotech_outlined,
+                  iconColor: Colors.purple,
+                ),
+              ],
+
+              if (data.requiredImaging != null &&
+                  data.requiredImaging!.isNotEmpty) ...[
+                const SizedBox(height: 16),
+                _buildExtraInfoCard(
+                  context,
+                  title: 'Required Imaging'.tr,
+                  content: data.requiredImaging!.tr,
+                  icon: Icons.image_outlined,
+                  iconColor: Colors.orange,
+                ),
+              ],
+
               const SizedBox(height: 20),
+
               Text(
                 'Prescribed Medications'.tr,
                 style: context.theme.textTheme.titleMedium?.copyWith(
@@ -65,7 +96,7 @@ class PrescriptionView extends GetView<PrescriptionController> {
               ),
               const SizedBox(height: 12),
 
-              // 👈 معالجة عرض الأدوية أو رسالة "لا يوجد"
+              // معالجة عرض الأدوية أو رسالة "لا يوجد"
               if (data.medications.isEmpty)
                 Container(
                   width: double.infinity,
@@ -181,7 +212,7 @@ class PrescriptionView extends GetView<PrescriptionController> {
           ),
           const SizedBox(height: 12),
           Text(
-            diagnosis.isNotEmpty ? diagnosis : 'No diagnosis recorded'.tr,
+            diagnosis.isNotEmpty ? diagnosis.tr : 'No diagnosis recorded'.tr,
             style: TextStyle(
               color: context.textTheme.bodyLarge?.color,
               height: 1.5,
@@ -209,7 +240,7 @@ class PrescriptionView extends GetView<PrescriptionController> {
             ),
             const SizedBox(height: 12),
             Text(
-              notes,
+              notes.tr,
               style: TextStyle(color: context.theme.hintColor, height: 1.5),
             ),
           ],
@@ -218,16 +249,14 @@ class PrescriptionView extends GetView<PrescriptionController> {
     );
   }
 
-  // 👈 هنا بطاقة الدواء مصممة بعناية وتعمل بدون أخطاء
+  // بطاقة الدواء
   Widget _buildMedicationCard(BuildContext context, MedicationItemModel med) {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
-      // 👈 التعديل الأول: تفعيل قص الحواف للحاوية الخارجية
       clipBehavior: Clip.hardEdge,
       decoration: BoxDecoration(
         color: context.theme.cardColor,
         borderRadius: BorderRadius.circular(16),
-        // 👈 التعديل الثاني: إطار موحد يمنع الكراش
         border: Border.all(
           color: context.theme.dividerColor.withValues(alpha: 0.3),
         ),
@@ -239,7 +268,6 @@ class PrescriptionView extends GetView<PrescriptionController> {
           ),
         ],
       ),
-      // 👈 التعديل الثالث: حاوية داخلية لرسم الخط الجانبي بأمان
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
@@ -345,6 +373,56 @@ class PrescriptionView extends GetView<PrescriptionController> {
                   ),
                 ),
               ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildExtraInfoCard(
+    BuildContext context, {
+    required String title,
+    required String content,
+    required IconData icon,
+    required Color iconColor,
+  }) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: context.theme.cardColor,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: context.theme.dividerColor.withOpacity(0.1)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: iconColor.withOpacity(0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(icon, color: iconColor, size: 20),
+              ),
+              const SizedBox(width: 12),
+              Text(
+                title,
+                style: context.theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text(
+            content.tr,
+            style: context.theme.textTheme.bodyMedium?.copyWith(
+              height: 1.5,
+              color: context.textTheme.bodyLarge?.color,
             ),
           ),
         ],

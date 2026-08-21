@@ -4,6 +4,8 @@ class MedicalAssessmentModel {
   final String diagnosis;
   final String doctorNotes;
   final String doctorName;
+  final String? requiredTests;
+  final String? requiredImaging;
   final List<MedicationItemModel> medications;
 
   MedicalAssessmentModel({
@@ -12,6 +14,8 @@ class MedicalAssessmentModel {
     required this.diagnosis,
     required this.doctorNotes,
     required this.doctorName,
+    this.requiredTests,
+    this.requiredImaging,
     required this.medications,
   });
 
@@ -23,7 +27,6 @@ class MedicalAssessmentModel {
     final prescription = prescriptionJson['prescription'] ?? {};
     final doctor = prescription['doctor'] ?? {};
 
-    // تأمين جلب المصفوفة
     final medsList = prescription['medications'] as List? ?? [];
 
     return MedicalAssessmentModel(
@@ -33,7 +36,9 @@ class MedicalAssessmentModel {
       diagnosis: record['diagnosis']?.toString() ?? '',
       doctorNotes: record['doctor_notes']?.toString() ?? '',
       doctorName: doctor['name']?.toString() ?? '',
-      // تحويل كل عنصر بأمان
+      requiredTests: record['required_tests']?.toString(),
+      requiredImaging: record['required_imaging']?.toString(),
+
       medications: medsList
           .map((e) => MedicationItemModel.fromJson(e as Map<String, dynamic>))
           .toList(),

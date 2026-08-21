@@ -103,4 +103,19 @@ class AppointmentsApi {
       }
     }
   }
+  // 5- Cancelled (لجميع المواعيد الملغية)
+  Future<String> getAllCancelled() async {
+    final token = await SecureStorage.getToken();
+    if (token.isEmpty) throw Exception('Session expired. Please login again.');
+    final response = await client.get(
+      Uri.parse('$baseUrl/appointments/cancelled'),
+      headers: {
+        'Accept': 'application/json',
+        'Authorization': 'Bearer $token',
+        'ngrok-skip-browser-warning': 'true',
+        'Accept-Language': Get.locale?.languageCode ?? 'en',
+      },
+    );
+    return response.body;
+  }
 }

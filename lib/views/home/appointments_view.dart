@@ -8,15 +8,12 @@ class AppointmentsView extends GetView<AppointmentsController> {
 
   @override
   Widget build(BuildContext context) {
-    final bool isSingleChild =
-        controller.childId != null && controller.childId != 0;
+    final bool isSingleChild = controller.childId != null && controller.childId != 0;
 
-    // ─── إحاطة الواجهة بـ PopScope للتحكم بزر الرجوع في النظام ───
     return PopScope(
-      canPop: false, // نمنع الرجوع الافتراضي
+      canPop: false,
       onPopInvokedWithResult: (bool didPop, Object? result) {
         if (didPop) return;
-        // ─── توجيه المستخدم للرئيسية عند ضغط زر الهاتف ───
         Get.offAllNamed('/home');
       },
       child: Scaffold(
@@ -32,15 +29,8 @@ class AppointmentsView extends GetView<AppointmentsController> {
             ),
           ),
           leading: IconButton(
-            icon: Icon(
-              Icons.arrow_back_ios,
-              color: context.iconColor,
-              size: 20,
-            ),
-            onPressed: () {
-              // ─── العودة إلى الرئيسية مباشرة من زر الواجهة ───
-              Get.offAllNamed('/home');
-            },
+            icon: Icon(Icons.arrow_back_ios, color: context.iconColor, size: 20),
+            onPressed: () => Get.offAllNamed('/home'),
           ),
         ),
         body: Column(
@@ -51,7 +41,7 @@ class AppointmentsView extends GetView<AppointmentsController> {
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: Obx(
-                () => Container(
+                    () => Container(
                   padding: const EdgeInsets.all(4),
                   decoration: BoxDecoration(
                     color: context.theme.cardColor,
@@ -59,80 +49,9 @@ class AppointmentsView extends GetView<AppointmentsController> {
                   ),
                   child: Row(
                     children: [
-                      Expanded(
-                        child: GestureDetector(
-                          onTap: () => controller.switchTab(true),
-                          child: AnimatedContainer(
-                            duration: const Duration(milliseconds: 200),
-                            padding: const EdgeInsets.symmetric(vertical: 12),
-                            decoration: BoxDecoration(
-                              color: controller.showUpcoming.value
-                                  ? context.theme.primaryColor
-                                  : Colors.transparent,
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(
-                                  Icons.calendar_month_outlined,
-                                  color: controller.showUpcoming.value
-                                      ? Colors.white
-                                      : context.textTheme.bodyMedium?.color,
-                                  size: 18,
-                                ),
-                                const SizedBox(width: 6),
-                                Text(
-                                  'Upcoming'.tr,
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    color: controller.showUpcoming.value
-                                        ? Colors.white
-                                        : context.textTheme.bodyMedium?.color,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
-                      Expanded(
-                        child: GestureDetector(
-                          onTap: () => controller.switchTab(false),
-                          child: AnimatedContainer(
-                            duration: const Duration(milliseconds: 200),
-                            padding: const EdgeInsets.symmetric(vertical: 12),
-                            decoration: BoxDecoration(
-                              color: !controller.showUpcoming.value
-                                  ? context.theme.primaryColor
-                                  : Colors.transparent,
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(
-                                  Icons.history_outlined,
-                                  color: !controller.showUpcoming.value
-                                      ? Colors.white
-                                      : context.textTheme.bodyMedium?.color,
-                                  size: 18,
-                                ),
-                                const SizedBox(width: 6),
-                                Text(
-                                  'Past'.tr,
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    color: !controller.showUpcoming.value
-                                        ? Colors.white
-                                        : context.textTheme.bodyMedium?.color,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
+                      _buildTab(context, 0, 'Upcoming'.tr, Icons.calendar_month_outlined),
+                      _buildTab(context, 1, 'Past'.tr, Icons.history_outlined),
+                      _buildTab(context, 2, 'Cancelled'.tr, Icons.cancel_outlined), // 👈 التبويب الثالث
                     ],
                   ),
                 ),
@@ -140,77 +59,104 @@ class AppointmentsView extends GetView<AppointmentsController> {
             ),
             const SizedBox(height: 16),
 
-            // ─── List مع ميزة التحديث بالسحب ───
+            // ─── List ───
             Expanded(
               child: Obx(() {
-                final list = controller.showUpcoming.value
+                final list = controller.selectedTab.value == 0
                     ? controller.upcoming
-                    : controller.past;
+                    : controller.selectedTab.value == 1
+                    ? controller.past
+                    : controller.cancelled;
 
-                // نظهر دائرة التحميل فقط إذا كانت القائمة فارغة (لتجنب اختفاء المواعيد عند التحديث اليدوي)
                 if (controller.isLoading && list.isEmpty) {
-                  return const Center(
-                    child: CircularProgressIndicator(color: Colors.blue),
-                  );
+                  return const Center(child: CircularProgressIndicator(color: Colors.blue));
                 }
 
                 return RefreshIndicator(
                   color: context.theme.primaryColor,
                   onRefresh: () async {
-                    if (controller.showUpcoming.value) {
-                      await controller.fetchUpcoming();
-                    } else {
-                      await controller.fetchPast();
-                    }
+                    if (controller.selectedTab.value == 0) await controller.fetchUpcoming();
+                    else if (controller.selectedTab.value == 1) await controller.fetchPast();
+                    else await controller.fetchCancelled();
                   },
                   child: list.isEmpty
                       ? SingleChildScrollView(
-                          physics: const AlwaysScrollableScrollPhysics(),
-                          child: Container(
-                            height: MediaQuery.of(context).size.height * 0.6,
-                            alignment: Alignment.center,
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(
-                                  Icons.calendar_today_outlined,
-                                  size: 60,
-                                  color: context.theme.dividerColor,
-                                ),
-                                const SizedBox(height: 12),
-                                Text(
-                                  'No appointments found'.tr,
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    color: context.textTheme.bodyMedium?.color,
-                                  ),
-                                ),
-                              ],
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    child: Container(
+                      height: MediaQuery.of(context).size.height * 0.6,
+                      alignment: Alignment.center,
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.event_busy_outlined,
+                            size: 60,
+                            color: context.theme.dividerColor,
+                          ),
+                          const SizedBox(height: 12),
+                          Text(
+                            'No appointments found'.tr,
+                            style: TextStyle(
+                              fontSize: 16,
+                              color: context.textTheme.bodyMedium?.color,
                             ),
                           ),
-                        )
+                        ],
+                      ),
+                    ),
+                  )
                       : ListView.separated(
-                          physics: const AlwaysScrollableScrollPhysics(),
-                          // ضروري لعمل السحب
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 20,
-                            vertical: 10,
-                          ),
-                          itemCount: list.length,
-                          separatorBuilder: (_, _) =>
-                              const SizedBox(height: 12),
-                          itemBuilder: (_, index) => _AppointmentCard(
-                            appointment: list[index],
-                            isSingleChild: isSingleChild,
-                            isUpcoming: controller
-                                .showUpcoming
-                                .value, // 👈 إرسال حالة التبويب للبطاقة
-                          ),
-                        ),
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                    itemCount: list.length,
+                    separatorBuilder: (_, _) => const SizedBox(height: 12),
+                    itemBuilder: (_, index) => _AppointmentCard(
+                      appointment: list[index],
+                      isSingleChild: isSingleChild,
+                      isUpcoming: controller.selectedTab.value == 0,
+                    ),
+                  ),
                 );
               }),
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  // 👈 دالة مساعدة لرسم التبويبات بأسلوب نظيف
+  Widget _buildTab(BuildContext context, int index, String title, IconData icon) {
+    final isSelected = controller.selectedTab.value == index;
+    return Expanded(
+      child: GestureDetector(
+        onTap: () => controller.switchTab(index),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          decoration: BoxDecoration(
+            color: isSelected ? context.theme.primaryColor : Colors.transparent,
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                icon,
+                color: isSelected ? Colors.white : context.textTheme.bodyMedium?.color,
+                size: 16, // تصغير الأيقونة قليلاً لتناسب 3 تبويبات
+              ),
+              const SizedBox(width: 4),
+              Text(
+                title,
+                style: TextStyle(
+                  fontSize: 13, // تصغير الخط قليلاً لتناسب 3 تبويبات
+                  fontWeight: FontWeight.bold,
+                  color: isSelected ? Colors.white : context.textTheme.bodyMedium?.color,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -397,7 +343,7 @@ class _AppointmentCard extends StatelessWidget {
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    appointment.specialty,
+                    appointment.specialty.tr,
                     style: TextStyle(
                       fontSize: 12,
                       color: context.textTheme.bodyMedium?.color,
@@ -513,7 +459,7 @@ class _AppointmentCard extends StatelessWidget {
                   ),
                   const SizedBox(height: 6),
                   Text(
-                    appointment.specialty,
+                    appointment.specialty.tr,
                     style: TextStyle(
                       fontSize: 13,
                       color: context.textTheme.bodyMedium?.color,

@@ -9,36 +9,37 @@ class AppointmentsController extends BaseController {
 
   AppointmentsController({required this.appointmentsRepo});
 
-  // جعلناه Nullable، فإذا كان null، فهذا يعني أننا طلبنا كل المواعيد
   int? childId;
 
   final RxList<AppointmentsModel> upcoming = <AppointmentsModel>[].obs;
   final RxList<AppointmentsModel> past = <AppointmentsModel>[].obs;
-  final RxBool showUpcoming = true.obs;
+  final RxList<AppointmentsModel> cancelled = <AppointmentsModel>[].obs; // 👈 القائمة الجديدة
+
+  final RxInt selectedTab = 0.obs; // 0 = Upcoming, 1 = Past, 2 = Cancelled
 
   @override
   void onInit() {
     super.onInit();
-    // التقاط الـ ID إذا أتينا من شاشة الطفل، وإلا سيبقى null
     if (Get.arguments is int) {
       childId = Get.arguments as int;
     }
     fetchUpcoming();
   }
 
-  void switchTab(bool isUpcoming) {
-    showUpcoming.value = isUpcoming;
-    if (isUpcoming && upcoming.isEmpty) {
+  void switchTab(int index) {
+    selectedTab.value = index;
+    if (index == 0 && upcoming.isEmpty) {
       fetchUpcoming();
-    } else if (!isUpcoming && past.isEmpty) {
+    } else if (index == 1 && past.isEmpty) {
       fetchPast();
+    } else if (index == 2 && cancelled.isEmpty) {
+      fetchCancelled();
     }
   }
 
   Future<void> fetchUpcoming() async {
     showLoading();
     try {
-      // توجيه ذكي للطلب
       final result = childId != null
           ? await appointmentsRepo.getUpcomingForChild(childId!)
           : await appointmentsRepo.getAllUpcoming();
@@ -49,30 +50,61 @@ class AppointmentsController extends BaseController {
       hideLoading();
     }
   }
+
+  Future<void> fetchPast() async {
+    showLoading();
+    try {
+      final result = childId != null
+          ? await appointmentsRepo.getPastForChild(childId!)
+          : await appointmentsRepo.getAllPast();
+      past.assignAll(result);
+    } catch (e) {
+      handleError(e);
+    } finally {
+      hideLoading();
+    }
+  }
+
+  Future<void> fetchCancelled() async {
+    showLoading();
+    try {
+      // جلب جميع المواعيد الملغية (لعدم وجود راوت مخصص للطفل)
+      List<AppointmentsModel> result = await appointmentsRepo.getAllCancelled();
+
+      // 👈 فلترة محلية (Local Filtering) إذا كنا داخل ملف طفل محدد
+      if (childId != null && childId != 0) {
+        result = result.where((app) => app.childId == childId).toList();
+      }
+
+      cancelled.assignAll(result);
+    } catch (e) {
+      handleError(e);
+    } finally {
+      hideLoading();
+    }
+  }
+
   Future<void> cancelAppointment(int appointmentId) async {
     try {
-      // إظهار دائرة التحميل
       Get.dialog(
         const Center(child: CircularProgressIndicator()),
         barrierDismissible: false,
       );
 
-      // استدعاء دالة الحذف من الـ Repo
       final response = await appointmentsRepo.cancelAppointment(appointmentId);
 
-      // إغلاق دائرة التحميل
       Get.back();
 
-      // 1. حذف الموعد من قائمة "المواعيد القادمة" في الواجهة فوراً
+      // حذف الموعد من قائمة القادمة
       upcoming.removeWhere((appointment) => appointment.id == appointmentId);
 
-      // 2. تصفير قائمة المواعيد السابقة لتهيئتها للاستجابة الجديدة
+      // تصفير القوائم الأخرى لتحديثها عند زيارتها
       past.clear();
+      cancelled.clear();
 
-      // 3. الانتقال التلقائي إلى تبويب المواعيد السابقة (Past) وجلب البيانات المحدثة
-      switchTab(false);
+      // الانتقال تلقائياً لتبويب المواعيد الملغية
+      switchTab(2);
 
-      // إظهار رسالة النجاح متوافقة مع لغة التطبيق النشطة
       Get.snackbar(
         'Success'.tr,
         response['message'] ?? 'Appointment canceled successfully'.tr,
@@ -82,23 +114,8 @@ class AppointmentsController extends BaseController {
       );
 
     } catch (e) {
-      Get.back(); // إغلاق دائرة التحميل في حالة الخطأ
-      handleError(e); // معالجة الخطأ عبر الـ BaseController
-    }
-  }
-
-  Future<void> fetchPast() async {
-    showLoading();
-    try {
-      // توجيه ذكي للطلب
-      final result = childId != null
-          ? await appointmentsRepo.getPastForChild(childId!)
-          : await appointmentsRepo.getAllPast();
-      past.assignAll(result);
-    } catch (e) {
+      Get.back();
       handleError(e);
-    } finally {
-      hideLoading();
     }
   }
 }

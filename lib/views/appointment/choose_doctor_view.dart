@@ -227,7 +227,7 @@ class _DoctorCard extends StatelessWidget {
                     (doctor.departmentName != null &&
                             doctor.departmentName!.isNotEmpty)
                         ? doctor.departmentName!.tr
-                        : '$specialty ${'Specialist'.tr}',
+                        : '${specialty.tr} ${'Specialist'.tr}',
                     style: TextStyle(
                       fontSize: 12.5,
                       // ─── نص التخصص متكيف ───

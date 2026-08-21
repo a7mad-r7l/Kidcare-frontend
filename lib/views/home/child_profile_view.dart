@@ -755,7 +755,7 @@ class _InfoCard extends StatelessWidget {
                     ),
                     const SizedBox(width: 4),
                     Text(
-                      child.gender.capitalizeFirst ?? '',
+                      child.gender.tr.capitalizeFirst ?? '',
                       style: const TextStyle(fontSize: 16, color: Colors.green),
                     ),
                   ],
@@ -815,7 +815,7 @@ class _StatsCard extends StatelessWidget {
               icon: child.gender.toLowerCase() == 'female'
                   ? Icons.female
                   : Icons.male,
-              value: child.gender.capitalizeFirst ?? '',
+              value: child.gender.tr.capitalizeFirst ?? '',
               label: 'Gender'.tr,
             ),
           ),

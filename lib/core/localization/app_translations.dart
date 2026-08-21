@@ -366,6 +366,30 @@ class AppTranslations extends Translations {
           'Are you sure you want to cancel this appointment? A refund will be initiated.',
       'Yes, Cancel': 'Yes, Cancel',
       'No': 'No',
+      'Please complete doctor, child, date, and time selection':
+          'Please complete doctor, child, date, and time selection',
+      'Child profile updated successfully':
+          'Child profile updated successfully',
+      'Profile updated successfully': 'Profile updated successfully',
+      'Appointment canceled successfully': 'Appointment canceled successfully',
+      'Child deleted successfully': 'Child deleted successfully',
+      'weight': 'Weight',
+      'Doctor # ': 'Doctor # ',
+      'Child #': 'Child #',
+      'Required Tests': 'Required Tests',
+      'Required Imaging': 'Required Imaging',
+      'Closest Appointments': 'Closest Appointments',
+      'Pediatrics': 'Pediatrics',
+      'Dentistry': 'Dentistry',
+      'Psychiatry': 'Psychiatry',
+      'Male': 'Male',
+      'Female': 'Female',
+      'male': 'Male',
+      'female': 'Female',
+      'weight': 'Weight',
+      'Cancelled by patient': 'Cancelled by patient',
+      'Cancelled by clinic.': 'Cancelled by clinic.',
+
     },
 
     // ==========================================================
@@ -731,6 +755,59 @@ class AppTranslations extends Translations {
           'هل أنت متأكد من رغبتك في إلغاء هذا الموعد؟ سيتم البدء في إجراءات استرداد المبلغ.',
       'Yes, Cancel': 'نعم,الغاء',
       'No': 'لا',
+      'Please complete doctor, child, date, and time selection':
+          'يرجى استكمال اختيار الطبيب، الطفل، التاريخ، والوقت',
+      'Child profile updated successfully': 'تم تحديث بيانات الطفل بنجاح',
+      'Profile updated successfully': 'تم تحديث الملف الشخصي بنجاح',
+      'Appointment canceled successfully': 'تم إلغاء الموعد بنجاح',
+      'Child deleted successfully': 'تم حذف ملف الطفل بنجاح',
+      'weight': 'الوزن',
+      'Doctor # ': 'طبيب رقم ',
+      'Child #': 'طفل رقم ',
+      'Required Tests': 'التحاليل المطلوبة',
+      'Required Imaging': 'صور الأشعة المطلوبة',
+      'Closest Appointments': 'أقرب موعد',
+      'Pediatrics': 'طب الأطفال',
+      'Dentistry': 'طب الأسنان',
+      'Psychiatry': 'الطب النفسي',
+      'Male': 'ذكر',
+      'Female': 'أنثى',
+      'male': 'ذكر',
+      'female': 'أنثى',
+      'weight': 'الوزن',
+      // ─── ترجمة البيانات الديناميكية الشائعة القادمة من الباك-إند ───
+
+      //  اللقاحات (Vaccines Seeder Data)
+      'BCG (Tuberculosis)': 'لقاح السل (BCG)',
+      'Hepatitis B (HepB-0)': 'التهاب الكبد ب (الجرعة الصفرية)',
+      'Oral Polio Vaccine (OPV-0)': 'شلل الأطفال الفموي (الجرعة الصفرية)',
+      'Pentavalent 1 (DTP-HepB-Hib)': 'اللقاح الخماسي (الجرعة الأولى)',
+      'Pneumococcal Conjugate 1 (PCV-1)': 'المكورات الرئوية (الجرعة الأولى)',
+      'Rotavirus 1 (RV-1)': 'فيروس الروتا (الجرعة الأولى)',
+      'Pentavalent 2 (DTP-HepB-Hib)': 'اللقاح الخماسي (الجرعة الثانية)',
+      'Inactivated Polio Vaccine (IPV-1)': 'شلل الأطفال العضلي (الجرعة الأولى)',
+      'Pneumococcal Conjugate 2 (PCV-2)': 'المكورات الرئوية (الجرعة الثانية)',
+      'Rotavirus 2 (RV-2)': 'فيروس الروتا (الجرعة الثانية)',
+      'Pentavalent 3 (DTP-HepB-Hib)': 'اللقاح الخماسي (الجرعة الثالثة)',
+      'Inactivated Polio Vaccine (IPV-2)':
+          'شلل الأطفال العضلي (الجرعة الثانية)',
+      'Measles & Rubella 1 (MR-1)': 'الحصبة والحصبة الألمانية',
+      'MMR 1 (Measles, Mumps, Rubella)':
+          'اللقاح الثلاثي الفيروسي (الجرعة الأولى)',
+      'DTP Booster 1': 'اللقاح الثلاثي البكتيري (جرعة داعمة)',
+      'MMR 2 (Measles, Mumps, Rubella)':
+          'اللقاح الثلاثي الفيروسي (الجرعة الثانية)',
+      'Typhoid Conjugate Vaccine': 'لقاح التيفوئيد المدمج',
+
+
+      'finished': 'مكتمل',
+      'missed': 'فائت',
+      'checked_in': 'في قاعة الانتظار',
+
+      'Periodic checkup': 'فحص دوري',
+      'Consultation': 'استشارة طبية',
+      'Cancelled by patient': 'ملغي من قبل المريض',
+      'Cancelled by clinic.': 'ملغي من قبل العيادة',
     },
   };
 }

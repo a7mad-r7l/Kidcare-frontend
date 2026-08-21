@@ -185,6 +185,7 @@ class NotificationService {
     }
   }
 
+
   // ─── توجيه الإشعارات ───
   static void _handleNotificationClick(String type) {
     log("🔀 جاري توجيه المريض بناءً على نوع الإشعار: $type");
@@ -202,19 +203,19 @@ class NotificationService {
       return;
     }
 
-    // 2. إشعارات إلغاء الموعد -> المواعيد السابقة
+    // 2. إشعارات إلغاء الموعد -> تبويب المواعيد الملغية (Index 2)
     if (typeLower.contains('cancel')) {
       Get.delete<AppointmentsController>();
       Get.toNamed('/appointments');
       Future.delayed(const Duration(milliseconds: 300), () {
         if (Get.isRegistered<AppointmentsController>()) {
-          Get.find<AppointmentsController>().switchTab(false); // تاب Past
+          Get.find<AppointmentsController>().switchTab(2); // 👈 تاب Cancelled
         }
       });
       return;
     }
 
-    // 3. إشعارات الحجز والتذكير والتأكيد -> المواعيد القادمة
+    // 3. إشعارات الحجز والتذكير والتأكيد -> تبويب المواعيد القادمة (Index 0)
     if (typeLower.contains('appointment') ||
         typeLower.contains('reminder') ||
         typeLower.contains('confirm') ||
@@ -223,7 +224,7 @@ class NotificationService {
       Get.toNamed('/appointments');
       Future.delayed(const Duration(milliseconds: 300), () {
         if (Get.isRegistered<AppointmentsController>()) {
-          Get.find<AppointmentsController>().switchTab(true); // تاب Upcoming
+          Get.find<AppointmentsController>().switchTab(0); // 👈 تاب Upcoming
         }
       });
       return;

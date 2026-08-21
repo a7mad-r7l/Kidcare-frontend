@@ -1311,13 +1311,25 @@ class BaseController extends GetxController {
     String message = "Something went wrong. Please try again.".tr;
 
     try {
-      if (errorString.contains("401")) {
-        message = "Incorrect phone number or password.".tr;
-        SecureStorage.removeToken();
+      if (errorString.toLowerCase().contains("unauthenticated") ||
+          errorString.contains("401")) {
+        SecureStorage.removeAll();
+
         if (Get.currentRoute != '/login') {
           Get.offAllNamed('/login');
-          return;
+
+          Get.snackbar(
+            "Session Expired".tr,
+            "Please login again to continue.".tr,
+            backgroundColor: Colors.orange.shade700,
+            colorText: Colors.white,
+            snackPosition: SnackPosition.BOTTOM,
+            margin: const EdgeInsets.all(15),
+            icon: const Icon(Icons.lock_clock, color: Colors.white),
+            duration: const Duration(seconds: 4),
+          );
         }
+        return;
       } else if (errorString.contains('{') && errorString.contains('}')) {
         final startIndex = errorString.indexOf('{');
         final endIndex = errorString.lastIndexOf('}') + 1;
@@ -1333,9 +1345,7 @@ class BaseController extends GetxController {
       } else if (errorString.contains("TimeoutException")) {
         message = "Request timed out. Please try again.".tr;
       }
-    } catch (_) {
-      // JSON parse failed — fall through to the generic message above.
-    }
+    } catch (_) {}
 
     Get.snackbar(
       "Error".tr,
@@ -1724,36 +1734,37 @@ class AppointmentsController extends BaseController {
 
   AppointmentsController({required this.appointmentsRepo});
 
-  // جعلناه Nullable، فإذا كان null، فهذا يعني أننا طلبنا كل المواعيد
   int? childId;
 
   final RxList<AppointmentsModel> upcoming = <AppointmentsModel>[].obs;
   final RxList<AppointmentsModel> past = <AppointmentsModel>[].obs;
-  final RxBool showUpcoming = true.obs;
+  final RxList<AppointmentsModel> cancelled = <AppointmentsModel>[].obs; // 👈 القائمة الجديدة
+
+  final RxInt selectedTab = 0.obs; // 0 = Upcoming, 1 = Past, 2 = Cancelled
 
   @override
   void onInit() {
     super.onInit();
-    // التقاط الـ ID إذا أتينا من شاشة الطفل، وإلا سيبقى null
     if (Get.arguments is int) {
       childId = Get.arguments as int;
     }
     fetchUpcoming();
   }
 
-  void switchTab(bool isUpcoming) {
-    showUpcoming.value = isUpcoming;
-    if (isUpcoming && upcoming.isEmpty) {
+  void switchTab(int index) {
+    selectedTab.value = index;
+    if (index == 0 && upcoming.isEmpty) {
       fetchUpcoming();
-    } else if (!isUpcoming && past.isEmpty) {
+    } else if (index == 1 && past.isEmpty) {
       fetchPast();
+    } else if (index == 2 && cancelled.isEmpty) {
+      fetchCancelled();
     }
   }
 
   Future<void> fetchUpcoming() async {
     showLoading();
     try {
-      // توجيه ذكي للطلب
       final result = childId != null
           ? await appointmentsRepo.getUpcomingForChild(childId!)
           : await appointmentsRepo.getAllUpcoming();
@@ -1764,30 +1775,61 @@ class AppointmentsController extends BaseController {
       hideLoading();
     }
   }
+
+  Future<void> fetchPast() async {
+    showLoading();
+    try {
+      final result = childId != null
+          ? await appointmentsRepo.getPastForChild(childId!)
+          : await appointmentsRepo.getAllPast();
+      past.assignAll(result);
+    } catch (e) {
+      handleError(e);
+    } finally {
+      hideLoading();
+    }
+  }
+
+  Future<void> fetchCancelled() async {
+    showLoading();
+    try {
+      // جلب جميع المواعيد الملغية (لعدم وجود راوت مخصص للطفل)
+      List<AppointmentsModel> result = await appointmentsRepo.getAllCancelled();
+
+      // 👈 فلترة محلية (Local Filtering) إذا كنا داخل ملف طفل محدد
+      if (childId != null && childId != 0) {
+        result = result.where((app) => app.childId == childId).toList();
+      }
+
+      cancelled.assignAll(result);
+    } catch (e) {
+      handleError(e);
+    } finally {
+      hideLoading();
+    }
+  }
+
   Future<void> cancelAppointment(int appointmentId) async {
     try {
-      // إظهار دائرة التحميل
       Get.dialog(
         const Center(child: CircularProgressIndicator()),
         barrierDismissible: false,
       );
 
-      // استدعاء دالة الحذف من الـ Repo
       final response = await appointmentsRepo.cancelAppointment(appointmentId);
 
-      // إغلاق دائرة التحميل
       Get.back();
 
-      // 1. حذف الموعد من قائمة "المواعيد القادمة" في الواجهة فوراً
+      // حذف الموعد من قائمة القادمة
       upcoming.removeWhere((appointment) => appointment.id == appointmentId);
 
-      // 2. تصفير قائمة المواعيد السابقة لتهيئتها للاستجابة الجديدة
+      // تصفير القوائم الأخرى لتحديثها عند زيارتها
       past.clear();
+      cancelled.clear();
 
-      // 3. الانتقال التلقائي إلى تبويب المواعيد السابقة (Past) وجلب البيانات المحدثة
-      switchTab(false);
+      // الانتقال تلقائياً لتبويب المواعيد الملغية
+      switchTab(2);
 
-      // إظهار رسالة النجاح متوافقة مع لغة التطبيق النشطة
       Get.snackbar(
         'Success'.tr,
         response['message'] ?? 'Appointment canceled successfully'.tr,
@@ -1797,23 +1839,8 @@ class AppointmentsController extends BaseController {
       );
 
     } catch (e) {
-      Get.back(); // إغلاق دائرة التحميل في حالة الخطأ
-      handleError(e); // معالجة الخطأ عبر الـ BaseController
-    }
-  }
-
-  Future<void> fetchPast() async {
-    showLoading();
-    try {
-      // توجيه ذكي للطلب
-      final result = childId != null
-          ? await appointmentsRepo.getPastForChild(childId!)
-          : await appointmentsRepo.getAllPast();
-      past.assignAll(result);
-    } catch (e) {
+      Get.back();
       handleError(e);
-    } finally {
-      hideLoading();
     }
   }
 }
@@ -1828,7 +1855,7 @@ import '../../models/appointment/child_model.dart';
 import '../../models/home/home_child_model.dart';
 import '../base_controller.dart';
 import 'home_controller.dart';
-
+import 'dart:io';
 class ChildProfileController extends BaseController {
   final ChildProfileRepo repo;
 
@@ -1867,6 +1894,37 @@ class ChildProfileController extends BaseController {
       hideLoading();
     }
   }
+  Future<void> updateChildData({
+    Map<String, String>? fields,
+    File? image,
+  }) async {
+    if ((fields == null || fields.isEmpty) && image == null) return;
+
+    showLoading();
+    try {
+      await repo.updateChild(
+        childId: childId,
+        fields: fields,
+        image: image,
+      );
+
+      // جلب البيانات من جديد لتحديث شاشة البروفايل تلقائياً
+      await fetchChildDetails();
+
+      // تحديث قائمة الأطفال في الرئيسية لتنعكس التعديلات (مثل الاسم أو الصورة)
+      if (Get.isRegistered<HomeController>()) {
+        Get.find<HomeController>().fetchChildren();
+      }
+
+      Get.back(); // إغلاق نافذة التعديل إن كنت تستخدم Dialog أو BottomSheet
+      showSuccess('Child profile updated successfully'.tr);
+    } catch (e) {
+      handleError(e);
+    } finally {
+      hideLoading();
+    }
+  }
+
 
   // الآن الدالة تستخدم الـ repo الخاص بـ هذا الـ Controller مباشرة
   Future<void> deleteCurrentChild() async {
@@ -3287,6 +3345,21 @@ class AppointmentsApi {
       }
     }
   }
+  // 5- Cancelled (لجميع المواعيد الملغية)
+  Future<String> getAllCancelled() async {
+    final token = await SecureStorage.getToken();
+    if (token.isEmpty) throw Exception('Session expired. Please login again.');
+    final response = await client.get(
+      Uri.parse('$baseUrl/appointments/cancelled'),
+      headers: {
+        'Accept': 'application/json',
+        'Authorization': 'Bearer $token',
+        'ngrok-skip-browser-warning': 'true',
+        'Accept-Language': Get.locale?.languageCode ?? 'en',
+      },
+    );
+    return response.body;
+  }
 }
 ```
 
@@ -3296,6 +3369,7 @@ import 'package:http/http.dart' as http;
 import '../../constants.dart';
 import '../../helper/secure_storage_service.dart';
 import 'package:get/get.dart';
+import 'dart:io';
 
 class ChildProfileApi {
   final http.Client client = http.Client();
@@ -3341,6 +3415,47 @@ class ChildProfileApi {
     } else {
       throw Exception('Failed to delete child: ${response.statusCode}');
     }
+  }
+  Future<String> updateChild({
+    required int childId,
+    Map<String, String>? fields,
+    File? image,
+  }) async {
+    final token = await SecureStorage.getToken();
+    if (token.isEmpty) {
+      throw Exception('Session expired. Please login again.');
+    }
+
+    // يجب استخدام POST مع إرسال _method = PUT في Laravel عند رفع الملفات
+    final request = http.MultipartRequest(
+      'POST',
+      Uri.parse('$baseUrl/children/$childId'),
+    );
+
+    request.headers.addAll({
+      'Authorization': 'Bearer $token',
+      'Accept': 'application/json',
+      'Accept-Language': Get.locale?.languageCode ?? 'en',
+    });
+
+    // خدعة Laravel لاستقبال PUT عبر form-data
+    request.fields['_method'] = 'PUT';
+
+    // إضافة الحقول النصية إن وجدت
+    if (fields != null) {
+      request.fields.addAll(fields);
+    }
+
+    // إضافة الصورة إن وجدت
+    if (image != null) {
+      request.files.add(
+        await http.MultipartFile.fromPath('image', image.path),
+      );
+    }
+
+    final streamedResponse = await request.send();
+    final response = await http.Response.fromStream(streamedResponse);
+    return response.body;
   }
 }
 ```
@@ -3902,6 +4017,7 @@ class NotificationService {
     }
   }
 
+
   // ─── توجيه الإشعارات ───
   static void _handleNotificationClick(String type) {
     log("🔀 جاري توجيه المريض بناءً على نوع الإشعار: $type");
@@ -3919,19 +4035,19 @@ class NotificationService {
       return;
     }
 
-    // 2. إشعارات إلغاء الموعد -> المواعيد السابقة
+    // 2. إشعارات إلغاء الموعد -> تبويب المواعيد الملغية (Index 2)
     if (typeLower.contains('cancel')) {
       Get.delete<AppointmentsController>();
       Get.toNamed('/appointments');
       Future.delayed(const Duration(milliseconds: 300), () {
         if (Get.isRegistered<AppointmentsController>()) {
-          Get.find<AppointmentsController>().switchTab(false); // تاب Past
+          Get.find<AppointmentsController>().switchTab(2); // 👈 تاب Cancelled
         }
       });
       return;
     }
 
-    // 3. إشعارات الحجز والتذكير والتأكيد -> المواعيد القادمة
+    // 3. إشعارات الحجز والتذكير والتأكيد -> تبويب المواعيد القادمة (Index 0)
     if (typeLower.contains('appointment') ||
         typeLower.contains('reminder') ||
         typeLower.contains('confirm') ||
@@ -3940,7 +4056,7 @@ class NotificationService {
       Get.toNamed('/appointments');
       Future.delayed(const Duration(milliseconds: 300), () {
         if (Get.isRegistered<AppointmentsController>()) {
-          Get.find<AppointmentsController>().switchTab(true); // تاب Upcoming
+          Get.find<AppointmentsController>().switchTab(0); // 👈 تاب Upcoming
         }
       });
       return;
@@ -4148,8 +4264,8 @@ class AppTranslations extends Translations {
       'Enter first name': 'Enter first name',
       'Enter last name': 'Enter last name',
       'Gender': 'Gender',
-      'Female': 'female',
-      'Male': 'male',
+      'Female': 'Female',
+      'Male': 'Male',
       'Birth Date': 'Birth Date',
       'Select birth date': 'Select birth date',
       'Blood Type': 'Blood Type',
@@ -4383,6 +4499,30 @@ class AppTranslations extends Translations {
           'Are you sure you want to cancel this appointment? A refund will be initiated.',
       'Yes, Cancel': 'Yes, Cancel',
       'No': 'No',
+      'Please complete doctor, child, date, and time selection':
+          'Please complete doctor, child, date, and time selection',
+      'Child profile updated successfully':
+          'Child profile updated successfully',
+      'Profile updated successfully': 'Profile updated successfully',
+      'Appointment canceled successfully': 'Appointment canceled successfully',
+      'Child deleted successfully': 'Child deleted successfully',
+      'weight': 'Weight',
+      'Doctor # ': 'Doctor # ',
+      'Child #': 'Child #',
+      'Required Tests': 'Required Tests',
+      'Required Imaging': 'Required Imaging',
+      'Closest Appointments': 'Closest Appointments',
+      'Pediatrics': 'Pediatrics',
+      'Dentistry': 'Dentistry',
+      'Psychiatry': 'Psychiatry',
+      'Male': 'Male',
+      'Female': 'Female',
+      'male': 'Male',
+      'female': 'Female',
+      'weight': 'Weight',
+      'Cancelled by patient': 'Cancelled by patient',
+      'Cancelled by clinic.': 'Cancelled by clinic.',
+
     },
 
     // ==========================================================
@@ -4513,8 +4653,8 @@ class AppTranslations extends Translations {
       'Enter first name': 'أدخل الاسم الأول',
       'Enter last name': 'أدخل اسم العائلة',
       'Gender': 'الجنس',
-      'famale': 'أنثى',
-      'male': 'ذكر',
+      'Female': 'أنثى',
+      'Male': 'ذكر',
       'Birth Date': 'تاريخ الميلاد',
       'Select birth date': 'اختر تاريخ الميلاد',
       'Blood Type': 'فصيلة الدم',
@@ -4748,6 +4888,59 @@ class AppTranslations extends Translations {
           'هل أنت متأكد من رغبتك في إلغاء هذا الموعد؟ سيتم البدء في إجراءات استرداد المبلغ.',
       'Yes, Cancel': 'نعم,الغاء',
       'No': 'لا',
+      'Please complete doctor, child, date, and time selection':
+          'يرجى استكمال اختيار الطبيب، الطفل، التاريخ، والوقت',
+      'Child profile updated successfully': 'تم تحديث بيانات الطفل بنجاح',
+      'Profile updated successfully': 'تم تحديث الملف الشخصي بنجاح',
+      'Appointment canceled successfully': 'تم إلغاء الموعد بنجاح',
+      'Child deleted successfully': 'تم حذف ملف الطفل بنجاح',
+      'weight': 'الوزن',
+      'Doctor # ': 'طبيب رقم ',
+      'Child #': 'طفل رقم ',
+      'Required Tests': 'التحاليل المطلوبة',
+      'Required Imaging': 'صور الأشعة المطلوبة',
+      'Closest Appointments': 'أقرب موعد',
+      'Pediatrics': 'طب الأطفال',
+      'Dentistry': 'طب الأسنان',
+      'Psychiatry': 'الطب النفسي',
+      'Male': 'ذكر',
+      'Female': 'أنثى',
+      'male': 'ذكر',
+      'female': 'أنثى',
+      'weight': 'الوزن',
+      // ─── ترجمة البيانات الديناميكية الشائعة القادمة من الباك-إند ───
+
+      //  اللقاحات (Vaccines Seeder Data)
+      'BCG (Tuberculosis)': 'لقاح السل (BCG)',
+      'Hepatitis B (HepB-0)': 'التهاب الكبد ب (الجرعة الصفرية)',
+      'Oral Polio Vaccine (OPV-0)': 'شلل الأطفال الفموي (الجرعة الصفرية)',
+      'Pentavalent 1 (DTP-HepB-Hib)': 'اللقاح الخماسي (الجرعة الأولى)',
+      'Pneumococcal Conjugate 1 (PCV-1)': 'المكورات الرئوية (الجرعة الأولى)',
+      'Rotavirus 1 (RV-1)': 'فيروس الروتا (الجرعة الأولى)',
+      'Pentavalent 2 (DTP-HepB-Hib)': 'اللقاح الخماسي (الجرعة الثانية)',
+      'Inactivated Polio Vaccine (IPV-1)': 'شلل الأطفال العضلي (الجرعة الأولى)',
+      'Pneumococcal Conjugate 2 (PCV-2)': 'المكورات الرئوية (الجرعة الثانية)',
+      'Rotavirus 2 (RV-2)': 'فيروس الروتا (الجرعة الثانية)',
+      'Pentavalent 3 (DTP-HepB-Hib)': 'اللقاح الخماسي (الجرعة الثالثة)',
+      'Inactivated Polio Vaccine (IPV-2)':
+          'شلل الأطفال العضلي (الجرعة الثانية)',
+      'Measles & Rubella 1 (MR-1)': 'الحصبة والحصبة الألمانية',
+      'MMR 1 (Measles, Mumps, Rubella)':
+          'اللقاح الثلاثي الفيروسي (الجرعة الأولى)',
+      'DTP Booster 1': 'اللقاح الثلاثي البكتيري (جرعة داعمة)',
+      'MMR 2 (Measles, Mumps, Rubella)':
+          'اللقاح الثلاثي الفيروسي (الجرعة الثانية)',
+      'Typhoid Conjugate Vaccine': 'لقاح التيفوئيد المدمج',
+
+
+      'finished': 'مكتمل',
+      'missed': 'فائت',
+      'checked_in': 'في قاعة الانتظار',
+
+      'Periodic checkup': 'فحص دوري',
+      'Consultation': 'استشارة طبية',
+      'Cancelled by patient': 'ملغي من قبل المريض',
+      'Cancelled by clinic.': 'ملغي من قبل العيادة',
     },
   };
 }
@@ -5581,12 +5774,17 @@ class AppointmentsRepo {
     final response = await _api.getPastForChild(childId);
     return _parseResponse(response);
   }
+  Future<List<AppointmentsModel>> getAllCancelled() async {
+    final response = await _api.getAllCancelled();
+    return _parseResponse(response);
+  }
 }
 ```
 
 ### File: lib\core\repos\home\child_profile_repo.dart
 ```dart
 import 'dart:convert';
+import 'dart:io';
 import '../../../models/appointment/child_model.dart';
 import '../../apis/home/child_profile_api.dart';
 
@@ -5626,6 +5824,26 @@ class ChildProfileRepo {
       return;
     }
     throw Exception(body['message'] ?? 'Failed to delete child');
+  }
+
+  // ─── دالة التعديل الجديدة ───
+  Future<void> updateChild({
+    required int childId,
+    Map<String, String>? fields,
+    File? image,
+  }) async {
+    final response = await _api.updateChild(
+      childId: childId,
+      fields: fields,
+      image: image,
+    );
+
+    final body = json.decode(response);
+
+    // التحقق من نجاح العملية بناءً على الكلمة 'success' في رسالة السيرفر
+    if (body['message'] == null || !body['message'].toString().toLowerCase().contains('success')) {
+      throw Exception(body['message'] ?? 'Failed to update child profile');
+    }
   }
 }
 ```
@@ -6749,7 +6967,8 @@ class DoctorModel {
           json['department_name']?.toString() ??
           json['departmentName']?.toString() ??
           '',
-      profilePicture: json['profile_picture']?.toString(),
+      profilePicture:
+          json['profile_picture']?.toString() ?? json['image']?.toString(),
       department: json['department']?.toString() ?? '',
       isFavorite: favoriteValue,
     );
@@ -6985,7 +7204,7 @@ class WhoStandardModel {
 
 ### File: lib\models\home\appointments_model.dart
 ```dart
-import 'package:get/get.dart'; // ─── استيراد مكتبة Get ضروري لاستخدام .tr ───
+import 'package:get/get.dart';
 
 class AppointmentsModel {
   final int id;
@@ -6997,6 +7216,7 @@ class AppointmentsModel {
   final String? doctorImage;
 
   // الحقول الخاصة بالطفل
+  final int childId; // 👈 1. إضافة حقل childId هنا
   final String childName;
   final String? childImage;
 
@@ -7008,15 +7228,15 @@ class AppointmentsModel {
     required this.time,
     required this.status,
     this.doctorImage,
+    required this.childId, // 👈 2. إضافته للـ Constructor
     required this.childName,
     this.childImage,
   });
 
   factory AppointmentsModel.fromJson(Map<String, dynamic> json) {
-    // 1. استخراج بيانات الطبيب من الكائن المتداخل (Nested Object)
+    // 1. استخراج بيانات الطبيب
     final doctor = json['doctor'] as Map<String, dynamic>?;
 
-    // إضافة .tr للقيم الافتراضية
     final doctorName = doctor != null
         ? (doctor['full_name'] ?? 'Unknown Doctor'.tr)
         : (json['doctor_name'] ?? 'Unknown Doctor'.tr);
@@ -7027,34 +7247,37 @@ class AppointmentsModel {
 
     final doctorImage = doctor != null ? doctor['image'] : json['doctor_image'];
 
-    // 2. استخراج بيانات الطفل من الكائن المتداخل (Nested Object)
+    // 2. استخراج بيانات الطفل
     final child = json['child'] as Map<String, dynamic>?;
 
-    // إضافة .tr للقيم الافتراضية
     final childName = child != null
         ? (child['first_name'] ?? 'Unknown Child'.tr)
         : (json['child_name'] ?? 'Unknown Child'.tr);
 
     final childImage = child != null ? child['image'] : json['child_image'];
 
-    // 🌟 التعديل الجوهري هنا: تحصين الـ ID ضد أخطاء النوع (String vs Int)
+    // 👈 3. استخراج childId بأمان من الـ JSON المتداخل أو الخارجي
+    int parsedChildId = 0;
+    if (child != null && child['id'] != null) {
+      parsedChildId = int.tryParse(child['id'].toString()) ?? 0;
+    } else if (json['child_id'] != null) {
+      parsedChildId = int.tryParse(json['child_id'].toString()) ?? 0;
+    }
+
     int parsedId = 0;
     if (json['id'] != null) {
-      if (json['id'] is int) {
-        parsedId = json['id'];
-      } else {
-        parsedId = int.tryParse(json['id'].toString()) ?? 0;
-      }
+      parsedId = int.tryParse(json['id'].toString()) ?? 0;
     }
 
     return AppointmentsModel(
-      id: parsedId, // استخدام الـ ID الآمن
+      id: parsedId,
       doctorName: doctorName,
       specialty: specialty,
-      date: json['date']?.toString() ?? '', // تحصين التاريخ
-      time: json['time']?.toString() ?? '', // تحصين الوقت
+      date: json['date']?.toString() ?? '',
+      time: json['time']?.toString() ?? '',
       status: json['status']?.toString() ?? 'pending',
       doctorImage: doctorImage?.toString(),
+      childId: parsedChildId, // 👈 4. تمرير القيمة المستخرجة
       childName: childName,
       childImage: childImage?.toString(),
     );
@@ -7244,6 +7467,8 @@ class MedicalAssessmentModel {
   final String diagnosis;
   final String doctorNotes;
   final String doctorName;
+  final String? requiredTests;
+  final String? requiredImaging;
   final List<MedicationItemModel> medications;
 
   MedicalAssessmentModel({
@@ -7252,6 +7477,8 @@ class MedicalAssessmentModel {
     required this.diagnosis,
     required this.doctorNotes,
     required this.doctorName,
+    this.requiredTests,
+    this.requiredImaging,
     required this.medications,
   });
 
@@ -7263,7 +7490,6 @@ class MedicalAssessmentModel {
     final prescription = prescriptionJson['prescription'] ?? {};
     final doctor = prescription['doctor'] ?? {};
 
-    // تأمين جلب المصفوفة
     final medsList = prescription['medications'] as List? ?? [];
 
     return MedicalAssessmentModel(
@@ -7273,7 +7499,9 @@ class MedicalAssessmentModel {
       diagnosis: record['diagnosis']?.toString() ?? '',
       doctorNotes: record['doctor_notes']?.toString() ?? '',
       doctorName: doctor['name']?.toString() ?? '',
-      // تحويل كل عنصر بأمان
+      requiredTests: record['required_tests']?.toString(),
+      requiredImaging: record['required_imaging']?.toString(),
+
       medications: medsList
           .map((e) => MedicationItemModel.fromJson(e as Map<String, dynamic>))
           .toList(),
@@ -8200,7 +8428,7 @@ class _DoctorCard extends StatelessWidget {
                     (doctor.departmentName != null &&
                             doctor.departmentName!.isNotEmpty)
                         ? doctor.departmentName!.tr
-                        : '$specialty ${'Specialist'.tr}',
+                        : '${specialty.tr} ${'Specialist'.tr}',
                     style: TextStyle(
                       fontSize: 12.5,
                       // ─── نص التخصص متكيف ───
@@ -10801,15 +11029,12 @@ class AppointmentsView extends GetView<AppointmentsController> {
 
   @override
   Widget build(BuildContext context) {
-    final bool isSingleChild =
-        controller.childId != null && controller.childId != 0;
+    final bool isSingleChild = controller.childId != null && controller.childId != 0;
 
-    // ─── إحاطة الواجهة بـ PopScope للتحكم بزر الرجوع في النظام ───
     return PopScope(
-      canPop: false, // نمنع الرجوع الافتراضي
+      canPop: false,
       onPopInvokedWithResult: (bool didPop, Object? result) {
         if (didPop) return;
-        // ─── توجيه المستخدم للرئيسية عند ضغط زر الهاتف ───
         Get.offAllNamed('/home');
       },
       child: Scaffold(
@@ -10825,15 +11050,8 @@ class AppointmentsView extends GetView<AppointmentsController> {
             ),
           ),
           leading: IconButton(
-            icon: Icon(
-              Icons.arrow_back_ios,
-              color: context.iconColor,
-              size: 20,
-            ),
-            onPressed: () {
-              // ─── العودة إلى الرئيسية مباشرة من زر الواجهة ───
-              Get.offAllNamed('/home');
-            },
+            icon: Icon(Icons.arrow_back_ios, color: context.iconColor, size: 20),
+            onPressed: () => Get.offAllNamed('/home'),
           ),
         ),
         body: Column(
@@ -10844,7 +11062,7 @@ class AppointmentsView extends GetView<AppointmentsController> {
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: Obx(
-                () => Container(
+                    () => Container(
                   padding: const EdgeInsets.all(4),
                   decoration: BoxDecoration(
                     color: context.theme.cardColor,
@@ -10852,80 +11070,9 @@ class AppointmentsView extends GetView<AppointmentsController> {
                   ),
                   child: Row(
                     children: [
-                      Expanded(
-                        child: GestureDetector(
-                          onTap: () => controller.switchTab(true),
-                          child: AnimatedContainer(
-                            duration: const Duration(milliseconds: 200),
-                            padding: const EdgeInsets.symmetric(vertical: 12),
-                            decoration: BoxDecoration(
-                              color: controller.showUpcoming.value
-                                  ? context.theme.primaryColor
-                                  : Colors.transparent,
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(
-                                  Icons.calendar_month_outlined,
-                                  color: controller.showUpcoming.value
-                                      ? Colors.white
-                                      : context.textTheme.bodyMedium?.color,
-                                  size: 18,
-                                ),
-                                const SizedBox(width: 6),
-                                Text(
-                                  'Upcoming'.tr,
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    color: controller.showUpcoming.value
-                                        ? Colors.white
-                                        : context.textTheme.bodyMedium?.color,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
-                      Expanded(
-                        child: GestureDetector(
-                          onTap: () => controller.switchTab(false),
-                          child: AnimatedContainer(
-                            duration: const Duration(milliseconds: 200),
-                            padding: const EdgeInsets.symmetric(vertical: 12),
-                            decoration: BoxDecoration(
-                              color: !controller.showUpcoming.value
-                                  ? context.theme.primaryColor
-                                  : Colors.transparent,
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(
-                                  Icons.history_outlined,
-                                  color: !controller.showUpcoming.value
-                                      ? Colors.white
-                                      : context.textTheme.bodyMedium?.color,
-                                  size: 18,
-                                ),
-                                const SizedBox(width: 6),
-                                Text(
-                                  'Past'.tr,
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    color: !controller.showUpcoming.value
-                                        ? Colors.white
-                                        : context.textTheme.bodyMedium?.color,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
+                      _buildTab(context, 0, 'Upcoming'.tr, Icons.calendar_month_outlined),
+                      _buildTab(context, 1, 'Past'.tr, Icons.history_outlined),
+                      _buildTab(context, 2, 'Cancelled'.tr, Icons.cancel_outlined), // 👈 التبويب الثالث
                     ],
                   ),
                 ),
@@ -10933,77 +11080,104 @@ class AppointmentsView extends GetView<AppointmentsController> {
             ),
             const SizedBox(height: 16),
 
-            // ─── List مع ميزة التحديث بالسحب ───
+            // ─── List ───
             Expanded(
               child: Obx(() {
-                final list = controller.showUpcoming.value
+                final list = controller.selectedTab.value == 0
                     ? controller.upcoming
-                    : controller.past;
+                    : controller.selectedTab.value == 1
+                    ? controller.past
+                    : controller.cancelled;
 
-                // نظهر دائرة التحميل فقط إذا كانت القائمة فارغة (لتجنب اختفاء المواعيد عند التحديث اليدوي)
                 if (controller.isLoading && list.isEmpty) {
-                  return const Center(
-                    child: CircularProgressIndicator(color: Colors.blue),
-                  );
+                  return const Center(child: CircularProgressIndicator(color: Colors.blue));
                 }
 
                 return RefreshIndicator(
                   color: context.theme.primaryColor,
                   onRefresh: () async {
-                    if (controller.showUpcoming.value) {
-                      await controller.fetchUpcoming();
-                    } else {
-                      await controller.fetchPast();
-                    }
+                    if (controller.selectedTab.value == 0) await controller.fetchUpcoming();
+                    else if (controller.selectedTab.value == 1) await controller.fetchPast();
+                    else await controller.fetchCancelled();
                   },
                   child: list.isEmpty
                       ? SingleChildScrollView(
-                          physics: const AlwaysScrollableScrollPhysics(),
-                          child: Container(
-                            height: MediaQuery.of(context).size.height * 0.6,
-                            alignment: Alignment.center,
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(
-                                  Icons.calendar_today_outlined,
-                                  size: 60,
-                                  color: context.theme.dividerColor,
-                                ),
-                                const SizedBox(height: 12),
-                                Text(
-                                  'No appointments found'.tr,
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    color: context.textTheme.bodyMedium?.color,
-                                  ),
-                                ),
-                              ],
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    child: Container(
+                      height: MediaQuery.of(context).size.height * 0.6,
+                      alignment: Alignment.center,
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.event_busy_outlined,
+                            size: 60,
+                            color: context.theme.dividerColor,
+                          ),
+                          const SizedBox(height: 12),
+                          Text(
+                            'No appointments found'.tr,
+                            style: TextStyle(
+                              fontSize: 16,
+                              color: context.textTheme.bodyMedium?.color,
                             ),
                           ),
-                        )
+                        ],
+                      ),
+                    ),
+                  )
                       : ListView.separated(
-                          physics: const AlwaysScrollableScrollPhysics(),
-                          // ضروري لعمل السحب
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 20,
-                            vertical: 10,
-                          ),
-                          itemCount: list.length,
-                          separatorBuilder: (_, _) =>
-                              const SizedBox(height: 12),
-                          itemBuilder: (_, index) => _AppointmentCard(
-                            appointment: list[index],
-                            isSingleChild: isSingleChild,
-                            isUpcoming: controller
-                                .showUpcoming
-                                .value, // 👈 إرسال حالة التبويب للبطاقة
-                          ),
-                        ),
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                    itemCount: list.length,
+                    separatorBuilder: (_, _) => const SizedBox(height: 12),
+                    itemBuilder: (_, index) => _AppointmentCard(
+                      appointment: list[index],
+                      isSingleChild: isSingleChild,
+                      isUpcoming: controller.selectedTab.value == 0,
+                    ),
+                  ),
                 );
               }),
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  // 👈 دالة مساعدة لرسم التبويبات بأسلوب نظيف
+  Widget _buildTab(BuildContext context, int index, String title, IconData icon) {
+    final isSelected = controller.selectedTab.value == index;
+    return Expanded(
+      child: GestureDetector(
+        onTap: () => controller.switchTab(index),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          decoration: BoxDecoration(
+            color: isSelected ? context.theme.primaryColor : Colors.transparent,
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                icon,
+                color: isSelected ? Colors.white : context.textTheme.bodyMedium?.color,
+                size: 16, // تصغير الأيقونة قليلاً لتناسب 3 تبويبات
+              ),
+              const SizedBox(width: 4),
+              Text(
+                title,
+                style: TextStyle(
+                  fontSize: 13, // تصغير الخط قليلاً لتناسب 3 تبويبات
+                  fontWeight: FontWeight.bold,
+                  color: isSelected ? Colors.white : context.textTheme.bodyMedium?.color,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -11190,7 +11364,7 @@ class _AppointmentCard extends StatelessWidget {
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    appointment.specialty,
+                    appointment.specialty.tr,
                     style: TextStyle(
                       fontSize: 12,
                       color: context.textTheme.bodyMedium?.color,
@@ -11205,8 +11379,10 @@ class _AppointmentCard extends StatelessWidget {
         const SizedBox(height: 16),
         _buildDateTimeSection(context),
 
-        // 👈 هذا هو التعديل الجديد: زر عرض التقييم الطبي للمواعيد المكتملة
-        if (appointment.status.toLowerCase() == 'completed') ...[
+
+        if (appointment.status.toLowerCase() == 'completed' ||
+            appointment.status == 'مكتمل' ||
+            appointment.status == 'تم') ...[
           const SizedBox(height: 12),
           SizedBox(
             width: double.infinity,
@@ -11304,7 +11480,7 @@ class _AppointmentCard extends StatelessWidget {
                   ),
                   const SizedBox(height: 6),
                   Text(
-                    appointment.specialty,
+                    appointment.specialty.tr,
                     style: TextStyle(
                       fontSize: 13,
                       color: context.textTheme.bodyMedium?.color,
@@ -11318,8 +11494,11 @@ class _AppointmentCard extends StatelessWidget {
         const SizedBox(height: 16),
         _buildDateTimeSection(context),
 
-        // 👈 هذا هو التعديل الجديد: زر عرض التقييم الطبي للمواعيد المكتملة
-        if (appointment.status.toLowerCase() == 'completed') ...[
+
+
+        if (appointment.status.toLowerCase() == 'completed' ||
+            appointment.status == 'مكتمل' ||
+            appointment.status == 'تم') ...[
           const SizedBox(height: 12),
           SizedBox(
             width: double.infinity,
@@ -11464,10 +11643,14 @@ class _StatusPill extends StatelessWidget {
 
 ### File: lib\views\home\child_profile_view.dart
 ```dart
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:image_picker/image_picker.dart';
+
 import '../../controllers/home/child_profile_controller.dart';
 import '../../models/appointment/child_model.dart';
+import '../../widgets/custom_text_field.dart';
 import '../growth/child_growth_tab_view.dart';
 
 class ChildProfileView extends GetView<ChildProfileController> {
@@ -11478,7 +11661,6 @@ class ChildProfileView extends GetView<ChildProfileController> {
     final RxBool isGrowthTab = true.obs;
 
     return Scaffold(
-      // ❌ تم إزالة اللون الأبيض الثابت
       appBar: AppBar(
         elevation: 0,
         centerTitle: true,
@@ -11487,13 +11669,29 @@ class ChildProfileView extends GetView<ChildProfileController> {
           style: TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.bold,
-            color: context.textTheme.bodyLarge?.color, // ─── نص متكيف ───
+            color: context.textTheme.bodyLarge?.color,
           ),
         ),
         leading: IconButton(
           icon: Icon(Icons.arrow_back_ios, color: context.iconColor, size: 20),
           onPressed: () => Get.back(),
         ),
+        // ─── إضافة زر التعديل هنا ───
+        actions: [
+          IconButton(
+            icon: Icon(Icons.edit_outlined, color: context.theme.primaryColor),
+            onPressed: () {
+              final child = controller.child.value;
+              if (child != null) {
+                Get.bottomSheet(
+                  _EditChildSheet(child: child),
+                  isScrollControlled: true,
+                  backgroundColor: Colors.transparent,
+                );
+              }
+            },
+          ),
+        ],
       ),
       body: Obx(() {
         if (controller.isLoading) {
@@ -11526,7 +11724,7 @@ class ChildProfileView extends GetView<ChildProfileController> {
               child: Container(
                 padding: const EdgeInsets.all(4),
                 decoration: BoxDecoration(
-                  color: context.theme.cardColor, // ─── خلفية التابز متكيفة ───
+                  color: context.theme.cardColor,
                   borderRadius: BorderRadius.circular(14),
                 ),
                 child: Row(
@@ -11535,7 +11733,7 @@ class ChildProfileView extends GetView<ChildProfileController> {
                       child: GestureDetector(
                         onTap: () => isGrowthTab.value = true,
                         child: Obx(
-                          () => AnimatedContainer(
+                              () => AnimatedContainer(
                             duration: const Duration(milliseconds: 200),
                             padding: const EdgeInsets.symmetric(vertical: 12),
                             decoration: BoxDecoration(
@@ -11575,7 +11773,7 @@ class ChildProfileView extends GetView<ChildProfileController> {
                       child: GestureDetector(
                         onTap: () => isGrowthTab.value = false,
                         child: Obx(
-                          () => AnimatedContainer(
+                              () => AnimatedContainer(
                             duration: const Duration(milliseconds: 200),
                             padding: const EdgeInsets.symmetric(vertical: 12),
                             decoration: BoxDecoration(
@@ -11669,64 +11867,56 @@ class ChildProfileView extends GetView<ChildProfileController> {
                           height: 54,
                           child: ElevatedButton.icon(
                             onPressed: controller.isLoading
-                                ? null // تعطيل الزر إذا كان التطبيق في حالة تحميل
+                                ? null
                                 : () => Get.dialog(
-                                    AlertDialog(
-                                      backgroundColor: context.theme.cardColor,
-                                      title: Text(
-                                        'Delete Child'.tr,
-                                        style: TextStyle(
-                                          color: context
-                                              .textTheme
-                                              .bodyLarge
-                                              ?.color,
-                                        ),
+                              AlertDialog(
+                                backgroundColor: context.theme.cardColor,
+                                title: Text(
+                                  'Delete Child'.tr,
+                                  style: TextStyle(
+                                    color: context.textTheme.bodyLarge?.color,
+                                  ),
+                                ),
+                                content: Text(
+                                  'Are you sure you want to delete this child profile? This action cannot be undone.'.tr,
+                                  style: TextStyle(
+                                    color: context.textTheme.bodyMedium?.color,
+                                  ),
+                                ),
+                                actions: [
+                                  TextButton(
+                                    onPressed: () => Get.back(),
+                                    child: Text('Cancel'.tr),
+                                  ),
+                                  TextButton(
+                                    onPressed: () {
+                                      Get.back();
+                                      controller.deleteCurrentChild();
+                                    },
+                                    child: Text(
+                                      'Delete'.tr,
+                                      style: const TextStyle(
+                                        color: Colors.red,
+                                        fontWeight: FontWeight.bold,
                                       ),
-                                      content: Text(
-                                        'Are you sure you want to delete this child profile? This action cannot be undone.'
-                                            .tr,
-                                        style: TextStyle(
-                                          color: context
-                                              .textTheme
-                                              .bodyMedium
-                                              ?.color,
-                                        ),
-                                      ),
-                                      actions: [
-                                        TextButton(
-                                          onPressed: () => Get.back(),
-                                          child: Text('Cancel'.tr),
-                                        ),
-                                        TextButton(
-                                          onPressed: () {
-                                            Get.back(); // إغلاق الـ Dialog
-                                            controller
-                                                .deleteCurrentChild(); // تنفيذ دالة الحذف المعدلة
-                                          },
-                                          child: Text(
-                                            'Delete'.tr,
-                                            style: const TextStyle(
-                                              color: Colors.red,
-                                              fontWeight: FontWeight.bold,
-                                            ),
-                                          ),
-                                        ),
-                                      ],
                                     ),
                                   ),
+                                ],
+                              ),
+                            ),
                             icon: controller.isLoading
                                 ? const SizedBox(
-                                    width: 20,
-                                    height: 20,
-                                    child: CircularProgressIndicator(
-                                      color: Colors.white,
-                                      strokeWidth: 2,
-                                    ),
-                                  )
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(
+                                color: Colors.white,
+                                strokeWidth: 2,
+                              ),
+                            )
                                 : const Icon(
-                                    Icons.delete_outline,
-                                    color: Colors.white,
-                                  ),
+                              Icons.delete_outline,
+                              color: Colors.white,
+                            ),
                             label: Text(
                               controller.isLoading
                                   ? 'Deleting...'.tr
@@ -11762,6 +11952,393 @@ class ChildProfileView extends GetView<ChildProfileController> {
   }
 }
 
+
+class _EditChildSheet extends StatefulWidget {
+  final ChildModel child;
+  const _EditChildSheet({required this.child});
+
+  @override
+  State<_EditChildSheet> createState() => _EditChildSheetState();
+}
+
+class _EditChildSheetState extends State<_EditChildSheet> {
+  late TextEditingController _firstNameController;
+  late TextEditingController _lastNameController;
+  late TextEditingController _medicalHistoryController;
+  late TextEditingController _allergiesController;
+
+  String _selectedGender = 'male';
+  String _selectedBloodType = '';
+  String _selectedBirthDate = '';
+  File? _selectedImage;
+
+  final List<String> bloodTypes = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
+
+  @override
+  void initState() {
+    super.initState();
+    _firstNameController = TextEditingController(text: widget.child.firstName);
+    _lastNameController = TextEditingController(text: widget.child.lastName);
+    _medicalHistoryController = TextEditingController(text: widget.child.medicalHistory ?? '');
+    _allergiesController = TextEditingController(text: widget.child.allergies ?? '');
+
+    _selectedGender = widget.child.gender.toLowerCase() == 'female' ? 'female' : 'male';
+    _selectedBloodType = widget.child.bloodType ?? '';
+
+    final d = widget.child.birthDate;
+    _selectedBirthDate = '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
+  }
+
+  @override
+  void dispose() {
+    _firstNameController.dispose();
+    _lastNameController.dispose();
+    _medicalHistoryController.dispose();
+    _allergiesController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _pickImage() async {
+    final picker = ImagePicker();
+    final picked = await picker.pickImage(source: ImageSource.gallery, imageQuality: 80);
+    if (picked != null) {
+      setState(() => _selectedImage = File(picked.path));
+    }
+  }
+
+  Future<void> _pickBirthDate(BuildContext context) async {
+    final now = DateTime.now();
+    final earliestAllowedDate = DateTime(now.year - 6, now.month, now.day);
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: widget.child.birthDate.isBefore(earliestAllowedDate) ? earliestAllowedDate : widget.child.birthDate,
+      firstDate: earliestAllowedDate,
+      lastDate: now,
+    );
+    if (picked != null) {
+      setState(() {
+        _selectedBirthDate = '${picked.year}-${picked.month.toString().padLeft(2, '0')}-${picked.day.toString().padLeft(2, '0')}';
+      });
+    }
+  }
+
+  void _onSave() {
+    final controller = Get.find<ChildProfileController>();
+    controller.updateChildData(
+      fields: {
+        'first_name': _firstNameController.text.trim(),
+        'last_name': _lastNameController.text.trim(),
+        'gender': _selectedGender,
+        'birth_date': _selectedBirthDate,
+        'blood_type': _selectedBloodType,
+        'medical_history': _medicalHistoryController.text.trim(),
+        'allergies': _allergiesController.text.trim(),
+      },
+      image: _selectedImage,
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    // 🌟 إعطاء النافذة ارتفاع ثابت (85% من الشاشة) لحماية التصميم من الانضغاط
+    final sheetHeight = MediaQuery.of(context).size.height * 0.85;
+
+    return Container(
+      height: sheetHeight,
+      decoration: BoxDecoration(
+        color: context.theme.scaffoldBackgroundColor,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      child: Column(
+        children: [
+          // ─── القسم العلوي الثابت (لا يتأثر بالتمرير) ───
+          const SizedBox(height: 16),
+          Container(
+            width: 40,
+            height: 5,
+            decoration: BoxDecoration(
+              color: context.theme.dividerColor,
+              borderRadius: BorderRadius.circular(10),
+            ),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            'Edit Profile'.tr,
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: context.textTheme.bodyLarge?.color,
+            ),
+          ),
+          const SizedBox(height: 16),
+
+          // ─── القسم القابل للتمرير (يحتوي على مساحة ديناميكية للوحة المفاتيح) ───
+          Expanded(
+            child: SingleChildScrollView(
+              padding: EdgeInsets.only(
+                left: 20,
+                right: 20,
+                top: 8,
+                // 🌟 هذا السطر يرفع المحتوى للأعلى تلقائياً عند ظهور لوحة المفاتيح
+                bottom: MediaQuery.of(context).viewInsets.bottom + 24,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // تعديل الصورة
+                  Center(
+                    child: GestureDetector(
+                      onTap: _pickImage,
+                      child: Stack(
+                        children: [
+                          CircleAvatar(
+                            radius: 45,
+                            backgroundColor: context.theme.cardColor,
+                            backgroundImage: _selectedImage != null
+                                ? FileImage(_selectedImage!) as ImageProvider
+                                : (widget.child.image != null && widget.child.image!.isNotEmpty
+                                ? NetworkImage(widget.child.image!)
+                                : null),
+                            child: _selectedImage == null && (widget.child.image == null || widget.child.image!.isEmpty)
+                                ? Icon(Icons.person, color: context.theme.dividerColor, size: 50)
+                                : null,
+                          ),
+                          Positioned(
+                            bottom: 0,
+                            right: 0,
+                            child: Container(
+                              padding: const EdgeInsets.all(6),
+                              decoration: BoxDecoration(
+                                color: context.theme.primaryColor,
+                                shape: BoxShape.circle,
+                                border: Border.all(color: context.theme.scaffoldBackgroundColor, width: 2),
+                              ),
+                              child: const Icon(Icons.camera_alt, color: Colors.white, size: 16),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+
+                  // الاسم الأول والأخير
+                  Row(
+                    children: [
+                      Expanded(
+                        child: CustomTextField(
+                          controller: _firstNameController,
+                          hintText: 'First Name'.tr,
+                          label: 'First Name'.tr,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: CustomTextField(
+                          controller: _lastNameController,
+                          hintText: 'Last Name'.tr,
+                          label: 'Last Name'.tr,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+
+                  // الجنس
+                  Text(
+                    'Gender'.tr,
+                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: context.textTheme.bodyLarge?.color),
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: GestureDetector(
+                          onTap: () => setState(() => _selectedGender = 'female'),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            decoration: BoxDecoration(
+                              color: _selectedGender == 'female'
+                                  ? (context.isDarkMode ? Colors.pinkAccent.withValues(alpha: 0.15) : const Color(0xFFFCE4EC))
+                                  : context.theme.cardColor,
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: _selectedGender == 'female' ? Colors.pinkAccent : context.theme.dividerColor,
+                              ),
+                            ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(Icons.face_3, color: _selectedGender == 'female' ? Colors.pinkAccent : Colors.grey, size: 20),
+                                const SizedBox(width: 6),
+                                Text('Female'.tr, style: TextStyle(color: _selectedGender == 'female' ? Colors.pinkAccent : Colors.grey, fontWeight: FontWeight.bold)),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: GestureDetector(
+                          onTap: () => setState(() => _selectedGender = 'male'),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            decoration: BoxDecoration(
+                              color: _selectedGender == 'male'
+                                  ? (context.isDarkMode ? Colors.blue.withValues(alpha: 0.15) : const Color(0xFFE3F2FD))
+                                  : context.theme.cardColor,
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: _selectedGender == 'male' ? Colors.blue : context.theme.dividerColor,
+                              ),
+                            ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(Icons.face, color: _selectedGender == 'male' ? Colors.blue : Colors.grey, size: 20),
+                                const SizedBox(width: 6),
+                                Text('Male'.tr, style: TextStyle(color: _selectedGender == 'male' ? Colors.blue : Colors.grey, fontWeight: FontWeight.bold)),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+
+                  // تاريخ الميلاد
+                  Text(
+                    'Birth Date'.tr,
+                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: context.textTheme.bodyLarge?.color),
+                  ),
+                  const SizedBox(height: 8),
+                  GestureDetector(
+                    onTap: () => _pickBirthDate(context),
+                    child: Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
+                      decoration: BoxDecoration(
+                        color: context.theme.cardColor,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: context.theme.dividerColor),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            _selectedBirthDate,
+                            style: TextStyle(fontSize: 14, color: context.textTheme.bodyLarge?.color),
+                          ),
+                          const Icon(Icons.calendar_today_outlined, color: Colors.blue, size: 20),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+
+                  // فصيلة الدم
+                  Text(
+                    'Blood Type'.tr,
+                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: context.textTheme.bodyLarge?.color),
+                  ),
+                  const SizedBox(height: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    decoration: BoxDecoration(
+                      color: context.theme.cardColor,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: context.theme.dividerColor),
+                    ),
+                    child: DropdownButtonHideUnderline(
+                      child: DropdownButton<String>(
+                        isExpanded: true,
+                        dropdownColor: context.theme.cardColor,
+                        value: _selectedBloodType.isEmpty ? null : _selectedBloodType,
+                        hint: Text('Select blood type'.tr, style: TextStyle(color: context.textTheme.bodyMedium?.color, fontSize: 14)),
+                        items: bloodTypes.map((type) => DropdownMenuItem(
+                          value: type,
+                          child: Text(type, style: TextStyle(color: context.textTheme.bodyLarge?.color)),
+                        )).toList(),
+                        onChanged: (val) {
+                          if (val != null) setState(() => _selectedBloodType = val);
+                        },
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+
+                  // التاريخ الطبي
+                  Text(
+                    'Medical History'.tr,
+                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: context.textTheme.bodyLarge?.color),
+                  ),
+                  const SizedBox(height: 8),
+                  TextField(
+                    controller: _medicalHistoryController,
+                    maxLines: 2,
+                    style: TextStyle(color: context.textTheme.bodyLarge?.color),
+                    decoration: InputDecoration(
+                      hintText: "Enter child's medical history".tr,
+                      hintStyle: TextStyle(color: context.textTheme.bodyMedium?.color, fontSize: 13),
+                      filled: true,
+                      fillColor: context.theme.cardColor,
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: context.theme.dividerColor)),
+                      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: context.theme.dividerColor)),
+                      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Colors.blue, width: 2)),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+
+                  // الحساسية
+                  Text(
+                    'Allergies'.tr,
+                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: context.textTheme.bodyLarge?.color),
+                  ),
+                  const SizedBox(height: 8),
+                  TextField(
+                    controller: _allergiesController,
+                    maxLines: 2,
+                    style: TextStyle(color: context.textTheme.bodyLarge?.color),
+                    decoration: InputDecoration(
+                      hintText: "Enter any allergies the child has".tr,
+                      hintStyle: TextStyle(color: context.textTheme.bodyMedium?.color, fontSize: 13),
+                      filled: true,
+                      fillColor: context.theme.cardColor,
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: context.theme.dividerColor)),
+                      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: context.theme.dividerColor)),
+                      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Colors.blue, width: 2)),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+
+                  // زر الحفظ
+                  SizedBox(
+                    width: double.infinity,
+                    height: 54,
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: context.theme.primaryColor,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                      ),
+                      onPressed: _onSave,
+                      child: Text(
+                        'Save'.tr,
+                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ─── باقي الأكواد المساعدة الخاصة بالواجهة لم يتم المساس بها ───
 class _InfoCard extends StatelessWidget {
   final ChildModel child;
 
@@ -11773,9 +12350,8 @@ class _InfoCard extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        // ─── لون الخلفية متكيف (أخضر خفيف جداً ليلاً ونهاراً) ───
         color: context.isDarkMode
-            ? Colors.green.withOpacity(0.15)
+            ? Colors.green.withValues(alpha: 0.15)
             : const Color(0xFFE8F5E9),
         borderRadius: BorderRadius.circular(20),
       ),
@@ -11788,11 +12364,7 @@ class _InfoCard extends StatelessWidget {
                 ? NetworkImage(child.image!)
                 : null,
             child: (child.image == null || child.image!.isEmpty)
-                ? Icon(
-                    Icons.person,
-                    color: context.theme.dividerColor,
-                    size: 55,
-                  )
+                ? Icon(Icons.person, color: context.theme.dividerColor, size: 55)
                 : null,
           ),
           const SizedBox(width: 20),
@@ -11822,15 +12394,13 @@ class _InfoCard extends StatelessWidget {
                 Row(
                   children: [
                     Icon(
-                      child.gender.toLowerCase() == 'female'
-                          ? Icons.female
-                          : Icons.male,
+                      child.gender.toLowerCase() == 'female' ? Icons.female : Icons.male,
                       color: Colors.green,
                       size: 18,
                     ),
                     const SizedBox(width: 4),
                     Text(
-                      child.gender.capitalizeFirst ?? '',
+                      child.gender.tr.capitalizeFirst ?? '',
                       style: const TextStyle(fontSize: 16, color: Colors.green),
                     ),
                   ],
@@ -11861,7 +12431,7 @@ class _StatsCard extends StatelessWidget {
           BoxShadow(
             color: context.isDarkMode
                 ? Colors.transparent
-                : Colors.black.withOpacity(0.04),
+                : Colors.black.withValues(alpha: 0.04),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -11890,7 +12460,7 @@ class _StatsCard extends StatelessWidget {
               icon: child.gender.toLowerCase() == 'female'
                   ? Icons.female
                   : Icons.male,
-              value: child.gender.capitalizeFirst ?? '',
+              value: child.gender.tr.capitalizeFirst ?? '',
               label: 'Gender'.tr,
             ),
           ),
@@ -11963,7 +12533,7 @@ class _DataCard extends StatelessWidget {
           BoxShadow(
             color: context.isDarkMode
                 ? Colors.transparent
-                : Colors.black.withOpacity(0.04),
+                : Colors.black.withValues(alpha: 0.04),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -12031,7 +12601,7 @@ class _ActionButton extends StatelessWidget {
             BoxShadow(
               color: context.isDarkMode
                   ? Colors.transparent
-                  : Colors.black.withOpacity(0.04),
+                  : Colors.black.withValues(alpha: 0.04),
               blurRadius: 10,
               offset: const Offset(0, 4),
             ),
@@ -12065,7 +12635,6 @@ class _ActionButton extends StatelessWidget {
     );
   }
 }
-
 ```
 
 ### File: lib\views\home\home_view.dart
@@ -13557,7 +14126,9 @@ class CheckoutSummaryView extends GetView<PaymentController> {
       ),
       body: Obx(() {
         if (controller.isDetailsLoading.value) {
-          return Center(child: CircularProgressIndicator(color: context.theme.primaryColor));
+          return Center(
+            child: CircularProgressIndicator(color: context.theme.primaryColor),
+          );
         }
 
         final summary = controller.appointmentSummary.value;
@@ -13576,7 +14147,10 @@ class CheckoutSummaryView extends GetView<PaymentController> {
             // 1. الجزء القابل للتمرير (المحتوى)
             Expanded(
               child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 10.0),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20.0,
+                  vertical: 10.0,
+                ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -13584,9 +14158,13 @@ class CheckoutSummaryView extends GetView<PaymentController> {
                     Container(
                       padding: const EdgeInsets.all(20),
                       decoration: BoxDecoration(
-                        color: context.isDarkMode ? context.theme.cardColor : const Color(0xFFEDF6FF),
+                        color: context.isDarkMode
+                            ? context.theme.cardColor
+                            : const Color(0xFFEDF6FF),
                         borderRadius: BorderRadius.circular(16),
-                        border: context.isDarkMode ? Border.all(color: context.theme.dividerColor) : null,
+                        border: context.isDarkMode
+                            ? Border.all(color: context.theme.dividerColor)
+                            : null,
                       ),
                       child: Column(
                         children: [
@@ -13595,16 +14173,21 @@ class CheckoutSummaryView extends GetView<PaymentController> {
                             children: [
                               CircleAvatar(
                                 radius: 26,
-                                backgroundColor: context.isDarkMode ? Colors.purple.withOpacity(0.15) : Colors.purple.shade100,
-                                backgroundImage: summary.patientImageUrl.isNotEmpty
+                                backgroundColor: context.isDarkMode
+                                    ? Colors.purple.withOpacity(0.15)
+                                    : Colors.purple.shade100,
+                                backgroundImage:
+                                    summary.patientImageUrl.isNotEmpty
                                     ? NetworkImage(summary.patientImageUrl)
                                     : null,
                                 child: summary.patientImageUrl.isEmpty
                                     ? Icon(
-                                  Icons.person,
-                                  color: context.isDarkMode ? Colors.purpleAccent : Colors.purple.shade700,
-                                  size: 30,
-                                )
+                                        Icons.person,
+                                        color: context.isDarkMode
+                                            ? Colors.purpleAccent
+                                            : Colors.purple.shade700,
+                                        size: 30,
+                                      )
                                     : null,
                               ),
                               const SizedBox(width: 16),
@@ -13617,14 +14200,16 @@ class CheckoutSummaryView extends GetView<PaymentController> {
                                       style: TextStyle(
                                         fontWeight: FontWeight.bold,
                                         fontSize: 18,
-                                        color: context.textTheme.bodyLarge?.color,
+                                        color:
+                                            context.textTheme.bodyLarge?.color,
                                       ),
                                     ),
                                     const SizedBox(height: 4),
                                     Text(
                                       '${summary.patientAge} ${summary.ageType.tr}',
                                       style: TextStyle(
-                                        color: context.textTheme.bodyMedium?.color,
+                                        color:
+                                            context.textTheme.bodyMedium?.color,
                                         fontSize: 14,
                                       ),
                                     ),
@@ -13633,19 +14218,26 @@ class CheckoutSummaryView extends GetView<PaymentController> {
                                       children: [
                                         CircleAvatar(
                                           radius: 12,
-                                          backgroundColor: context.isDarkMode ? Colors.blue.withOpacity(0.15) : Colors.blue.shade100,
+                                          backgroundColor: context.isDarkMode
+                                              ? Colors.blue.withOpacity(0.15)
+                                              : Colors.blue.shade100,
                                           child: Icon(
                                             Icons.medical_services,
                                             size: 14,
-                                            color: context.isDarkMode ? Colors.blueAccent : Colors.blue,
+                                            color: context.isDarkMode
+                                                ? Colors.blueAccent
+                                                : Colors.blue,
                                           ),
                                         ),
                                         const SizedBox(width: 8),
                                         Expanded(
                                           child: Text(
-                                            '${summary.doctorName} - ${summary.departmentName}',
+                                            '${summary.doctorName} - ${summary.departmentName.tr}',
                                             style: TextStyle(
-                                              color: context.textTheme.bodyLarge?.color,
+                                              color: context
+                                                  .textTheme
+                                                  .bodyLarge
+                                                  ?.color,
                                               fontSize: 13,
                                               fontWeight: FontWeight.w600,
                                             ),
@@ -13676,7 +14268,7 @@ class CheckoutSummaryView extends GetView<PaymentController> {
                           const SizedBox(height: 12),
                           PaymentSummaryRow(
                             label: 'Consultation Fee'.tr,
-                            value: '${summary.price} ${summary.currency}',
+                            value: '${summary.price} ${summary.currency.tr}',
                           ),
                           Divider(
                             height: 30,
@@ -13685,7 +14277,7 @@ class CheckoutSummaryView extends GetView<PaymentController> {
                           ),
                           PaymentSummaryRow(
                             label: 'Total'.tr,
-                            value: '${summary.price} ${summary.currency}',
+                            value: '${summary.price} ${summary.currency.tr}',
                             isTotal: true,
                           ),
                         ],
@@ -13730,7 +14322,10 @@ class CheckoutSummaryView extends GetView<PaymentController> {
                                 height: 24,
                               ),
                               const SizedBox(width: 8),
-                              Image.asset('assets/images/visa_logo.png', height: 18),
+                              Image.asset(
+                                'assets/images/visa_logo.png',
+                                height: 18,
+                              ),
                             ],
                           ),
                         ),
@@ -13775,7 +14370,7 @@ class CheckoutSummaryView extends GetView<PaymentController> {
                         color: Colors.black.withOpacity(0.05),
                         blurRadius: 10,
                         offset: const Offset(0, -4),
-                      )
+                      ),
                   ],
                 ),
                 child: SizedBox(
@@ -13795,13 +14390,13 @@ class CheckoutSummaryView extends GetView<PaymentController> {
                     child: controller.isLoading.value
                         ? const CircularProgressIndicator(color: Colors.white)
                         : Text(
-                      'Pay'.tr + ' ${summary.price} ${summary.currency}',
-                      style: const TextStyle(
-                        fontSize: 18,
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
+                            '${'Pay'.tr} ${summary.price} ${summary.currency.tr}',
+                            style: const TextStyle(
+                              fontSize: 18,
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
                   ),
                 ),
               ),
@@ -13812,6 +14407,7 @@ class CheckoutSummaryView extends GetView<PaymentController> {
     );
   }
 }
+
 ```
 
 ### File: lib\views\payment\payment_method_view.dart
@@ -14116,8 +14712,39 @@ class PrescriptionView extends GetView<PrescriptionController> {
             children: [
               _buildDoctorHeader(context, data.doctorName),
               const SizedBox(height: 20),
-              _buildDiagnosisCard(context, data.diagnosis, data.doctorNotes),
+
+              _buildDiagnosisCard(
+                context,
+                data.diagnosis.tr,
+                data.doctorNotes.tr,
+              ),
+
+              if (data.requiredTests != null &&
+                  data.requiredTests!.isNotEmpty) ...[
+                const SizedBox(height: 16),
+                _buildExtraInfoCard(
+                  context,
+                  title: 'Required Tests'.tr,
+                  content: data.requiredTests!.tr,
+                  icon: Icons.biotech_outlined,
+                  iconColor: Colors.purple,
+                ),
+              ],
+
+              if (data.requiredImaging != null &&
+                  data.requiredImaging!.isNotEmpty) ...[
+                const SizedBox(height: 16),
+                _buildExtraInfoCard(
+                  context,
+                  title: 'Required Imaging'.tr,
+                  content: data.requiredImaging!.tr,
+                  icon: Icons.image_outlined,
+                  iconColor: Colors.orange,
+                ),
+              ],
+
               const SizedBox(height: 20),
+
               Text(
                 'Prescribed Medications'.tr,
                 style: context.theme.textTheme.titleMedium?.copyWith(
@@ -14127,7 +14754,7 @@ class PrescriptionView extends GetView<PrescriptionController> {
               ),
               const SizedBox(height: 12),
 
-              // 👈 معالجة عرض الأدوية أو رسالة "لا يوجد"
+              // معالجة عرض الأدوية أو رسالة "لا يوجد"
               if (data.medications.isEmpty)
                 Container(
                   width: double.infinity,
@@ -14243,7 +14870,7 @@ class PrescriptionView extends GetView<PrescriptionController> {
           ),
           const SizedBox(height: 12),
           Text(
-            diagnosis.isNotEmpty ? diagnosis : 'No diagnosis recorded'.tr,
+            diagnosis.isNotEmpty ? diagnosis.tr : 'No diagnosis recorded'.tr,
             style: TextStyle(
               color: context.textTheme.bodyLarge?.color,
               height: 1.5,
@@ -14271,7 +14898,7 @@ class PrescriptionView extends GetView<PrescriptionController> {
             ),
             const SizedBox(height: 12),
             Text(
-              notes,
+              notes.tr,
               style: TextStyle(color: context.theme.hintColor, height: 1.5),
             ),
           ],
@@ -14280,16 +14907,14 @@ class PrescriptionView extends GetView<PrescriptionController> {
     );
   }
 
-  // 👈 هنا بطاقة الدواء مصممة بعناية وتعمل بدون أخطاء
+  // بطاقة الدواء
   Widget _buildMedicationCard(BuildContext context, MedicationItemModel med) {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
-      // 👈 التعديل الأول: تفعيل قص الحواف للحاوية الخارجية
       clipBehavior: Clip.hardEdge,
       decoration: BoxDecoration(
         color: context.theme.cardColor,
         borderRadius: BorderRadius.circular(16),
-        // 👈 التعديل الثاني: إطار موحد يمنع الكراش
         border: Border.all(
           color: context.theme.dividerColor.withValues(alpha: 0.3),
         ),
@@ -14301,7 +14926,6 @@ class PrescriptionView extends GetView<PrescriptionController> {
           ),
         ],
       ),
-      // 👈 التعديل الثالث: حاوية داخلية لرسم الخط الجانبي بأمان
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
@@ -14407,6 +15031,56 @@ class PrescriptionView extends GetView<PrescriptionController> {
                   ),
                 ),
               ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildExtraInfoCard(
+    BuildContext context, {
+    required String title,
+    required String content,
+    required IconData icon,
+    required Color iconColor,
+  }) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: context.theme.cardColor,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: context.theme.dividerColor.withOpacity(0.1)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: iconColor.withOpacity(0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(icon, color: iconColor, size: 20),
+              ),
+              const SizedBox(width: 12),
+              Text(
+                title,
+                style: context.theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text(
+            content.tr,
+            style: context.theme.textTheme.bodyMedium?.copyWith(
+              height: 1.5,
+              color: context.textTheme.bodyLarge?.color,
             ),
           ),
         ],
@@ -14687,14 +15361,14 @@ class SettingsView extends StatelessWidget {
                   subtitle: '${'version'.tr} 1.0.0',
                   onTap: () {},
                 ),
-                SettingsTile(
-                  icon: Icons.delete_forever_rounded,
-                  title: 'Delete account'.tr,
-                  subtitle: 'Permanently delete your account from the app'.tr,
-                  isLogout: true,
-                  showDivider: false,
-                  onTap: () => controller.deleteAccount(),
-                ),
+                // SettingsTile(
+                //   icon: Icons.delete_forever_rounded,
+                //   title: 'Delete account'.tr,
+                //   subtitle: 'Permanently delete your account from the app'.tr,
+                //   isLogout: true,
+                //   showDivider: false,
+                //   onTap: () => controller.deleteAccount(),
+                // ),
               ],
             ),
             const SizedBox(height: 30),
@@ -15821,10 +16495,9 @@ class GrowthChartWidget extends StatelessWidget {
       height: 320,
       padding: const EdgeInsets.fromLTRB(12, 20, 20, 12),
       decoration: BoxDecoration(
-        // ─── لون خلفية البطاقة متكيف ───
         color: context.theme.cardColor,
         borderRadius: BorderRadius.circular(20),
-        // ─── لون إطار البطاقة متكيف ───
+
         border: Border.all(color: context.theme.dividerColor),
       ),
       child: Column(
@@ -15907,8 +16580,9 @@ class GrowthChartWidget extends StatelessWidget {
         show: true,
         drawVerticalLine: true,
         horizontalInterval: 5,
-        verticalInterval: 6,
-        // ─── ألوان خطوط الشبكة الأفقية والعمودية متكيفة ───
+
+        verticalInterval: (data.currentAgeMonths > 24) ? 12 : 6,
+
         getDrawingHorizontalLine: (value) =>
             FlLine(color: context.theme.dividerColor, strokeWidth: 1),
         getDrawingVerticalLine: (value) =>
@@ -15925,7 +16599,7 @@ class GrowthChartWidget extends StatelessWidget {
             'Age (Months)'.tr,
             style: TextStyle(
               fontSize: 11,
-              // ─── لون عناوين المحاور متكيف ───
+
               color: context.textTheme.bodyMedium?.color,
               fontWeight: FontWeight.bold,
             ),
@@ -15933,13 +16607,17 @@ class GrowthChartWidget extends StatelessWidget {
           axisNameSize: 20,
           sideTitles: SideTitles(
             showTitles: true,
-            interval: 6,
+
+            interval: (data.currentAgeMonths > 24) ? 12 : 6,
             getTitlesWidget: (value, meta) => Padding(
               padding: const EdgeInsets.only(top: 6),
               child: Text(
                 value.toInt().toString(),
-                // ─── أرقام المحاور متكيفة ───
-                style: TextStyle(color: context.textTheme.bodyMedium?.color, fontSize: 11),
+
+                style: TextStyle(
+                  color: context.textTheme.bodyMedium?.color,
+                  fontSize: 11,
+                ),
               ),
             ),
           ),
@@ -15949,7 +16627,7 @@ class GrowthChartWidget extends StatelessWidget {
             'Weight (kg)'.tr,
             style: TextStyle(
               fontSize: 11,
-              // ─── لون عناوين المحاور متكيف ───
+
               color: context.textTheme.bodyMedium?.color,
               fontWeight: FontWeight.bold,
             ),
@@ -15960,15 +16638,21 @@ class GrowthChartWidget extends StatelessWidget {
             interval: 5,
             getTitlesWidget: (value, meta) => Text(
               value.toInt().toString(),
-              // ─── أرقام المحاور متكيفة ───
-              style: TextStyle(color: context.textTheme.bodyMedium?.color, fontSize: 11),
+
+              style: TextStyle(
+                color: context.textTheme.bodyMedium?.color,
+                fontSize: 11,
+              ),
             ),
           ),
         ),
       ),
       borderData: FlBorderData(show: false),
       minX: 0,
-      maxX: calculatedMaxX,
+
+      maxX: data.currentAgeMonths > 24
+          ? data.currentAgeMonths.toDouble()
+          : 24.0,
       minY: 0,
       maxY: calculatedMaxY,
       lineBarsData: [
@@ -16006,6 +16690,7 @@ class GrowthChartWidget extends StatelessWidget {
           color: Colors.blue.shade700,
           barWidth: 3.5,
           isStrokeCapRound: true,
+
           dotData: FlDotData(
             show: true,
             getDotPainter: (spot, percent, barData, index) =>
@@ -16013,7 +16698,7 @@ class GrowthChartWidget extends StatelessWidget {
                   radius: 5,
                   color: Colors.blue.shade800,
                   strokeWidth: 2,
-                  // ─── لون الإطار الأبيض للنقطة يصبح متكيفاً ───
+
                   strokeColor: context.theme.cardColor,
                 ),
           ),
@@ -16021,8 +16706,14 @@ class GrowthChartWidget extends StatelessWidget {
       ],
       lineTouchData: LineTouchData(
         touchTooltipData: LineTouchTooltipData(
-          // ─── لون نافذة التلميح متكيف (أفتح قليلاً في الوضع الليلي) ───
-          getTooltipColor: (touchedSpot) => context.isDarkMode ? const Color(0xFF303030) : const Color(0xFF212121),
+          fitInsideHorizontally: true,
+
+          fitInsideVertically: true,
+
+          tooltipMargin: 8,
+          getTooltipColor: (touchedSpot) => context.isDarkMode
+              ? const Color(0xFF303030)
+              : const Color(0xFF212121),
           getTooltipItems: (List<LineBarSpot> touchedSpots) {
             return touchedSpots.map((barSpot) {
               if (barSpot.barIndex == 3) {
@@ -16069,7 +16760,7 @@ class _LegendItem extends StatelessWidget {
           Row(
             children: List.generate(
               3,
-                  (index) => Container(
+              (index) => Container(
                 width: 5,
                 height: 2,
                 margin: const EdgeInsets.symmetric(horizontal: 1),
@@ -17284,14 +17975,28 @@ class HistoryVaccinesList extends GetView<VaccinesController> {
 
 class _HistoryCard extends StatelessWidget {
   final VaccineHistoryModel item;
+
   const _HistoryCard({required this.item});
+
+  bool _hasValidNotes(String? notes) {
+    if (notes == null) return false;
+    final clean = notes.trim().toLowerCase();
+
+    if (clean.isEmpty || clean == 'null' || clean == '...') return false;
+    return true;
+  }
 
   @override
   Widget build(BuildContext context) {
     String formattedDate = item.givenDate;
     try {
-      formattedDate = DateFormat('dd MMM, yyyy', Get.locale?.languageCode).format(DateTime.parse(item.givenDate));
+      formattedDate = DateFormat(
+        'dd MMM, yyyy',
+        Get.locale?.languageCode,
+      ).format(DateTime.parse(item.givenDate));
     } catch (_) {}
+
+    String vaccineName = item.vaccineName.trim();
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -17301,7 +18006,11 @@ class _HistoryCard extends StatelessWidget {
         border: Border.all(color: Colors.green.withValues(alpha: 0.3)),
         boxShadow: [
           if (!context.isDarkMode)
-            BoxShadow(color: Colors.green.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, 4)),
+            BoxShadow(
+              color: Colors.green.withValues(alpha: 0.05),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
         ],
       ),
       child: Column(
@@ -17323,7 +18032,7 @@ class _HistoryCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      item.vaccineName,
+                      vaccineName.tr,
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
@@ -17333,11 +18042,19 @@ class _HistoryCard extends StatelessWidget {
                     const SizedBox(height: 6),
                     Row(
                       children: [
-                        const Icon(Icons.calendar_month_outlined, size: 14, color: Colors.green),
+                        const Icon(
+                          Icons.calendar_month_outlined,
+                          size: 14,
+                          color: Colors.green,
+                        ),
                         const SizedBox(width: 4),
                         Text(
                           '${'Given on'.tr}: $formattedDate',
-                          style: const TextStyle(fontSize: 12, color: Colors.green, fontWeight: FontWeight.bold),
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: Colors.green,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ],
                     ),
@@ -17346,35 +18063,47 @@ class _HistoryCard extends StatelessWidget {
               ),
             ],
           ),
-          if (item.notes != null && item.notes!.isNotEmpty) ...[
+
+          if (_hasValidNotes(item.notes)) ...[
             const SizedBox(height: 16),
             Container(
               width: double.infinity,
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: context.isDarkMode ? context.theme.scaffoldBackgroundColor : const Color(0xFFF8F9FA),
+                color: context.isDarkMode
+                    ? context.theme.scaffoldBackgroundColor
+                    : const Color(0xFFF8F9FA),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Icon(Icons.sticky_note_2_outlined, size: 16, color: context.theme.hintColor),
+                  Icon(
+                    Icons.sticky_note_2_outlined,
+                    size: 16,
+                    color: context.theme.hintColor,
+                  ),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      item.notes!,
-                      style: TextStyle(fontSize: 13, color: context.theme.hintColor, height: 1.4),
+                      item.notes!.trim(),
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: context.theme.hintColor,
+                        height: 1.4,
+                      ),
                     ),
                   ),
                 ],
               ),
             ),
-          ]
+          ],
         ],
       ),
     );
   }
 }
+
 ```
 
 ### File: lib\widgets\vaccines\vaccine_child_header.dart

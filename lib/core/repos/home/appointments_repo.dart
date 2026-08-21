@@ -76,4 +76,8 @@ class AppointmentsRepo {
     final response = await _api.getPastForChild(childId);
     return _parseResponse(response);
   }
+  Future<List<AppointmentsModel>> getAllCancelled() async {
+    final response = await _api.getAllCancelled();
+    return _parseResponse(response);
+  }
 }

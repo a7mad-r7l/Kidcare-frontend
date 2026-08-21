@@ -30,14 +30,28 @@ class HistoryVaccinesList extends GetView<VaccinesController> {
 
 class _HistoryCard extends StatelessWidget {
   final VaccineHistoryModel item;
+
   const _HistoryCard({required this.item});
+
+  bool _hasValidNotes(String? notes) {
+    if (notes == null) return false;
+    final clean = notes.trim().toLowerCase();
+
+    if (clean.isEmpty || clean == 'null' || clean == '...') return false;
+    return true;
+  }
 
   @override
   Widget build(BuildContext context) {
     String formattedDate = item.givenDate;
     try {
-      formattedDate = DateFormat('dd MMM, yyyy', Get.locale?.languageCode).format(DateTime.parse(item.givenDate));
+      formattedDate = DateFormat(
+        'dd MMM, yyyy',
+        Get.locale?.languageCode,
+      ).format(DateTime.parse(item.givenDate));
     } catch (_) {}
+
+    String vaccineName = item.vaccineName.trim();
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -47,7 +61,11 @@ class _HistoryCard extends StatelessWidget {
         border: Border.all(color: Colors.green.withValues(alpha: 0.3)),
         boxShadow: [
           if (!context.isDarkMode)
-            BoxShadow(color: Colors.green.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, 4)),
+            BoxShadow(
+              color: Colors.green.withValues(alpha: 0.05),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
         ],
       ),
       child: Column(
@@ -69,7 +87,7 @@ class _HistoryCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      item.vaccineName,
+                      vaccineName.tr,
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
@@ -79,11 +97,19 @@ class _HistoryCard extends StatelessWidget {
                     const SizedBox(height: 6),
                     Row(
                       children: [
-                        const Icon(Icons.calendar_month_outlined, size: 14, color: Colors.green),
+                        const Icon(
+                          Icons.calendar_month_outlined,
+                          size: 14,
+                          color: Colors.green,
+                        ),
                         const SizedBox(width: 4),
                         Text(
                           '${'Given on'.tr}: $formattedDate',
-                          style: const TextStyle(fontSize: 12, color: Colors.green, fontWeight: FontWeight.bold),
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: Colors.green,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ],
                     ),
@@ -92,30 +118,41 @@ class _HistoryCard extends StatelessWidget {
               ),
             ],
           ),
-          if (item.notes != null && item.notes!.isNotEmpty) ...[
+
+          if (_hasValidNotes(item.notes)) ...[
             const SizedBox(height: 16),
             Container(
               width: double.infinity,
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: context.isDarkMode ? context.theme.scaffoldBackgroundColor : const Color(0xFFF8F9FA),
+                color: context.isDarkMode
+                    ? context.theme.scaffoldBackgroundColor
+                    : const Color(0xFFF8F9FA),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Icon(Icons.sticky_note_2_outlined, size: 16, color: context.theme.hintColor),
+                  Icon(
+                    Icons.sticky_note_2_outlined,
+                    size: 16,
+                    color: context.theme.hintColor,
+                  ),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      item.notes!,
-                      style: TextStyle(fontSize: 13, color: context.theme.hintColor, height: 1.4),
+                      item.notes!.trim(),
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: context.theme.hintColor,
+                        height: 1.4,
+                      ),
                     ),
                   ),
                 ],
               ),
             ),
-          ]
+          ],
         ],
       ),
     );

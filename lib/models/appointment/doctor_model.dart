@@ -48,7 +48,8 @@ class DoctorModel {
           json['department_name']?.toString() ??
           json['departmentName']?.toString() ??
           '',
-      profilePicture: json['profile_picture']?.toString(),
+      profilePicture:
+          json['profile_picture']?.toString() ?? json['image']?.toString(),
       department: json['department']?.toString() ?? '',
       isFavorite: favoriteValue,
     );

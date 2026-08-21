@@ -229,6 +229,11 @@ class GrowthChartWidget extends StatelessWidget {
       ],
       lineTouchData: LineTouchData(
         touchTooltipData: LineTouchTooltipData(
+          fitInsideHorizontally: true,
+
+          fitInsideVertically: true,
+
+          tooltipMargin: 8,
           getTooltipColor: (touchedSpot) => context.isDarkMode
               ? const Color(0xFF303030)
               : const Color(0xFF212121),

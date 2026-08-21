@@ -24,7 +24,9 @@ class CheckoutSummaryView extends GetView<PaymentController> {
       ),
       body: Obx(() {
         if (controller.isDetailsLoading.value) {
-          return Center(child: CircularProgressIndicator(color: context.theme.primaryColor));
+          return Center(
+            child: CircularProgressIndicator(color: context.theme.primaryColor),
+          );
         }
 
         final summary = controller.appointmentSummary.value;
@@ -43,7 +45,10 @@ class CheckoutSummaryView extends GetView<PaymentController> {
             // 1. الجزء القابل للتمرير (المحتوى)
             Expanded(
               child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 10.0),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20.0,
+                  vertical: 10.0,
+                ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -51,9 +56,13 @@ class CheckoutSummaryView extends GetView<PaymentController> {
                     Container(
                       padding: const EdgeInsets.all(20),
                       decoration: BoxDecoration(
-                        color: context.isDarkMode ? context.theme.cardColor : const Color(0xFFEDF6FF),
+                        color: context.isDarkMode
+                            ? context.theme.cardColor
+                            : const Color(0xFFEDF6FF),
                         borderRadius: BorderRadius.circular(16),
-                        border: context.isDarkMode ? Border.all(color: context.theme.dividerColor) : null,
+                        border: context.isDarkMode
+                            ? Border.all(color: context.theme.dividerColor)
+                            : null,
                       ),
                       child: Column(
                         children: [
@@ -62,16 +71,21 @@ class CheckoutSummaryView extends GetView<PaymentController> {
                             children: [
                               CircleAvatar(
                                 radius: 26,
-                                backgroundColor: context.isDarkMode ? Colors.purple.withOpacity(0.15) : Colors.purple.shade100,
-                                backgroundImage: summary.patientImageUrl.isNotEmpty
+                                backgroundColor: context.isDarkMode
+                                    ? Colors.purple.withOpacity(0.15)
+                                    : Colors.purple.shade100,
+                                backgroundImage:
+                                    summary.patientImageUrl.isNotEmpty
                                     ? NetworkImage(summary.patientImageUrl)
                                     : null,
                                 child: summary.patientImageUrl.isEmpty
                                     ? Icon(
-                                  Icons.person,
-                                  color: context.isDarkMode ? Colors.purpleAccent : Colors.purple.shade700,
-                                  size: 30,
-                                )
+                                        Icons.person,
+                                        color: context.isDarkMode
+                                            ? Colors.purpleAccent
+                                            : Colors.purple.shade700,
+                                        size: 30,
+                                      )
                                     : null,
                               ),
                               const SizedBox(width: 16),
@@ -84,14 +98,16 @@ class CheckoutSummaryView extends GetView<PaymentController> {
                                       style: TextStyle(
                                         fontWeight: FontWeight.bold,
                                         fontSize: 18,
-                                        color: context.textTheme.bodyLarge?.color,
+                                        color:
+                                            context.textTheme.bodyLarge?.color,
                                       ),
                                     ),
                                     const SizedBox(height: 4),
                                     Text(
                                       '${summary.patientAge} ${summary.ageType.tr}',
                                       style: TextStyle(
-                                        color: context.textTheme.bodyMedium?.color,
+                                        color:
+                                            context.textTheme.bodyMedium?.color,
                                         fontSize: 14,
                                       ),
                                     ),
@@ -100,19 +116,26 @@ class CheckoutSummaryView extends GetView<PaymentController> {
                                       children: [
                                         CircleAvatar(
                                           radius: 12,
-                                          backgroundColor: context.isDarkMode ? Colors.blue.withOpacity(0.15) : Colors.blue.shade100,
+                                          backgroundColor: context.isDarkMode
+                                              ? Colors.blue.withOpacity(0.15)
+                                              : Colors.blue.shade100,
                                           child: Icon(
                                             Icons.medical_services,
                                             size: 14,
-                                            color: context.isDarkMode ? Colors.blueAccent : Colors.blue,
+                                            color: context.isDarkMode
+                                                ? Colors.blueAccent
+                                                : Colors.blue,
                                           ),
                                         ),
                                         const SizedBox(width: 8),
                                         Expanded(
                                           child: Text(
-                                            '${summary.doctorName} - ${summary.departmentName}',
+                                            '${summary.doctorName} - ${summary.departmentName.tr}',
                                             style: TextStyle(
-                                              color: context.textTheme.bodyLarge?.color,
+                                              color: context
+                                                  .textTheme
+                                                  .bodyLarge
+                                                  ?.color,
                                               fontSize: 13,
                                               fontWeight: FontWeight.w600,
                                             ),
@@ -143,7 +166,7 @@ class CheckoutSummaryView extends GetView<PaymentController> {
                           const SizedBox(height: 12),
                           PaymentSummaryRow(
                             label: 'Consultation Fee'.tr,
-                            value: '${summary.price} ${summary.currency}',
+                            value: '${summary.price} ${summary.currency.tr}',
                           ),
                           Divider(
                             height: 30,
@@ -152,7 +175,7 @@ class CheckoutSummaryView extends GetView<PaymentController> {
                           ),
                           PaymentSummaryRow(
                             label: 'Total'.tr,
-                            value: '${summary.price} ${summary.currency}',
+                            value: '${summary.price} ${summary.currency.tr}',
                             isTotal: true,
                           ),
                         ],
@@ -197,7 +220,10 @@ class CheckoutSummaryView extends GetView<PaymentController> {
                                 height: 24,
                               ),
                               const SizedBox(width: 8),
-                              Image.asset('assets/images/visa_logo.png', height: 18),
+                              Image.asset(
+                                'assets/images/visa_logo.png',
+                                height: 18,
+                              ),
                             ],
                           ),
                         ),
@@ -242,7 +268,7 @@ class CheckoutSummaryView extends GetView<PaymentController> {
                         color: Colors.black.withOpacity(0.05),
                         blurRadius: 10,
                         offset: const Offset(0, -4),
-                      )
+                      ),
                   ],
                 ),
                 child: SizedBox(
@@ -262,13 +288,13 @@ class CheckoutSummaryView extends GetView<PaymentController> {
                     child: controller.isLoading.value
                         ? const CircularProgressIndicator(color: Colors.white)
                         : Text(
-                      'Pay'.tr + ' ${summary.price} ${summary.currency}',
-                      style: const TextStyle(
-                        fontSize: 18,
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
+                            '${'Pay'.tr} ${summary.price} ${summary.currency.tr}',
+                            style: const TextStyle(
+                              fontSize: 18,
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
                   ),
                 ),
               ),
